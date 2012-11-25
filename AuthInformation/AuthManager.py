@@ -25,8 +25,8 @@ class LocalAuthManager(AuthManager):
         config.filename = self.configPath
         
         config['Application'] = {}
-        config['Application']['windowX'] = 20
-        config['Application']['windowY'] = 20
+        config['Application']['posX'] = 20
+        config['Application']['posY'] = 20
         
         config['Pithos'] = {}
         config['Pithos']['user'] = 'Error'
@@ -38,8 +38,8 @@ class LocalAuthManager(AuthManager):
     def _create_validation_file(self):
         vlt = """
         [Application]
-        windowX = integer(default=20)
-        windowY = integer(default=20)
+        posX = integer(default=20)
+        posY = integer(default=20)
 
         [Pithos]
         user=string(min=6,default='Error')
@@ -60,6 +60,9 @@ class LocalAuthManager(AuthManager):
         return self.config.validate(validator,preserve_errors=True)
         
     #Pithos information
+    def get_pithos_info(self):
+        return self.config['Pithos']
+    
     def get_pithos_user(self):
         return self.config['Pithos']['user']
         
@@ -69,8 +72,12 @@ class LocalAuthManager(AuthManager):
     def get_pithos_token(self):
         return self.config['Pithos']['token']
         
-    def set_pithos_user(self,username):
+    def set_pithos_info(self, user=None, url=None, token=None):
+        self.config['Pithos']['user'] = user or self.config['Pithos']['user']
+        self.config['Pithos']['url'] = url or self.config['Pithos']['url']
+        self.config['Pithos']['token'] = token or self.config['Pithos']['token']
         
+        self.config.write()
     
     #Application information   
     def get_application_info(self):
@@ -80,3 +87,6 @@ class LocalAuthManager(AuthManager):
             
         return appInfo
     
+    def set_application_info(self, posX=None, posY=None):
+        self.config['Application']['windowX'] = posX or self.config['Application']['windowX']
+        self.config['Application']['windowY'] = posY or self.config['Application']['windowY']
