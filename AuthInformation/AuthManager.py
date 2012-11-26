@@ -1,13 +1,21 @@
 import os.path
 from configobj import ConfigObj
-from validate import Validator, ValidateError
+from validate import Validator, ValidateError                
+
+#Decorator to check file existence
+def checkFile(f):
+    def wrapper(*args):
+        if not os.path.exists(args[0].configPath):
+            args[0]._create_config_file()
+        return f(*args)
+    return wrapper
 
 class AuthManager(object):
     def __init__(self):
         pass
     
 class LocalAuthManager(AuthManager):
-    basepath = os.getcwd()
+    basepath = os.path.join(os.getcwd(), 'Configuration')
     
     def __init__(self, configName='config.ini', validateName='validator.ini'):
         self.configPath = os.path.join(self.basepath,configName)
@@ -18,11 +26,8 @@ class LocalAuthManager(AuthManager):
         if not os.path.exists(self.validatePath):
             self._create_validation_file()
         
-        self.config = ConfigObj(self.configPath,configspec=self.validatePath)
-        
     def _create_config_file(self):
-        config = ConfigObj()
-        config.filename = self.configPath
+        config = ConfigObj(self.configPath, configspec=self.validatePath)
         
         config['Application'] = {}
         config['Application']['posX'] = 20
@@ -34,6 +39,8 @@ class LocalAuthManager(AuthManager):
         config['Pithos']['token'] = 'Error'
         
         config.write()
+        
+        self.config = config
     
     def _create_validation_file(self):
         vlt = """
@@ -58,17 +65,21 @@ class LocalAuthManager(AuthManager):
         '''
         validator = Validator()
         return self.config.validate(validator,preserve_errors=True)
-        
+    
     #Pithos information
+    @checkFile
     def get_pithos_info(self):
         return self.config['Pithos']
     
+    @checkFile
     def get_pithos_user(self):
         return self.config['Pithos']['user']
         
+    @checkFile
     def get_pithos_url(self):
         return self.config['Pithos']['url']
-    
+        
+    @checkFile
     def get_pithos_token(self):
         return self.config['Pithos']['token']
         
@@ -80,6 +91,7 @@ class LocalAuthManager(AuthManager):
         self.config.write()
     
     #Application information   
+    @checkFile
     def get_application_info(self):
         appInfo = self.config['Application']
         for key in appInfo.keys():
@@ -88,5 +100,7 @@ class LocalAuthManager(AuthManager):
         return appInfo
     
     def set_application_info(self, posX=None, posY=None):
-        self.config['Application']['windowX'] = posX or self.config['Application']['windowX']
-        self.config['Application']['windowY'] = posY or self.config['Application']['windowY']
+        self.config['Application']['posX'] = posX or self.config['Application']['posX']
+        self.config['Application']['posY'] = posY or self.config['Application']['posY']
+        
+        self.config.write()
