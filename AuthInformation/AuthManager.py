@@ -1,6 +1,6 @@
 import os.path
 from configobj import ConfigObj
-from validate import Validator, ValidateError                
+from Errors import UserNotFound, DuplicateUser           
 
 #Decorator to check file existence
 def checkFile(f):
@@ -17,76 +17,44 @@ class AuthManager(object):
 class LocalAuthManager(AuthManager):
     basepath = os.path.join(os.getcwd(), 'Configuration')
     
-    def __init__(self, configName='config.ini', validateName='validator.ini'):
+    def __init__(self, configName='config.ini'):
         self.configPath = os.path.join(self.basepath,configName)
-        self.validatePath = os.path.join(self.basepath,validateName)
         
         if not os.path.exists(self.configPath):
             self._create_config_file()
-        if not os.path.exists(self.validatePath):
-            self._create_validation_file()
+        self.config = ConfigObj(self.configPath)
         
     def _create_config_file(self):
-        config = ConfigObj(self.configPath, configspec=self.validatePath)
+        config = ConfigObj(self.configPath)
         
         config['Application'] = {}
         config['Application']['posX'] = 20
         config['Application']['posY'] = 20
         
         config['Pithos'] = {}
-        config['Pithos']['user'] = 'Error'
-        config['Pithos']['url'] = 'Error'
-        config['Pithos']['token'] = 'Error'
         
         config.write()
-        
-        self.config = config
-    
-    def _create_validation_file(self):
-        vlt = """
-        [Application]
-        posX = integer(default=20)
-        posY = integer(default=20)
-
-        [Pithos]
-        user=string(min=6,default='Error')
-        url=option('https://pithos.okeanos.grnet.gr/v1','https://pithos.okeanos.io/v1','Error',default='Error')
-        token=string(min=15,default='Error')
-        """
-        
-        vlt = '\n'.join([line.strip() for line in vlt.split('\n')])
-             
-        with open(self.validatePath,'w') as f:
-            f.write(vlt)
-   
-    def _validate_configuration(self):
-        '''
-        Returns a dictionary with the validation results.
-        '''
-        validator = Validator()
-        return self.config.validate(validator,preserve_errors=True)
     
     #Pithos information
     @checkFile
-    def get_pithos_info(self):
-        return self.config['Pithos']
+    def get_pithos_info(self, user):
+        if user in self.config['Pithos']:
+            return self.config['Pithos'][user]
+        else:
+            raise UserNotFound('{} not found in config file.'.format(user))
     
     @checkFile
-    def get_pithos_user(self):
-        return self.config['Pithos']['user']
-        
-    @checkFile
-    def get_pithos_url(self):
-        return self.config['Pithos']['url']
-        
-    @checkFile
-    def get_pithos_token(self):
-        return self.config['Pithos']['token']
-        
+    def add_pithos_user(self, user, url, token):
+        if user not in self.config['Pithos']:
+            self.config['Pithos'][user] = {}
+            self.set_pithos_info(user, url, token)
+        else:
+            raise DuplicateUser('{} already in the config file.'.format(user))
+    
     def set_pithos_info(self, user=None, url=None, token=None):
-        self.config['Pithos']['user'] = user or self.config['Pithos']['user']
-        self.config['Pithos']['url'] = url or self.config['Pithos']['url']
-        self.config['Pithos']['token'] = token or self.config['Pithos']['token']
+        self.config['Pithos'][user]['user'] = user or self.config['Pithos'][user]['user']
+        self.config['Pithos'][user]['url'] = url or self.config['Pithos'][user]['url']
+        self.config['Pithos'][user]['token'] = token or self.config['Pithos'][user]['token']
         
         self.config.write()
     
