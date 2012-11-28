@@ -5,7 +5,11 @@ from Errors import UserNotFound, DuplicateUser
 #Decorator to check file existence
 def checkFile(f):
     def wrapper(*args):
-        if not os.path.exists(args[0].configPath):
+        c
+        try:
+            with open(args[0].configPath,'r') as f:
+                pass
+        except IOError as e:
             args[0]._create_config_file()
         return f(*args)
     return wrapper
@@ -20,8 +24,12 @@ class LocalAuthManager(AuthManager):
     def __init__(self, configName='config.ini'):
         self.configPath = os.path.join(self.basepath,configName)
         
-        if not os.path.exists(self.configPath):
+        try:
+            with open(self.configPath,'r') as f:
+                pass
+        except IOError as e:
             self._create_config_file()
+            
         self.config = ConfigObj(self.configPath)
         
     def _create_config_file(self):
@@ -37,7 +45,7 @@ class LocalAuthManager(AuthManager):
     
     #Pithos information
     @checkFile
-    def get_pithos_info(self, user):
+    def get_pithos_user(self, user):
         if user in self.config['Pithos']:
             return self.config['Pithos'][user]
         else:
@@ -47,11 +55,11 @@ class LocalAuthManager(AuthManager):
     def add_pithos_user(self, user, url, token):
         if user not in self.config['Pithos']:
             self.config['Pithos'][user] = {}
-            self.set_pithos_info(user, url, token)
+            self.update_pithos_user(user, url, token)
         else:
             raise DuplicateUser('{} already in the config file.'.format(user))
     
-    def set_pithos_info(self, user=None, url=None, token=None):
+    def update_pithos_user(self, user=None, url=None, token=None):
         try:
             self.config['Pithos'][user]['user'] = user or self.config['Pithos'][user]['user']
             self.config['Pithos'][user]['url'] = url or self.config['Pithos'][user]['url']
