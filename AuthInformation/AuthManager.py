@@ -52,11 +52,14 @@ class LocalAuthManager(AuthManager):
             raise DuplicateUser('{} already in the config file.'.format(user))
     
     def set_pithos_info(self, user=None, url=None, token=None):
-        self.config['Pithos'][user]['user'] = user or self.config['Pithos'][user]['user']
-        self.config['Pithos'][user]['url'] = url or self.config['Pithos'][user]['url']
-        self.config['Pithos'][user]['token'] = token or self.config['Pithos'][user]['token']
-        
-        self.config.write()
+        try:
+            self.config['Pithos'][user]['user'] = user or self.config['Pithos'][user]['user']
+            self.config['Pithos'][user]['url'] = url or self.config['Pithos'][user]['url']
+            self.config['Pithos'][user]['token'] = token or self.config['Pithos'][user]['token']
+            
+            self.config.write()
+        except KeyError:
+            raise UserNotFound('{} not found in config file.'.format(user))
     
     #Application information   
     @checkFile
