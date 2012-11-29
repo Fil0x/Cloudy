@@ -1,15 +1,14 @@
 import os.path
 from configobj import ConfigObj
-from Errors import UserNotFound, DuplicateUser           
+from Errors import UserNotFound, DuplicateUser, NotInitialized      
 
 #Decorator to check file existence
 def checkFile(f):
     def wrapper(*args):
-        c
         try:
-            with open(args[0].configPath,'r') as f:
+            with open(args[0].configPath,'r') as file:
                 pass
-        except IOError as e:
+        except IOError:
             args[0]._create_config_file()
         return f(*args)
     return wrapper
@@ -40,10 +39,16 @@ class LocalAuthManager(AuthManager):
         config['Application']['posY'] = 20
         
         config['Pithos'] = {}
+        config['Dropbox'] = {}
+        config['Dropbox']['APP_KEY'] = '6cmf257smf7esxg'
+        config['Dropbox']['APP_SECRET'] = '0eac7yw2tisotrl'
+        config['Dropbox']['ACCESS_TYPE'] = 'dropbox'
         
         config.write()
+        
+        self.config = ConfigObj(self.configPath)
     
-    #Pithos information
+    #Pithos information - Supports multiple users.
     @checkFile
     def get_pithos_user(self, user):
         if user in self.config['Pithos']:
@@ -68,6 +73,37 @@ class LocalAuthManager(AuthManager):
             self.config.write()
         except KeyError:
             raise UserNotFound('{} not found in config file.'.format(user))
+    
+    #Dropbox information - Supports one user only.
+    @checkFile
+    def get_dropbox_app_key(self):
+        return self.config['Dropbox']['APP_KEY']
+        
+    @checkFile
+    def get_dropbox_app_secret(self):
+        return self.config['Dropbox']['APP_SECRET']
+        
+    @checkFile
+    def get_dropbox_access_type(self):
+        return self.config['Dropbox']['ACCESS_TYPE']
+    
+    @checkFile
+    def get_dropbox_token(self):
+        try:
+            return self.config['Dropbox']['access_token']
+        except KeyError:
+            raise NotInitialized('Access_token is empty')
+    
+    @checkFile
+    def add_dropbox_token(self, key, secret):
+        self.config['Dropbox']['access_token'] = {}
+        self.update_dropbox_token(key, secret)
+    
+    def update_dropbox_token(self, key=None, secret=None):
+        self.config['Dropbox']['access_token']['key'] = key or self.config['Dropbox']['access_token']['key']
+        self.config['Dropbox']['access_token']['secret'] = secret or self.config['Dropbox']['access_token']['secret']
+        
+        self.config.write()
     
     #Application information   
     @checkFile

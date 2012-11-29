@@ -6,3 +6,6 @@ class UserNotFound(UserError):
   
 class DuplicateUser(UserError):
     pass
+    
+class NotInitialized(Exception):
+    pass
