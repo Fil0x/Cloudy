@@ -1,3 +1,4 @@
+import json
 import os.path
 from configobj import ConfigObj
 from Errors import UserNotFound, DuplicateUser, NotInitialized      
@@ -39,10 +40,21 @@ class LocalAuthManager(AuthManager):
         config['Application']['posY'] = 20
         
         config['Pithos'] = {}
+        
         config['Dropbox'] = {}
         config['Dropbox']['APP_KEY'] = '6cmf257smf7esxg'
         config['Dropbox']['APP_SECRET'] = '0eac7yw2tisotrl'
         config['Dropbox']['ACCESS_TYPE'] = 'dropbox'
+        
+        config['GoogleDrive'] = {}
+        config['GoogleDrive']['APP_KEY'] = '638332209096.apps.googleusercontent.com'
+        config['GoogleDrive']['APP_SECRET'] = '_8_SU5sLWfoMmS93K--Vg6Ig'
+        config['GoogleDrive']['SCOPES'] = 'https://www.googleapis.com/auth/drive'
+        config['GoogleDrive']['REDIRECT_URI'] = 'urn:ietf:wg:oauth:2.0:oob'
+        
+        config['Skydrive'] = {}
+        config['Skydrive']['APP_KEY'] = '00000000440D5972'
+        config['Skydrive']['APP_SECRET'] = 'wbQU6uGH94Ut18e3AG8iTn0kDwpihAoQ'
         
         config.write()
         
@@ -104,6 +116,36 @@ class LocalAuthManager(AuthManager):
         self.config['Dropbox']['access_token']['secret'] = secret or self.config['Dropbox']['access_token']['secret']
         
         self.config.write()
+    
+    #Google Drive information - Supports one user only.
+    @checkFile
+    def get_googledrive_app_key(self):
+        return self.config['GoogleDrive']['APP_KEY']
+        
+    @checkFile
+    def get_googledrive_app_secret(self):
+        return self.config['GoogleDrive']['APP_SECRET']
+        
+    @checkFile
+    def get_googledrive_scopes(self):
+        return self.config['GoogleDrive']['SCOPES']
+    
+    @checkFile
+    def get_googledrive_redirect_uri(self):
+        return self.config['GoogleDrive']['REDIRECT_URI']
+    
+    @checkFile
+    def get_googledrive_credentials(self):
+        try:
+            return self.config['GoogleDrive']['Credentials']
+        except KeyError:
+            raise NotInitialized('Credentials are empty')
+    
+    @checkFile
+    def update_googledrive_credentials(self, credentials):
+        self.config['GoogleDrive']['Credentials'] = credentials.to_json()
+
+        self.config.write()        
     
     #Application information   
     @checkFile
