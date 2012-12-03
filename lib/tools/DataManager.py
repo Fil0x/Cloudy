@@ -14,11 +14,11 @@ def checkFile(f):
         return f(*args)
     return wrapper
 
-class AuthManager(object):
+class DataManager(object):
     def __init__(self):
         pass
     
-class LocalAuthManager(AuthManager):
+class LocalDataManager(AuthManager):
     basepath = os.path.join(os.getcwd(), 'Configuration')
     
     def __init__(self, configName='config.ini'):
@@ -55,6 +55,8 @@ class LocalAuthManager(AuthManager):
         config['Skydrive'] = {}
         config['Skydrive']['APP_KEY'] = '00000000440D5972'
         config['Skydrive']['APP_SECRET'] = 'wbQU6uGH94Ut18e3AG8iTn0kDwpihAoQ'
+        config['Skydrive']['SCOPES'] = 'wl.offline_access'
+        config['Skydrive']['REDIRECT_URI'] = 'http://cslab.ece.ntua.gr/~fsami/test/'
         
         config.write()
         
@@ -146,6 +148,37 @@ class LocalAuthManager(AuthManager):
         self.config['GoogleDrive']['Credentials'] = credentials.to_json()
 
         self.config.write()        
+    
+    #Skydrive information - Supports one user only.
+    @checkFile
+    def get_skydrive_app_key(self):
+        return self.config['Skydrive']['APP_KEY']
+        
+    @checkFile
+    def get_skydrive_app_secret(self):
+        return self.config['Skydrive']['APP_SECRET']
+        
+    @checkFile
+    def get_skydrive_scopes(self):
+        return self.config['Skydrive']['SCOPES']
+    
+    @checkFile
+    def get_skydrive_redirect_uri(self):
+        return self.config['Skydrive']['REDIRECT_URI']
+    
+    @checkFile
+    def get_skydrive_refreshtoken(self):
+        try:
+            return self.config['Skydrive']['Credentials']['Refreshtoken']
+        except KeyError:
+            raise NotInitialized('Refreshtoken is empty')
+    
+    @checkFile
+    def update_skydrive_refreshtoken(self, token):
+        self.config['Skydrive']['Credentials']['Refreshtoken'] = token
+
+        self.config.write()        
+    
     
     #Application information   
     @checkFile
