@@ -15,12 +15,9 @@ def checkFile(f):
     return wrapper
 
 class DataManager(object):
-    def __init__(self):
-        pass
-    
-class LocalDataManager(AuthManager):
     basepath = os.path.join(os.getcwd(), 'Configuration')
     
+class LocalDataManager(DataManager):    
     def __init__(self, configName='config.ini'):
         self.configPath = os.path.join(self.basepath,configName)
         
@@ -32,6 +29,9 @@ class LocalDataManager(AuthManager):
             
         self.config = ConfigObj(self.configPath)
         
+    def update(self):
+        self.config = ConfigObj(self.configPath)
+     
     def _create_config_file(self):
         config = ConfigObj(self.configPath)
         
@@ -62,31 +62,33 @@ class LocalDataManager(AuthManager):
         
         self.config = ConfigObj(self.configPath)
     
-    #Pithos information - Supports multiple users.
+    #Pithos information - Supports one user.
     @checkFile
-    def get_pithos_user(self, user):
-        if user in self.config['Pithos']:
-            return self.config['Pithos'][user]
-        else:
-            raise UserNotFound('{} not found in config file.'.format(user))
-    
-    @checkFile
-    def add_pithos_user(self, user, url, token):
-        if user not in self.config['Pithos']:
-            self.config['Pithos'][user] = {}
-            self.update_pithos_user(user, url, token)
-        else:
-            raise DuplicateUser('{} already in the config file.'.format(user))
-    
-    def update_pithos_user(self, user=None, url=None, token=None):
+    def get_pithos_credentials(self):
         try:
-            self.config['Pithos'][user]['user'] = user or self.config['Pithos'][user]['user']
-            self.config['Pithos'][user]['url'] = url or self.config['Pithos'][user]['url']
-            self.config['Pithos'][user]['token'] = token or self.config['Pithos'][user]['token']
+            return self.config['Pithos']['credentials']
+        except KeyError:
+            raise NotInitialized('Credentials are empty')
+    
+    @checkFile
+    def add_pithos_credentials(self, user, url, token):
+        self.config['Pithos']['credentials'] = {}
+        self.update_pithos_credentials(user, url, token)
+    
+    def flush_pithos_credentials(self):
+        try:
+            del(self.config['Pithos']['credentials'])
             
             self.config.write()
         except KeyError:
-            raise UserNotFound('{} not found in config file.'.format(user))
+            raise NotInitialized('Credentials are empty')
+    
+    def update_pithos_credentials(self, user=None, url=None, token=None):
+        self.config['Pithos']['credentials']['user'] = user or self.config['Pithos']['credentials']['user']
+        self.config['Pithos']['credentials']['url'] = url or self.config['Pithos']['credentials']['url']
+        self.config['Pithos']['credentials']['token'] = token or self.config['Pithos']['credentials']['token']
+        
+        self.config.write()
     
     #Dropbox information - Supports one user only.
     @checkFile
@@ -112,6 +114,14 @@ class LocalDataManager(AuthManager):
     def add_dropbox_token(self, key, secret):
         self.config['Dropbox']['access_token'] = {}
         self.update_dropbox_token(key, secret)
+    
+    def flush_dropbox_token(self):
+        try:
+            del(self.config['Dropbox']['access_token'])
+            
+            self.config.write()
+        except KeyError:
+            raise NotInitialized('access_token is empty')
     
     def update_dropbox_token(self, key=None, secret=None):
         self.config['Dropbox']['access_token']['key'] = key or self.config['Dropbox']['access_token']['key']
@@ -143,6 +153,14 @@ class LocalDataManager(AuthManager):
         except KeyError:
             raise NotInitialized('Credentials are empty')
     
+    def flush_googledrive_credentials(self):
+        try:
+            del(self.config['GoogleDrive']['Credentials'])
+            
+            self.config.write()
+        except KeyError:
+            raise NotInitialized('Credentials are empty')
+    
     @checkFile
     def update_googledrive_credentials(self, credentials):
         self.config['GoogleDrive']['Credentials'] = credentials.to_json()
@@ -167,15 +185,24 @@ class LocalDataManager(AuthManager):
         return self.config['Skydrive']['REDIRECT_URI']
     
     @checkFile
-    def get_skydrive_refreshtoken(self):
+    def get_skydrive_credentials(self):
         try:
-            return self.config['Skydrive']['Credentials']['Refreshtoken']
+            return self.config['Skydrive']['Credentials']
         except KeyError:
-            raise NotInitialized('Refreshtoken is empty')
+            raise NotInitialized('Credentials are empty')
+    
+    def flush_skydrive_credentials(self):
+        try:
+            del(self.config['Skydrive']['Credentials'])
+            
+            self.config.write()
+        except KeyError:
+            raise NotInitialized('Credentials are empty')
     
     @checkFile
-    def update_skydrive_refreshtoken(self, token):
-        self.config['Skydrive']['Credentials']['Refreshtoken'] = token
+    def update_skydrive_refreshtoken(self, accesstoken, refreshtoken):
+        self.config['Skydrive']['Credentials']['accesstoken'] = token or self.config['Skydrive']['Credentials']['accesstoken']
+        self.config['Skydrive']['Credentials']['refreshtoken'] = token or self.config['Skydrive']['Credentials']['refreshtoken']
 
         self.config.write()        
     
@@ -189,7 +216,7 @@ class LocalDataManager(AuthManager):
             
         return appInfo
     
-    def set_application_info(self, posX=None, posY=None):
+    def update_application_info(self, posX=None, posY=None):
         self.config['Application']['posX'] = posX or self.config['Application']['posX']
         self.config['Application']['posY'] = posY or self.config['Application']['posY']
         
