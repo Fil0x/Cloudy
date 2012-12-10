@@ -58,17 +58,29 @@ class LocalUploadManager(UploadManager):
         return self.upload['Dropbox']
     
     @checkUpload
-    def dropbox_update_upload(self, offset, upload_id, path):
-        self.upload['Dropbox'][upload_id] = {}
-        self.upload['Dropbox'][upload_id]['offset'] = offset or self.upload['Dropbox'][upload_id]['offset']
-        self.upload['Dropbox'][upload_id]['path'] = path or self.upload['Dropbox'][upload_id]['path']
+    def dropbox_update_upload(self, upload_id, offset, path):
+        id = str(len(self.upload['Dropbox']))
+        
+        self.upload['Dropbox'][id] = {}
+        self.upload['Dropbox'][id]['upload_id'] = upload_id or self.upload['Dropbox'][id]['upload_id']
+        self.upload['Dropbox'][id]['offset'] = offset or self.upload['Dropbox'][id]['offset']
+        self.upload['Dropbox'][id]['path'] = path or self.upload['Dropbox'][id]['path']
         
         self.upload.write()
     
-    def dropbox_delete_upload(self, upload_id):
-        try:
-            del(self.upload['Dropbox'][upload_id])
-            
-            self.upload.write()
-        except KeyError:
-            raise KeyError('Upload_id:{} not found.'.format(upload_id))
+    def dropbox_delete_upload(self, id):
+        def delete_item(i):
+            try:
+                del(self.upload['Dropbox'][i])
+            except KeyError:
+                pass
+        
+        if isinstance(id,list):
+            map(delete_item, id)
+        else:
+            del(self.upload['Dropbox'][id])
+        
+        self.upload.write()
+    
+    def dropbox_flush_uploads(self):
+        self.upload['Dropbox'] = {}
