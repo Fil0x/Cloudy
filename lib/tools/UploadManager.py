@@ -24,6 +24,7 @@ def checkHistory(f):
     
 class UploadManager(object):
     basepath = os.path.join(os.getcwd(), 'Configuration')
+    services = ['Dropbox', 'Pithos', 'Skydrive', 'GoogleDrive']
     
 class LocalUploadManager(UploadManager):
     def __init__(self, historyName='history.ini', uploadName='upload.ini'):
@@ -52,10 +53,6 @@ class LocalUploadManager(UploadManager):
         config.write()
 
         setattr(self, attr, config)
-
-    @checkUpload
-    def dropbox_get_uploads(self):
-        return self.upload['Dropbox']
     
     @checkUpload
     def dropbox_update_upload(self, upload_id, offset, path):
@@ -67,20 +64,43 @@ class LocalUploadManager(UploadManager):
         self.upload['Dropbox'][id]['path'] = path or self.upload['Dropbox'][id]['path']
         
         self.upload.write()
+
+    @checkUpload
+    def googledrive_update_upload(self, upload_uri, offset, path):
+        id = str(len(self.upload['GoogleDrive']))
+        
+        self.upload['GoogleDrive'][id] = {}
+        self.upload['GoogleDrive'][id]['upload_uri'] = upload_uri or self.upload['GoogleDrive'][id]['upload_uri']
+        self.upload['GoogleDrive'][id]['path'] = path or self.upload['GoogleDrive'][id]['path']
+        self.upload['GoogleDrive'][id]['offset'] = offset or self.upload['GoogleDrive'][id]['offset']
+        
+        self.upload.write()        
+   
+    @checkUpload
+    def get_uploads(self, service):
+        assert(service in self.services)
+        
+        return self.upload[service]
     
-    def dropbox_delete_upload(self, id):
+    def delete_upload(self, service, id):
+        assert(service in self.services)
+        
         def delete_item(i):
             try:
-                del(self.upload['Dropbox'][i])
+                del(self.upload[service][i])
             except KeyError:
                 pass
         
         if isinstance(id,list):
             map(delete_item, id)
         else:
-            del(self.upload['Dropbox'][id])
+            del(self.upload[service][id])
         
         self.upload.write()
-    
-    def dropbox_flush_uploads(self):
-        self.upload['Dropbox'] = {}
+
+    def flush_uploads(self, service):
+        assert(service in self.services)
+        
+        self.upload[service] = {}
+        
+        self.upload.write()

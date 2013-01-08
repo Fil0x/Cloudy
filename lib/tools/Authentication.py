@@ -83,6 +83,7 @@ class AuthManager(object):
         except Exception:
             return None
         
+        self.dataManager.update_googledrive_credentials(credentials)
         return drive_service
         
     def googledriveAddUser(self, credentials):
