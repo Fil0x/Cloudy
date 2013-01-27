@@ -39,7 +39,7 @@ class DropboxUploader(object):
     """Contains the logic around a chunked upload, which uploads a
     large file to Dropbox via the /chunked_upload endpoint
     """
-    def __init__(self, file_obj, length, path, offset, upload_id,client=None):
+    def __init__(self, file_obj, length, path, offset=0, upload_id=None, client=None):
         self.client = client
         self.offset = offset
         self.upload_id = upload_id

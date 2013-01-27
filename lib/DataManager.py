@@ -15,7 +15,7 @@ def checkFile(f):
     return wrapper
 
 class DataManager(object):
-    basepath = os.path.join(os.getcwd(), 'Configuration')
+    basepath = os.path.join(os.path.dirname(os.getcwd()), 'Configuration')
     
 class LocalDataManager(DataManager):    
     def __init__(self, configName='config.ini'):

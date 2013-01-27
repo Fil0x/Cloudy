@@ -23,7 +23,7 @@ def checkHistory(f):
     return wrapper
     
 class UploadManager(object):
-    basepath = os.path.join(os.getcwd(), 'Configuration')
+    basepath = os.path.join(os.path.dirname(os.getcwd()), 'Configuration')
     services = ['Dropbox', 'Pithos', 'Skydrive', 'GoogleDrive']
     
 class LocalUploadManager(UploadManager):
