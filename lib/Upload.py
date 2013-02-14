@@ -48,15 +48,15 @@ class DropboxUploader(object):
         self.last_block = None
         self.file_obj = file_obj
         self.target_length = length
-        
+
         self._file_obj_seek()
-    
+
     def set_client(self, client):
         self.client = client
-    
+
     def _file_obj_seek(self):
         self.file_obj.seek(self.offset)
-    
+
     def upload_chunked(self, chunk_size = 4 * 1024 * 1024):
         """Uploads data from this ChunkedUploader's file_obj in chunks, until
         an error occurs. Throws an exception when an error occurs, and can
@@ -128,10 +128,10 @@ class GoogleDriveUploader(object):
         self.offset = offset
         self.upload_uri = upload_uri
         self.service = None
-        
+
     def set_service(self, service):
         self.service = service
-    
+
     def upload_chunked(self, chunk_size=DEFAULT_CHUNK_SIZE):
         media_body = MediaFileUpload(self.path, chunksize=DEFAULT_CHUNK_SIZE, resumable=True)
         file = self.service.files().insert(body=self.body, media_body=media_body)
@@ -157,62 +157,64 @@ class UploadQueue(object):
         self.pending_uploads['Dropbox'] = {}
         self.pending_uploads['GoogleDrive'] = {}
         self.pending_uploads['Skydrive'] = {}
-        
-        self.dropbox_load()
-        
-    def dropbox_load(self):
+
+        self._dropbox_load()
+        self._googledrive_load()
+
+    def _dropbox_load(self):
         uploadManager = LocalUploadManager()
         uploadsFromFile = uploadManager.get_uploads('Dropbox')
-        
+
         for k,v in uploadsFromFile.items():
             #Check if the file still exists
             try:
-                with open(v['path'],'r'):
+                with open(v['path'], 'r'):
                     pass
             except IOError:
                 self.pending_uploads['Dropbox'][k] = {'status':'Invalid path {}'.format(k), 'path':v['path']}
                 continue
-            
+
             fileSize = os.path.getsize(v['path'])
-            
+
             offset = int(v['offset'])
             upload_id = None if v['upload_id'] == 'None' else v['upload_id']
             dbUploader = DropboxUploader(open(v['path'],'rb'), fileSize, v['path'],
                                          offset, upload_id)
-            
+
             self.pending_uploads['Dropbox'][k] = {'status':k, 'uploader':dbUploader}
-    
-    def dropbox_add(self, path, length):
+
+    def dropbox_add(self, path):
         dbUploader = None
         id = str(len(self.pending_uploads['Dropbox']))
         try:
+            length = os.path.getsize(path)
             dbUploader = DropboxUploader(open(path,'rb'), length, path)
         except IOError:
             self.pending_uploads['Dropbox'][id] = {'status':'Invalid path {}'.format(id), 'path':path}
             return
         else:
             self.pending_uploads['Dropbox'][id] = {'status':id, 'uploader':dbUploader}
-    
-    def dropbox_dump(self):
+
+    def _dropbox_dump(self):
         def create_dict(dbUploader):
-            return {'upload_id':dbUploader.upload_id or 'None',
-                    'offset':dbUploader.offset,
-                    'path':dbUploader.path}
-    
+            return {'upload_id': dbUploader.upload_id or 'None',
+                    'offset': dbUploader.offset,
+                    'path': dbUploader.path}
+
         uploadManager = LocalUploadManager()
         uploadManager.flush_uploads('Dropbox')
         self._remove_invalids('Dropbox')
-        
+
         uploadManager = LocalUploadManager()
         for v in self.pending_uploads['Dropbox'].values():
             d = create_dict(v['uploader'])
             uploadManager.dropbox_update_upload(d['upload_id'], str(d['offset']), d['path'])
-                   
-    def googledrive_load(self):
+
+    def _googledrive_load(self):
         uploadManager = LocalUploadManager()
         uploadsFromFile = uploadManager.get_uploads('GoogleDrive')
-        
-        for k,v in uploadsFromFile.items():
+
+        for k, v in uploadsFromFile.items():
             #Check if the file still exists
             try:
                 with open(v['path'],'r'):
@@ -220,14 +222,14 @@ class UploadQueue(object):
             except IOError:
                 self.pending_uploads['GoogleDrive'][k] = {'status':'Invalid path {}'.format(k), 'path':v['path']}
                 continue
-            
+
             offset = int(v['offset'])
             upload_uri = None if v['upload_uri'] == 'None' else v['upload_uri']
             gdUploader = GoogleDriveUploader(v['path'], {'title':os.path.basename(v['path'])},
                                              offset, upload_uri)
-            
-        self.pending_uploads['GoogleDrive'][k] = {'status':k, 'uploader':gdUploader}
-            
+
+            self.pending_uploads['GoogleDrive'][k] = {'status':k, 'uploader':gdUploader}
+
     def googledrive_add(self, path, body={}):
         gdUploader = None
         id = str(len(self.pending_uploads['GoogleDrive']))
@@ -240,28 +242,31 @@ class UploadQueue(object):
             return
         else:
             self.pending_uploads['GoogleDrive'][id] = {'status':id, 'uploader':gdUploader}
-    
-    def googledrive_dump(self):
+
+    def _googledrive_dump(self):
         def create_dict(gdUploader):
             return {'upload_uri':gdUploader.resumable_uri or 'None',
                     'offset':gdUploader.resumable_progress,
                     'path':gdUploader.path}
-    
+
         uploadManager = LocalUploadManager()
         uploadManager.flush_uploads('GoogleDrive')
         self._remove_invalids('GoogleDrive')
-        
+
         uploadManager = LocalUploadManager()
         for v in self.pending_uploads['GoogleDrive'].values():
             d = create_dict(v['uploader'])
             uploadManager.googledrive_update_upload(d['upload_uri'], str(d['offset']), d['path'])
-               
+
     def _remove_invalids(self, s):
         self.pending_uploads[s] = {k:v for k,v in self.pending_uploads[s].items() if 'path' not in v}
-    
+
     def delete(self, service, key):
         try:
             del(self.pending_uploads[service][key])
         except KeyError:
             raise KeyError('No such key.')
-    
+            
+    def dump(self):
+        self._dropbox_dump()
+        self._googledrive_dump()
