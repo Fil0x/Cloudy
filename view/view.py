@@ -3,6 +3,7 @@ if ".." not in sys.path:
     sys.path.append("..")
 
 import AppFacade
+from model.modelProxy import ModelProxy
 from PyQt4 import QtCore
 import puremvc.interfaces
 import puremvc.patterns.mediator
@@ -23,10 +24,33 @@ class SysTrayMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMe
                                self.onSettings, QtCore.Qt.QueuedConnection)                               
 
     def onOpen(self):
-        print 'Opening App'
+        self.facade.sendNotification(AppFacade.AppFacade.SHOW_DETAILED)
+        self.facade.sendNotification(AppFacade.AppFacade.DATA_UPDATED)
         
     def onSettings(self):
         print 'Opening settings'
 
     def onExit(self):
         self.facade.sendNotification(AppFacade.AppFacade.EXIT)
+        
+class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMediator):
+    
+    NAME = 'DetailedWindowMediator'
+    
+    def __init__(self, viewComponent):
+        super(DetailedWindowMediator, self).__init__(DetailedWindowMediator.NAME, viewComponent)
+        
+        self.dataProxy = self.facade.retrieveProxy(ModelProxy.NAME)
+        
+    def listNotificationInterests(self):
+        return [
+            AppFacade.AppFacade.SHOW_DETAILED,
+            AppFacade.AppFacade.DATA_UPDATED
+        ]
+        
+    def handleNotification(self, notification):
+        noteName = notification.getName()
+        if noteName == AppFacade.AppFacade.SHOW_DETAILED and not self.viewComponent.isVisible():
+            self.viewComponent.setVisible(True)
+        elif noteName == AppFacade.AppFacade.DATA_UPDATED and self.viewComponent.isVisible():
+            self.viewComponent.set_model_data(self.dataProxy.detailed_view_data())

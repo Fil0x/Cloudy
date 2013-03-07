@@ -4,12 +4,16 @@ if ".." not in sys.path:
 
 
 from view.view import SysTrayMediator
+from view.view import DetailedWindowMediator
+from view.components import DetailedWindow
+from model.modelProxy import ModelProxy
 import puremvc.patterns.command
 import puremvc.patterns
 
 
 class StartUpCommand(puremvc.patterns.command.SimpleCommand, puremvc.interfaces.ICommand):
     def execute(self, notification):
-
-        systray = notification.getBody()
-        self.facade.registerMediator(SysTrayMediator(systray))
+        self.facade.registerProxy(ModelProxy())
+        
+        self.facade.registerMediator(SysTrayMediator(notification.getBody()))
+        self.facade.registerMediator(DetailedWindowMediator(DetailedWindow()))

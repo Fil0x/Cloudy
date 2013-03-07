@@ -9,6 +9,7 @@ class AppFacade(puremvc.patterns.facade.Facade):
     EXIT = 'exit'
     DATA_UPDATED = 'data_updated'
     DATA_CHANGED = 'data_changed'
+    SHOW_DETAILED = 'show_detailed'
 
     def __init__(self):
         self.initializeFacade()

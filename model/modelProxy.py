@@ -9,13 +9,14 @@ import puremvc.patterns.proxy
 
 
 class ModelProxy(puremvc.patterns.proxy.Proxy):
+
     NAME = 'MODELPROXY'
 
     def __init__(self):
         super(ModelProxy, self).__init__(ModelProxy.NAME, [])
 
         self.model = Model()
-        self.sendNotification(AppFacade.DATA_CHANGED, self.model.uploadQueue)
+        self.sendNotification(AppFacade.AppFacade.DATA_CHANGED, self.model.uploadQueue)
 
     def detailed_view_data(self):
         data = []
@@ -32,12 +33,12 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
     def dropbox_add(self, path):
         self.model.uploadQueue.dropbox_add(path)
 
-        self.sendNotification(AppFacade.DATA_CHANGED, self.model.uploadQueue)
+        self.sendNotification(AppFacade.AppFacade.DATA_CHANGED, self.model.uploadQueue)
 
     def googledrive_add(self, path, body={}):
         self.model.uploadQueue.googledrive_add(path, body)
 
-        self.sendNotification(AppFacade.DATA_CHANGED, self.model.uploadQueue)
+        self.sendNotification(AppFacade.AppFacade.DATA_CHANGED, self.model.uploadQueue)
 
     def dump(self):
         self.model.uploadQueue.dump()
@@ -45,4 +46,4 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
     def delete(self, service, key):
         self.model.uploadQueue.delete(service, key)
 
-        self.sendNotification(AppFacade.DATA_CHANGED, self.model.uploadQueue)
+        self.sendNotification(AppFacade.AppFacade.DATA_CHANGED, self.model.uploadQueue)

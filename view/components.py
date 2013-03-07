@@ -1,4 +1,6 @@
 import smtplib
+import operator
+from PyQt4 import Qt
 from PyQt4 import QtGui
 from PyQt4 import QtCore
 from email.MIMEText import MIMEText
@@ -162,3 +164,139 @@ class FeedbackPage(QtGui.QWidget):
         clientArea = QtGui.QDesktopWidget().availableGeometry().center()
         appRect.moveCenter(clientArea)
         self.move(appRect.topLeft())
+
+
+class DetailedWindow(QtGui.QMainWindow):
+    
+    addBtnPath = r'images/detailed-add.png'
+    removeBtnPath = r'images/detailed-remove.png'
+    playBtnPath = r'images/detailed-play.png'
+    stopBtnPath = r'images/detailed-stop.png'
+    settingsBtnPath = r'images/detailed-configure.png'
+    
+    def __init__(self):
+        QtGui.QWidget.__init__(self)
+        self.setWindowTitle('Cloudy#CurrVer')
+        self.setVisible(False)
+
+        self.data = []
+        self.header = ['Name', 'Service', 'Destination', 'Status',
+                       'Progress', 'Conflict', 'Completed']
+        self.table = self._createTable()
+        
+        self._createRibbon()
+
+        tab = QtGui.QTabWidget()
+        tab.setTabShape(QtGui.QTabWidget.Triangular)
+        tab.insertTab(0, self.table, 'Active')
+        tab.insertTab(1, QtGui.QLabel('HISTORY'), 'History')
+        tab.insertTab(2, QtGui.QLabel('LOGS'), 'Logs')
+
+
+        self.setCentralWidget(tab)
+
+        sb = QtGui.QStatusBar()
+        sb.setFixedHeight(18)
+        sb.setStatusTip('Ready')
+        self.setStatusBar(sb)
+    
+    def set_model_data(self, data):
+        self.table.setModel(MyTableModel(data, self.header, self))
+        QtCore.QObject.connect(self.table.selectionModel(),
+                               QtCore.SIGNAL("selectionChanged(QItemSelection, QItemSelection)"),
+                               self.selection_changed)
+    
+    def closeEvent(self, event):
+        ''' Override this event so the app won't close 
+            when we press 'X'.
+        '''
+        self.setVisible(False)
+        event.ignore()
+     
+    def selection_changed(self, new, old):
+        for i in new.indexes():
+            self.table.selectRow(i.row())
+
+    def _createRibbon(self):
+        def _createDockWidget(elem):
+            dockWidget = QtGui.QDockWidget()
+            #Hide the dock title bar
+            dockWidget.setTitleBarWidget(QtGui.QWidget())
+            
+            setattr(self, elem, QtGui.QPushButton())
+            getattr(self, elem).setIcon(QtGui.QIcon(getattr(self, elem + 'Path')))
+            getattr(self, elem).setFlat(True)
+            dockWidget.setWidget(getattr(self, elem))
+            self.addDockWidget(Qt.Qt.TopDockWidgetArea, dockWidget)
+        
+        _createDockWidget('addBtn')
+        _createDockWidget('removeBtn')
+        _createDockWidget('playBtn')
+        _createDockWidget('stopBtn')
+        _createDockWidget('settingsBtn')
+            
+    def _createTable(self):
+        tbl = QtGui.QTableView()
+        
+        tm = MyTableModel(self.data, self.header, self)
+        tbl.setModel(tm)
+        QtCore.QObject.connect(tbl.selectionModel(),
+                               QtCore.SIGNAL("selectionChanged(QItemSelection, QItemSelection)"),
+                               self.selection_changed)
+        
+        tbl.setMinimumSize(704, 300)
+        tbl.setShowGrid(False)
+        
+        font = QtGui.QFont('Courier New', 8)
+        tbl.setFont(font)
+        
+        vh = tbl.verticalHeader()
+        vh.setVisible(False)
+        
+        hh = tbl.horizontalHeader()
+        for i in range(len(self.header)):
+            hh.setResizeMode(i, QtGui.QHeaderView.Stretch)
+
+        # set column width to fit contents
+        tbl.resizeColumnsToContents()
+
+        # set row height
+        nrows = len(self.data)
+        for row in range(nrows):
+            tbl.setRowHeight(row, 18)
+
+        tbl.setSortingEnabled(True)
+
+        return tbl
+      
+class MyTableModel(QtCore.QAbstractTableModel):
+    def __init__(self, data, header, parent=None):
+        QtCore.QAbstractTableModel.__init__(self, parent)
+        
+        self.arraydata = data
+        self.header = header
+        
+    def rowCount(self, parent):
+        return len(self.arraydata)
+        
+    def columnCount(self, parent):
+        return len(self.arraydata[0]) if len(self.arraydata) else 0
+        
+    def data(self, index, role):
+        if not index.isValid():
+            return QtCore.QVariant()
+        elif role != Qt.Qt.DisplayRole:
+            return QtCore.QVariant()
+        return QtCore.QVariant(self.arraydata[index.row()][index.column()])
+        
+    def headerData(self, col, orientation, role):
+        if orientation == Qt.Qt.Horizontal and role == Qt.Qt.DisplayRole:
+            return QtCore.QVariant(self.header[col])
+        return QtCore.QVariant()
+        
+    def sort(self, Ncol, order):
+        self.emit(QtCore.SIGNAL("layoutAboutToBeChanged()"))
+        self.arraydata = sorted(self.arraydata, key=operator.itemgetter(Ncol))        
+        if order == Qt.Qt.DescendingOrder:
+            self.arraydata.reverse()
+        self.emit(QtCore.SIGNAL("layoutChanged()"))
