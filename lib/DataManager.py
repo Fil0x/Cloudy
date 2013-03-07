@@ -1,8 +1,8 @@
-import json
 import os
-from configobj import ConfigObj
+import json
 import inspect
-from Errors import UserNotFound, DuplicateUser, NotInitialized
+from configobj import ConfigObj
+
 
 #Decorator to check file existence
 def checkFile(f):
@@ -153,7 +153,7 @@ class LocalDataManager(DataManager):
         try:
             return self.config['GoogleDrive']['Credentials']
         except KeyError:
-            raise NotInitialized('Credentials are empty')
+            raise KeyError('Credentials are empty')
 
     def flush_googledrive_credentials(self):
         try:
@@ -161,7 +161,7 @@ class LocalDataManager(DataManager):
 
             self.config.write()
         except KeyError:
-            raise NotInitialized('Credentials are empty')
+            raise KeyError('Credentials are empty')
 
     @checkFile
     def update_googledrive_credentials(self, credentials):
@@ -191,7 +191,7 @@ class LocalDataManager(DataManager):
         try:
             return self.config['Skydrive']['Credentials']
         except KeyError:
-            raise NotInitialized('Credentials are empty')
+            raise KeyError('Credentials are empty')
 
     def flush_skydrive_credentials(self):
         try:
@@ -199,7 +199,7 @@ class LocalDataManager(DataManager):
 
             self.config.write()
         except KeyError:
-            raise NotInitialized('Credentials are empty')
+            raise KeyError('Credentials are empty')
 
     @checkFile
     def update_skydrive_refreshtoken(self, accesstoken, refreshtoken):

@@ -1,29 +1,20 @@
-import json
 import os
 import inspect
 from configobj import ConfigObj
 
 
-def checkUpload(f):
-    def wrapper(*args):
-        try:
-            with open(args[0].uploadPath, 'r'):
-                pass
-        except IOError:
-            args[0]._create_file(args[0].uploadPath, 'upload')
-        return f(*args)
-    return wrapper
-
-
-def checkHistory(f):
-    def wrapper(*args):
-        try:
-            with open(args[0].historyPath, 'r'):
-                pass
-        except IOError:
-            args[0]._create_file(args[0].historyPath, 'history')
-        return f(*args)
-    return wrapper
+def checkFile(fileType):
+    def fdec(func):
+        def f(*args, **kwargs):
+            path = getattr(args[0], fileType)
+            try:
+                with open(path, 'r'):
+                    pass
+            except IOError:
+                args[0]._create_file(path, fileType)
+            return func(*args, **kwargs)
+        return f
+    return fdec
 
 
 class UploadManager(object):
@@ -60,29 +51,19 @@ class LocalUploadManager(UploadManager):
 
         setattr(self, attr, config)
 
-    @checkUpload
-    def dropbox_update_upload(self, upload_id, offset, path):
-        id = str(len(self.upload['Dropbox']))
-
-        self.upload['Dropbox'][id] = {}
-        self.upload['Dropbox'][id]['upload_id'] = upload_id or self.upload['Dropbox'][id]['upload_id']
-        self.upload['Dropbox'][id]['offset'] = offset or self.upload['Dropbox'][id]['offset']
-        self.upload['Dropbox'][id]['path'] = path or self.upload['Dropbox'][id]['path']
+    @checkFile('uploadPath')
+    def dropbox_update_upload(self, id, **kwargs):
+        self.upload['Dropbox'].setdefault(id, kwargs)
 
         self.upload.write()
 
-    @checkUpload
-    def googledrive_update_upload(self, upload_uri, offset, path):
-        id = str(len(self.upload['GoogleDrive']))
-
-        self.upload['GoogleDrive'][id] = {}
-        self.upload['GoogleDrive'][id]['upload_uri'] = upload_uri or self.upload['GoogleDrive'][id]['upload_uri']
-        self.upload['GoogleDrive'][id]['path'] = path or self.upload['GoogleDrive'][id]['path']
-        self.upload['GoogleDrive'][id]['offset'] = offset or self.upload['GoogleDrive'][id]['offset']
-
+    @checkFile('uploadPath')
+    def googledrive_update_upload(self, id, **kwargs):
+        self.upload['GoogleDrive'].setdefault(id, kwargs)
+        
         self.upload.write()
 
-    @checkUpload
+    @checkFile('uploadPath')
     def get_uploads(self, service):
         assert(service in self.services)
 

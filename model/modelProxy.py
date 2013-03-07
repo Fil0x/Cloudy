@@ -2,9 +2,10 @@ import sys
 if ".." not in sys.path:
     sys.path.append("..")
 
+import AppFacade
+import os
 from model import Model
 import puremvc.patterns.proxy
-from AppFacade import AppFacade
 
 
 class ModelProxy(puremvc.patterns.proxy.Proxy):
@@ -16,6 +17,18 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
         self.model = Model()
         self.sendNotification(AppFacade.DATA_CHANGED, self.model.uploadQueue)
 
+    def detailed_view_data(self):
+        data = []
+        for service, items in self.model.uploadQueue.pending_uploads.iteritems():
+            for d in items.values():
+                if len(d):
+                    name = os.path.basename(d['uploader'].path)
+                    progress = round(float(d['uploader'].offset)/d['uploader'].target_length, 2)
+                    data.append([name, service, d['destination'], d['status'], 
+                              progress, d['conflict'], 'NaN'])
+                          
+        return data
+        
     def dropbox_add(self, path):
         self.model.uploadQueue.dropbox_add(path)
 

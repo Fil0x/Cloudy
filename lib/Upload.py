@@ -1,19 +1,19 @@
 import re
 import os
+import httplib2
+import requests
 import mimetypes
 from StringIO import StringIO
 from UploadManager import LocalUploadManager
 
-from dropbox import client
 from dropbox import rest
+from dropbox import client
 from dropbox import session
 from oauth2client.client import Credentials
 from apiclient import errors
 from apiclient.discovery import build
 from apiclient.http import MediaFileUpload
 from apiclient.http import DEFAULT_CHUNK_SIZE
-import httplib2
-import requests
 
 #Dropbox stuff
 def format_path(path):
@@ -122,10 +122,11 @@ class DropboxUploader(object):
 
 #GoogleDrive stuff
 class GoogleDriveUploader(object):
-    def __init__(self, path, body, offset, upload_uri, service=None):
+    def __init__(self, path, body, offset, length, upload_uri, service=None):
         self.path = path
         self.body = body
         self.offset = offset
+        self.target_length = length
         self.upload_uri = upload_uri
         self.service = None
 
@@ -153,10 +154,8 @@ class GoogleDriveUploader(object):
 class UploadQueue(object):
     def __init__(self):
         self.pending_uploads = {}
-        self.pending_uploads['Pithos'] = {}
-        self.pending_uploads['Dropbox'] = {}
-        self.pending_uploads['GoogleDrive'] = {}
-        self.pending_uploads['Skydrive'] = {}
+        for service in LocalUploadManager.services:
+            self.pending_uploads[service] = {}
 
         self._dropbox_load()
         self._googledrive_load()
@@ -165,50 +164,56 @@ class UploadQueue(object):
         uploadManager = LocalUploadManager()
         uploadsFromFile = uploadManager.get_uploads('Dropbox')
 
-        for k,v in uploadsFromFile.items():
-            #Check if the file still exists
+        for k,v in uploadsFromFile.iteritems():
             try:
                 with open(v['path'], 'r'):
                     pass
             except IOError:
-                self.pending_uploads['Dropbox'][k] = {'status':'Invalid path {}'.format(k), 'path':v['path']}
+                self.pending_uploads['Dropbox'][k] = {'error':'Invalid path', 'path':v['path']}
                 continue
 
             fileSize = os.path.getsize(v['path'])
-
             offset = int(v['offset'])
             upload_id = None if v['upload_id'] == 'None' else v['upload_id']
             dbUploader = DropboxUploader(open(v['path'],'rb'), fileSize, v['path'],
                                          offset, upload_id)
 
-            self.pending_uploads['Dropbox'][k] = {'status':k, 'uploader':dbUploader}
+            self.pending_uploads['Dropbox'][k] = {'uploader':dbUploader,
+                                                  'destination':v['destination'],
+                                                  'status':v['status'],
+                                                  'conflict':v['conflict']}
 
     def dropbox_add(self, path):
         dbUploader = None
         id = str(len(self.pending_uploads['Dropbox']))
         try:
-            length = os.path.getsize(path)
-            dbUploader = DropboxUploader(open(path,'rb'), length, path)
+            filesize = os.path.getsize(path)
+            dbUploader = DropboxUploader(open(path,'rb'), filesize, path)
         except IOError:
-            self.pending_uploads['Dropbox'][id] = {'status':'Invalid path {}'.format(id), 'path':path}
-            return
+            self.pending_uploads['Dropbox'][id] = {'error':'Invalid path', 
+                                                   'path':path}
         else:
-            self.pending_uploads['Dropbox'][id] = {'status':id, 'uploader':dbUploader}
+            self.pending_uploads['Dropbox'][id] = {'uploader':dbUploader,
+                                                   'destination':'/',
+                                                   'status':'Running',
+                                                   'conflict':'KeepBoth'}
 
     def _dropbox_dump(self):
-        def create_dict(dbUploader):
-            return {'upload_id': dbUploader.upload_id or 'None',
-                    'offset': dbUploader.offset,
-                    'path': dbUploader.path}
+        def create_dict(item):
+            return {'upload_id': item['uploader'].upload_id or 'None',
+                    'offset': str(item['uploader'].offset),
+                    'path': item['uploader'].path,
+                    'destination':item['destination'],
+                    'status':item['status'],
+                    'conflict':item['conflict']}
 
         uploadManager = LocalUploadManager()
         uploadManager.flush_uploads('Dropbox')
         self._remove_invalids('Dropbox')
 
-        uploadManager = LocalUploadManager()
-        for v in self.pending_uploads['Dropbox'].values():
-            d = create_dict(v['uploader'])
-            uploadManager.dropbox_update_upload(d['upload_id'], str(d['offset']), d['path'])
+        for k, v in self.pending_uploads['Dropbox'].iteritems():
+            d = create_dict(v)
+            uploadManager.dropbox_update_upload(k, **d)
 
     def _googledrive_load(self):
         uploadManager = LocalUploadManager()
@@ -224,11 +229,15 @@ class UploadQueue(object):
                 continue
 
             offset = int(v['offset'])
+            filesize = os.path.getsize(v['path'])
             upload_uri = None if v['upload_uri'] == 'None' else v['upload_uri']
             gdUploader = GoogleDriveUploader(v['path'], {'title':os.path.basename(v['path'])},
-                                             offset, upload_uri)
+                                             offset, filesize, upload_uri)
 
-            self.pending_uploads['GoogleDrive'][k] = {'status':k, 'uploader':gdUploader}
+            self.pending_uploads['GoogleDrive'][k] = {'uploader':gdUploader,
+                                                      'destination':v['destination'],
+                                                      'status':v['status'],
+                                                      'conflict':v['conflict']}
 
     def googledrive_add(self, path, body={}):
         gdUploader = None
@@ -236,30 +245,36 @@ class UploadQueue(object):
         try:
             with open(path, 'rb'):
                 pass
-            gdUploader = GoogleDriveUploader(path, body, 0, None)
+            filesize = os.path.getsize(path)
+            gdUploader = GoogleDriveUploader(path, body, 0, filesize, None)
         except IOError:
-            self.pending_uploads['GoogleDrive'][id] = {'status':'Invalid path {}'.format(id), 'path':path}
-            return
+            self.pending_uploads['GoogleDrive'][id] = {'error':'Invalid path', 
+                                                       'path':path}
         else:
-            self.pending_uploads['GoogleDrive'][id] = {'status':id, 'uploader':gdUploader}
+            self.pending_uploads['GoogleDrive'][id] = {'uploader':gdUploader,
+                                                       'destination':'/',
+                                                       'status':'Running',
+                                                       'conflict':'KeepBoth'}
 
     def _googledrive_dump(self):
-        def create_dict(gdUploader):
-            return {'upload_uri':gdUploader.resumable_uri or 'None',
-                    'offset':gdUploader.resumable_progress,
-                    'path':gdUploader.path}
+        def create_dict(item):
+            return {'upload_uri':item['uploader'].resumable_uri or 'None',
+                    'offset':item['uploader'].resumable_progress,
+                    'path':item['uploader'].path,
+                    'destination':item['destination'],
+                    'status':item['status'],
+                    'conflict':item['conflict']}
 
         uploadManager = LocalUploadManager()
         uploadManager.flush_uploads('GoogleDrive')
         self._remove_invalids('GoogleDrive')
 
-        uploadManager = LocalUploadManager()
-        for v in self.pending_uploads['GoogleDrive'].values():
-            d = create_dict(v['uploader'])
-            uploadManager.googledrive_update_upload(d['upload_uri'], str(d['offset']), d['path'])
+        for k, v in self.pending_uploads['GoogleDrive'].iteritems():
+            d = create_dict(v)
+            uploadManager.googledrive_update_upload(k, **d)
 
     def _remove_invalids(self, s):
-        self.pending_uploads[s] = {k:v for k,v in self.pending_uploads[s].items() if 'path' not in v}
+        self.pending_uploads[s] = {k:v for k,v in self.pending_uploads[s].items() if 'error' not in v}
 
     def delete(self, service, key):
         try:

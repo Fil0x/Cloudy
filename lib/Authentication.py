@@ -1,5 +1,4 @@
 from DataManager import LocalDataManager
-from Errors import NotInitialized  
 
 from pithos.tools.lib.client import Pithos_Client, Fault
 from dropbox import client, rest, session
@@ -18,7 +17,7 @@ class AuthManager(object):
         
         try:
             credentials = self.dataManager.get_pithos_credentials()
-        except NotInitialized:
+        except KeyError:
             return None
             
         pithosClient = Pithos_Client(credentials['url'], credentials['token'],
@@ -41,7 +40,7 @@ class AuthManager(object):
         
         try:
             access_token = self.dataManager.get_dropbox_token()
-        except NotInitialized:
+        except KeyError:
             return None
             
         APP_KEY = self.dataManager.get_dropbox_app_key()
@@ -70,7 +69,7 @@ class AuthManager(object):
         
         try:
             credentials = self.dataManager.get_googledrive_credentials()
-        except NotInitialized:
+        except KeyError:
             return None
             
         credentials = Credentials.new_from_json(credentials)

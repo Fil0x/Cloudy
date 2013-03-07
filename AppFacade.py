@@ -1,12 +1,14 @@
 import puremvc.patterns.facade
-import controller
+from controller.StartUpCommand import StartUpCommand
+from controller.ExitAppCommand import ExitAppCommand
+from controller.DataUpdatedCommand import DataUpdatedCommand
 
 
 class AppFacade(puremvc.patterns.facade.Facade):
     STARTUP = 'startup'
     EXIT = 'exit'
-    DATA_CHANGED = 'data_changed'
     DATA_UPDATED = 'data_updated'
+    DATA_CHANGED = 'data_changed'
 
     def __init__(self):
         self.initializeFacade()
@@ -23,6 +25,6 @@ class AppFacade(puremvc.patterns.facade.Facade):
     def initializeController(self):
         super(AppFacade, self).initializeController()
 
-        super(AppFacade, self).registerCommand(AppFacade.STARTUP, controller.StartUpCommand)
-        super(AppFacade, self).registerCommand(AppFacade.DATA_UPDATED, controller.DataUpdatedCommand)
-        super(AppFacade, self).registerCommand(AppFacade.EXIT, controller.ExitAppCommand)
+        super(AppFacade, self).registerCommand(AppFacade.STARTUP, StartUpCommand)
+        super(AppFacade, self).registerCommand(AppFacade.DATA_UPDATED, DataUpdatedCommand)
+        super(AppFacade, self).registerCommand(AppFacade.EXIT, ExitAppCommand)

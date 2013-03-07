@@ -1,8 +1,7 @@
-from AppFacade import AppFacade
 import smtplib
-from email.MIMEText import MIMEText
 from PyQt4 import QtGui
 from PyQt4 import QtCore
+from email.MIMEText import MIMEText
 
 
 class SystemTrayIcon(QtGui.QSystemTrayIcon):
@@ -14,37 +13,27 @@ class SystemTrayIcon(QtGui.QSystemTrayIcon):
 
         menu = QtGui.QMenu(parent)
 
-        openAction = menu.addAction('Open')
-        openAction.triggered.connect(self.onOpen)
+        #Open action clicked event will be handled by its mediator
+        self.openAction = menu.addAction('Open')
 
         menu.addSeparator()
 
         feedbackAction = menu.addAction('Send feedback')
         feedbackAction.triggered.connect(self.onFeedback)
 
-        settingsAction = menu.addAction('Preferences')
-        settingsAction.triggered.connect(self.onSettings)
+        #Settings action clicked event will be handled by its mediator
+        self.settingsAction = menu.addAction('Preferences')
 
         menu.addSeparator()
 
-        exitAction = menu.addAction('Quit')
-        exitAction.triggered.connect(self.onExit)
+        #Exit action clicked event will be handled by its mediator
+        self.exitAction = menu.addAction('Quit')
 
         self.setContextMenu(menu)
-
-    def onOpen(self, event):
-        pass
 
     def onFeedback(self, event):
         feedback = FeedbackPage()
         feedback.show()
-
-    def onSettings(self, event):
-        pass
-
-    def onExit(self, event):
-        app = AppFacade()
-        app.sendNotification(AppFacade.EXIT, None)
 
 
 class SendMailWorker(QtCore.QThread):
@@ -151,8 +140,8 @@ class FeedbackPage(QtGui.QWidget):
         for i in self.mainFrame.children():
             i.setEnabled(False)
 
-        #The worker thread has to be a class member because otherwise it gets
-        #cleaned up as the function ends resulting in a blocked UI.
+        #The worker thread has to be a class member otherwise it gets
+        #cleaned up as the function ends, resulting in a blocked UI.
         self.worker = SendMailWorker(self.nameTxtBox.text(), self.emailTxtBox.text(),
                                      self.msgTxtBox.toPlainText())
         QtCore.QObject.connect(self.worker, QtCore.SIGNAL('completed()'), self.onMailComplete,
