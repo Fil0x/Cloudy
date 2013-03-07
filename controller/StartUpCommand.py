@@ -2,7 +2,7 @@ import sys
 if ".." not in sys.path:
     sys.path.append("..")
 
-
+import version
 from view.view import SysTrayMediator
 from view.view import DetailedWindowMediator
 from view.components import DetailedWindow
@@ -16,4 +16,4 @@ class StartUpCommand(puremvc.patterns.command.SimpleCommand, puremvc.interfaces.
         self.facade.registerProxy(ModelProxy())
         
         self.facade.registerMediator(SysTrayMediator(notification.getBody()))
-        self.facade.registerMediator(DetailedWindowMediator(DetailedWindow()))
+        self.facade.registerMediator(DetailedWindowMediator(DetailedWindow(version.VERSION)))

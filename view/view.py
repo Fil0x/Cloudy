@@ -16,12 +16,11 @@ class SysTrayMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMe
     def __init__(self, viewComponent):
         super(SysTrayMediator, self).__init__(SysTrayMediator.NAME, viewComponent)
 
-        QtCore.QObject.connect(viewComponent.exitAction, QtCore.SIGNAL('triggered()'),
-                               self.onExit, QtCore.Qt.QueuedConnection)
-        QtCore.QObject.connect(viewComponent.openAction, QtCore.SIGNAL('triggered()'),
-                               self.onOpen, QtCore.Qt.QueuedConnection)
-        QtCore.QObject.connect(viewComponent.settingsAction, QtCore.SIGNAL('triggered()'),
-                               self.onSettings, QtCore.Qt.QueuedConnection)                               
+        actions = ['exitAction', 'openAction', 'settingsAction']
+        methods = [self.onExit, self.onOpen, self.onSettings]
+        for item in zip(actions, methods):
+            QtCore.QObject.connect(getattr(viewComponent, item[0]), QtCore.SIGNAL('triggered()'),
+                               item[1], QtCore.Qt.QueuedConnection)
 
     def onOpen(self):
         self.facade.sendNotification(AppFacade.AppFacade.SHOW_DETAILED)
@@ -41,6 +40,27 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         super(DetailedWindowMediator, self).__init__(DetailedWindowMediator.NAME, viewComponent)
         
         self.dataProxy = self.facade.retrieveProxy(ModelProxy.NAME)
+        
+        buttons = ['add', 'remove', 'play', 'stop', 'settings']
+        methods = [self.onAdd, self.onRemove, self.onPlay, self.onStop, self.onSettings]
+        for item in zip(buttons, methods):
+            QtCore.QObject.connect(getattr(viewComponent, item[0] + 'Btn'), QtCore.SIGNAL('clicked()'),
+                                   item[1], QtCore.Qt.QueuedConnection)
+
+    def onAdd(self):
+        print 'OnAdd'
+        
+    def onRemove(self):
+        print 'OnRemove'
+        
+    def onPlay(self):
+        print 'OnPlay'
+       
+    def onStop(self):
+        print 'OnStop'
+        
+    def onSettings(self):
+        print 'OnSettings'
         
     def listNotificationInterests(self):
         return [

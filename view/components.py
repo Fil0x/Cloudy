@@ -174,9 +174,9 @@ class DetailedWindow(QtGui.QMainWindow):
     stopBtnPath = r'images/detailed-stop.png'
     settingsBtnPath = r'images/detailed-configure.png'
     
-    def __init__(self):
+    def __init__(self, title):
         QtGui.QWidget.__init__(self)
-        self.setWindowTitle('Cloudy#CurrVer')
+        self.setWindowTitle(title)
         self.setVisible(False)
 
         self.data = []
@@ -229,6 +229,7 @@ class DetailedWindow(QtGui.QMainWindow):
             dockWidget.setWidget(getattr(self, elem))
             self.addDockWidget(Qt.Qt.TopDockWidgetArea, dockWidget)
         
+        #Handlers will be assigned in DetailedWindowMediator.
         _createDockWidget('addBtn')
         _createDockWidget('removeBtn')
         _createDockWidget('playBtn')
