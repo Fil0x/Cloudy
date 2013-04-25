@@ -2,8 +2,9 @@ import sys
 if ".." not in sys.path:
     sys.path.append("..")
 
-import AppFacade
 import os
+from PyQt4 import QtCore
+import AppFacade
 from model import Model
 import puremvc.patterns.proxy
 
@@ -19,17 +20,34 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
         self.sendNotification(AppFacade.AppFacade.DATA_CHANGED, self.model.uploadQueue)
 
     def detailed_view_data(self):
+        '''
+        This will be called each time the detailedWindow receives a signal
+        that it has to refresh its data.
+        '''
         data = []
         for service, items in self.model.uploadQueue.pending_uploads.iteritems():
-            for d in items.values():
+            for key, d in items.iteritems():
                 if len(d):
                     name = os.path.basename(d['uploader'].path)
                     progress = round(float(d['uploader'].offset)/d['uploader'].target_length, 2)
                     data.append([name, service, d['destination'], d['status'], 
-                              progress, d['conflict'], 'NaN'])
+                              progress, d['conflict'], 'Not ready', key])
                           
         return data
+    
+    def start_uploads(self):
+        dropboxClient = self.model.authManager.dropboxAuthentication()
+        googledriveClient = self.model.authManager.googledriveAuthentication()
         
+        self.model.uploadQueue.set_client('Dropbox', dropboxClient)
+        self.model.uploadQueue.set_client('GoogleDrive', googledriveClient)
+        
+        for k, v in self.model.uploadQueue.pending_uploads.iteritems():
+            for item in v.values():
+                if item['status'] == 'Running':
+                    up = UploadWorker(item['uploader'])
+                    up.start()
+    
     def dropbox_add(self, path):
         self.model.uploadQueue.dropbox_add(path)
 
@@ -47,3 +65,17 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
         self.model.uploadQueue.delete(service, key)
 
         self.sendNotification(AppFacade.AppFacade.DATA_CHANGED, self.model.uploadQueue)
+
+
+class UploadWorker(QtCore.QThread):
+    
+    
+    def __init__(self, uploader):
+        QtCore.QThread.__init__(self)
+        
+        self.uploader = uploader
+        
+    def run(self):
+        print 'Starting thread'
+        for progress in self.uploader.upload_chunked():
+            print '{}:{}'.format(self.uploader.path, progress)

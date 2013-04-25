@@ -5,3 +5,4 @@
 *.py[co]
 Configuration/
 images/
+lib/DataManager.py

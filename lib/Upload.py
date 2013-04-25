@@ -1,5 +1,7 @@
 import re
 import os
+import time
+import md5
 import httplib2
 import requests
 import mimetypes
@@ -49,13 +51,10 @@ class DropboxUploader(object):
         self.file_obj = file_obj
         self.target_length = length
 
-        self._file_obj_seek()
+        self.file_obj.seek(self.offset)
 
     def set_client(self, client):
         self.client = client
-
-    def _file_obj_seek(self):
-        self.file_obj.seek(self.offset)
 
     def upload_chunked(self, chunk_size = 4 * 1024 * 1024):
         """Uploads data from this ChunkedUploader's file_obj in chunks, until
@@ -65,7 +64,6 @@ class DropboxUploader(object):
         Args:
             - ``chunk_size``: The number of bytes to put in each chunk. [default 4 MB]
         """
-
         while self.offset < self.target_length:
             next_chunk_size = min(chunk_size, self.target_length - self.offset)
             if self.last_block == None:
@@ -74,7 +72,7 @@ class DropboxUploader(object):
             try:
                 (self.offset, self.upload_id) = self.client.upload_chunk(StringIO(self.last_block), next_chunk_size, self.offset, self.upload_id)
                 self.last_block = None
-                print float(self.offset)/self.target_length
+                yield float(self.offset)/self.target_length
             except rest.ErrorResponse, e:
                 reply = e.body
                 if "offset" in reply and reply['offset'] != 0:
@@ -122,20 +120,20 @@ class DropboxUploader(object):
 
 #GoogleDrive stuff
 class GoogleDriveUploader(object):
-    def __init__(self, path, body, offset, length, upload_uri, service=None):
+    def __init__(self, path, body, offset, length, upload_uri, client=None):
         self.path = path
         self.body = body
         self.offset = offset
         self.target_length = length
         self.upload_uri = upload_uri
-        self.service = None
+        self.client = None
 
-    def set_service(self, service):
-        self.service = service
+    def set_client(self, client):
+        self.client = client
 
     def upload_chunked(self, chunk_size=DEFAULT_CHUNK_SIZE):
         media_body = MediaFileUpload(self.path, chunksize=DEFAULT_CHUNK_SIZE, resumable=True)
-        file = self.service.files().insert(body=self.body, media_body=media_body)
+        file = self.client.files().insert(body=self.body, media_body=media_body)
         file.resumable_progress = self.offset
         file.resumable_uri = self.upload_uri
         response = None
@@ -183,9 +181,24 @@ class UploadQueue(object):
                                                   'status':v['status'],
                                                   'conflict':v['conflict']}
 
+    def _new_id(self, path):
+        '''The identifier for each upload will be a md5 hash of the local path
+        of the file to be uploaded plus the seconds since the epoch.
+        '''
+        m = md5.new()
+        m.update(path + str(int(time.time())))
+        return m.hexdigest()
+
     def dropbox_add(self, path):
+        '''
+        path: localpath to the file.
+        The identifier for each upload will be a md5 hash of the local path
+        of the file to be uploaded plus the seconds since the epoch.
+        This guarantees that the hash will be unique if the user decides to 
+        add the same file twice.
+        '''
+        id = self._new_id(path)
         dbUploader = None
-        id = str(len(self.pending_uploads['Dropbox']))
         try:
             filesize = os.path.getsize(path)
             dbUploader = DropboxUploader(open(path,'rb'), filesize, path)
@@ -240,8 +253,8 @@ class UploadQueue(object):
                                                       'conflict':v['conflict']}
 
     def googledrive_add(self, path, body={}):
+        id = self._new_id(path)
         gdUploader = None
-        id = str(len(self.pending_uploads['GoogleDrive']))
         try:
             with open(path, 'rb'):
                 pass
@@ -281,7 +294,14 @@ class UploadQueue(object):
             del(self.pending_uploads[service][key])
         except KeyError:
             raise KeyError('No such key.')
-            
+
     def dump(self):
         self._dropbox_dump()
         self._googledrive_dump()
+
+    def set_client(self, service, client):
+        for v in self.pending_uploads[service].values():
+            v['uploader'].set_client(client)
+
+    def set_state(self, service, key, state):
+        self.pending_uploads[service][key]['status'] = state

@@ -7,9 +7,13 @@ from controller.DataUpdatedCommand import DataUpdatedCommand
 class AppFacade(puremvc.patterns.facade.Facade):
     STARTUP = 'startup'
     EXIT = 'exit'
-    DATA_UPDATED = 'data_updated'
-    DATA_CHANGED = 'data_changed'
     SHOW_DETAILED = 'show_detailed'
+    SHOW_COMPACT = 'show_compact'
+    #Its sent from the modelProxy to the mediator of detailed-window
+    #or of the compact window,every time an uploader finishes uploading a chunk.
+    #When a mediator gets this signal it has to refresh its components.
+    DATA_CHANGED = 'data_changed'
+    DATA_UPDATED = 'data_updated'
 
     def __init__(self):
         self.initializeFacade()

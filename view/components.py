@@ -173,25 +173,28 @@ class DetailedWindow(QtGui.QMainWindow):
     playBtnPath = r'images/detailed-play.png'
     stopBtnPath = r'images/detailed-stop.png'
     settingsBtnPath = r'images/detailed-configure.png'
+    tableBackgroundPath = r'images/detailed-background.jpg'
+    
+    windowStyle = r'QMainWindow {background-color: rgba(108, 149, 218, 100%)}'
     
     def __init__(self, title):
         QtGui.QWidget.__init__(self)
         self.setWindowTitle(title)
         self.setVisible(False)
+        self.setStyleSheet(self.windowStyle)
 
-        self.data = []
         self.header = ['Name', 'Service', 'Destination', 'Status',
                        'Progress', 'Conflict', 'Completed']
         self.table = self._createTable()
         
         self._createRibbon()
+        self._createSideSpaces()
 
         tab = QtGui.QTabWidget()
         tab.setTabShape(QtGui.QTabWidget.Triangular)
         tab.insertTab(0, self.table, 'Active')
         tab.insertTab(1, QtGui.QLabel('HISTORY'), 'History')
         tab.insertTab(2, QtGui.QLabel('LOGS'), 'Logs')
-
 
         self.setCentralWidget(tab)
 
@@ -205,10 +208,13 @@ class DetailedWindow(QtGui.QMainWindow):
         QtCore.QObject.connect(self.table.selectionModel(),
                                QtCore.SIGNAL("selectionChanged(QItemSelection, QItemSelection)"),
                                self.selection_changed)
+        if data:
+            self.table.setColumnHidden(7, True)
     
     def closeEvent(self, event):
-        ''' Override this event so the app won't close 
-            when we press 'X'.
+        ''' 
+        Override this event so the app won't close 
+        when we press 'X'.
         '''
         self.setVisible(False)
         event.ignore()
@@ -217,6 +223,21 @@ class DetailedWindow(QtGui.QMainWindow):
         for i in new.indexes():
             self.table.selectRow(i.row())
 
+    def _createSideSpaces(self):
+        '''
+        Add some space on the left and right of the table.
+        '''
+        leftDockWidget = QtGui.QDockWidget()
+        leftDockWidget.setTitleBarWidget(QtGui.QWidget())
+        leftDockWidget.setWidget(QtGui.QLabel(' '))
+        self.addDockWidget(Qt.Qt.LeftDockWidgetArea, leftDockWidget)
+        
+        rightDockWidget = QtGui.QDockWidget()
+        rightDockWidget.setTitleBarWidget(QtGui.QWidget())
+        rightDockWidget.setWidget(QtGui.QLabel(' '))
+        self.addDockWidget(Qt.Qt.RightDockWidgetArea, rightDockWidget)
+        
+            
     def _createRibbon(self):
         def _createDockWidget(elem):
             dockWidget = QtGui.QDockWidget()
@@ -238,8 +259,9 @@ class DetailedWindow(QtGui.QMainWindow):
             
     def _createTable(self):
         tbl = QtGui.QTableView()
+        #tbl.setStyleSheet('background-image: url({})'.format(self.tableBackgroundPath))
         
-        tm = MyTableModel(self.data, self.header, self)
+        tm = MyTableModel([], self.header, self)
         tbl.setModel(tm)
         QtCore.QObject.connect(tbl.selectionModel(),
                                QtCore.SIGNAL("selectionChanged(QItemSelection, QItemSelection)"),
@@ -248,7 +270,7 @@ class DetailedWindow(QtGui.QMainWindow):
         tbl.setMinimumSize(704, 300)
         tbl.setShowGrid(False)
         
-        font = QtGui.QFont('Courier New', 8)
+        font = QtGui.QFont('Arial', 8)
         tbl.setFont(font)
         
         vh = tbl.verticalHeader()
@@ -260,11 +282,6 @@ class DetailedWindow(QtGui.QMainWindow):
 
         # set column width to fit contents
         tbl.resizeColumnsToContents()
-
-        # set row height
-        nrows = len(self.data)
-        for row in range(nrows):
-            tbl.setRowHeight(row, 18)
 
         tbl.setSortingEnabled(True)
 
@@ -291,7 +308,8 @@ class MyTableModel(QtCore.QAbstractTableModel):
         return QtCore.QVariant(self.arraydata[index.row()][index.column()])
         
     def headerData(self, col, orientation, role):
-        if orientation == Qt.Qt.Horizontal and role == Qt.Qt.DisplayRole:
+        #The 8th column is the key and we don't want to show it.
+        if col != 7 and orientation == Qt.Qt.Horizontal and role == Qt.Qt.DisplayRole:
             return QtCore.QVariant(self.header[col])
         return QtCore.QVariant()
         
