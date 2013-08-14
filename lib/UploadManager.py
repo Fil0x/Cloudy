@@ -20,7 +20,7 @@ def checkFile(fileType):
 class UploadManager(object):
     filedir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
     basepath =  os.path.join(os.path.dirname(filedir), 'Configuration')
-    services = ['Dropbox', 'Pithos', 'Skydrive', 'GoogleDrive']
+    services = ['Dropbox', 'Pithos', 'GoogleDrive']
 
 
 class LocalUploadManager(UploadManager):
@@ -44,7 +44,6 @@ class LocalUploadManager(UploadManager):
 
         config['Dropbox'] = {}
         config['Pithos'] = {}
-        config['Skydrive'] = {}
         config['GoogleDrive'] = {}
 
         config.write()

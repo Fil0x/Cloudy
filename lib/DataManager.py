@@ -54,12 +54,6 @@ class LocalDataManager(DataManager):
         config['GoogleDrive']['SCOPES'] = 'https://www.googleapis.com/auth/drive'
         config['GoogleDrive']['REDIRECT_URI'] = 'urn:ietf:wg:oauth:2.0:oob'
 
-        config['Skydrive'] = {}
-        config['Skydrive']['APP_KEY'] = '00000000440D5972'
-        config['Skydrive']['APP_SECRET'] = 'wbQU6uGH94Ut18e3AG8iTn0kDwpihAoQ'
-        config['Skydrive']['SCOPES'] = 'wl.offline_access'
-        config['Skydrive']['REDIRECT_URI'] = 'http://cslab.ece.ntua.gr/~fsami/test/'
-
         config.write()
 
         self.config = ConfigObj(self.configPath)
@@ -167,46 +161,6 @@ class LocalDataManager(DataManager):
         self.config['GoogleDrive']['Credentials'] = credentials.to_json()
 
         self.config.write()
-
-    #Skydrive information - Supports one user only.
-    @checkFile
-    def get_skydrive_app_key(self):
-        return self.config['Skydrive']['APP_KEY']
-
-    @checkFile
-    def get_skydrive_app_secret(self):
-        return self.config['Skydrive']['APP_SECRET']
-
-    @checkFile
-    def get_skydrive_scopes(self):
-        return self.config['Skydrive']['SCOPES']
-
-    @checkFile
-    def get_skydrive_redirect_uri(self):
-        return self.config['Skydrive']['REDIRECT_URI']
-
-    @checkFile
-    def get_skydrive_credentials(self):
-        try:
-            return self.config['Skydrive']['Credentials']
-        except KeyError:
-            raise KeyError('Credentials are empty')
-
-    def flush_skydrive_credentials(self):
-        try:
-            del(self.config['Skydrive']['Credentials'])
-
-            self.config.write()
-        except KeyError:
-            raise KeyError('Credentials are empty')
-
-    @checkFile
-    def update_skydrive_refreshtoken(self, accesstoken, refreshtoken):
-        self.config['Skydrive']['Credentials']['accesstoken'] = token or self.config['Skydrive']['Credentials']['accesstoken']
-        self.config['Skydrive']['Credentials']['refreshtoken'] = token or self.config['Skydrive']['Credentials']['refreshtoken']
-
-        self.config.write()
-
 
     #Application information
     @checkFile

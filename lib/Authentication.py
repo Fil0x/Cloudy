@@ -88,24 +88,3 @@ class AuthManager(object):
     def googledriveAddUser(self, credentials):
         self.dataManager.update_googledrive_credentials(credentials)
         return self.googledriveAuthentication()
-    
-    '''
-    def skydriveAuthentication(self):
-        credentials = None
-        self.dataManager.update()
-        
-        try:
-            credentials = self.dataManager.get_skydrive_credentials()
-        except NotInitialized:
-            return False
-            
-        resp = requests.get('http://apis.live.net/v5.0/USER_ID?access_token={}'.
-                        format(credentials['accesstoken'])
-                        
-        
-        return True
-        
-    def skydriveAddUser(self, token):
-        self.dataManager.update_skydrive_refreshtoken(token)
-        return self.skydriveAuthentication()
-    '''
