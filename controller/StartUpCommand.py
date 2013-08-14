@@ -16,4 +16,4 @@ class StartUpCommand(puremvc.patterns.command.SimpleCommand, puremvc.interfaces.
         self.facade.registerProxy(model.modelProxy.ModelProxy())
         
         self.facade.registerMediator(SysTrayMediator(notification.getBody()))
-        self.facade.registerMediator(DetailedWindowMediator(DetailedWindow(version.VERSION)))
+        self.facade.registerMediator(DetailedWindowMediator(DetailedWindow(version.__version__)))

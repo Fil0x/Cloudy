@@ -64,7 +64,6 @@ class LocalDataManager(DataManager):
 
         self.config = ConfigObj(self.configPath)
 
-    #Pithos information - Supports one user.
     @checkFile
     def get_pithos_credentials(self):
         try:

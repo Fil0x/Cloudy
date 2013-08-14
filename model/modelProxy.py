@@ -12,7 +12,8 @@ import puremvc.patterns.proxy
 class ModelProxy(puremvc.patterns.proxy.Proxy):
 
     NAME = 'MODELPROXY'
-
+    threadQueue = []
+    
     def __init__(self):
         super(ModelProxy, self).__init__(ModelProxy.NAME, [])
 
@@ -45,8 +46,8 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
         for k, v in self.model.uploadQueue.pending_uploads.iteritems():
             for item in v.values():
                 if item['status'] == 'Running':
-                    up = UploadWorker(item['uploader'])
-                    up.start()
+                    self.threadQueue.append(UploadWorker(item))
+                    self.threadQueue[-1].start()
     
     def dropbox_add(self, path):
         self.model.uploadQueue.dropbox_add(path)
@@ -68,14 +69,16 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
 
 
 class UploadWorker(QtCore.QThread):
-    
-    
-    def __init__(self, uploader):
+
+    def __init__(self, item):
         QtCore.QThread.__init__(self)
-        
-        self.uploader = uploader
-        
+
+        self.item = item
+
     def run(self):
-        print 'Starting thread'
-        for progress in self.uploader.upload_chunked():
-            print '{}:{}'.format(self.uploader.path, progress)
+        uploader = self.item['uploader']
+        dest = self.item['destination']
+
+        for progress in uploader.upload_chunked():
+            print '{}:{}'.format(uploader.path, progress)
+        uploader.finish(dest + os.path.basename(uploader.path))
