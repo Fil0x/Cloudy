@@ -1,7 +1,8 @@
 from DataManager import LocalDataManager
 
 from pithos.tools.lib.client import Pithos_Client, Fault
-from dropbox import client, rest, session
+from dropbox.client import DropboxClient
+from dropbox import rest
 from oauth2client.client import Credentials
 from apiclient.discovery import build
 import httplib2
@@ -43,13 +44,7 @@ class AuthManager(object):
         except KeyError:
             return None
 
-        APP_KEY = self.dataManager.get_dropbox_app_key()
-        APP_SECRET = self.dataManager.get_dropbox_app_secret()
-        ACCESS_TYPE = self.dataManager.get_dropbox_access_type()
-
-        sess = session.DropboxSession(APP_KEY, APP_SECRET, ACCESS_TYPE)
-        sess.set_token(access_token['key'], access_token['secret'])
-        dropboxClient = client.DropboxClient(sess)
+        dropboxClient = DropboxClient(access_token)
 
         try:
             dropboxClient.account_info()

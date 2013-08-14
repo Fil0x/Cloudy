@@ -44,9 +44,8 @@ class LocalDataManager(DataManager):
         config['Pithos'] = {}
 
         config['Dropbox'] = {}
-        config['Dropbox']['APP_KEY'] = '6cmf257smf7esxg'
-        config['Dropbox']['APP_SECRET'] = '0eac7yw2tisotrl'
-        config['Dropbox']['ACCESS_TYPE'] = 'dropbox'
+        config['Dropbox']['APP_KEY'] = '4hc9cdnfp0fuq87'
+        config['Dropbox']['APP_SECRET'] = 'gdajaeymoz2mbue'
 
         config['GoogleDrive'] = {}
         config['GoogleDrive']['APP_KEY'] = '638332209096.apps.googleusercontent.com'
@@ -85,7 +84,7 @@ class LocalDataManager(DataManager):
 
         self.config.write()
 
-    #Dropbox information - Supports one user only.
+    #Dropbox information
     @checkFile
     def get_dropbox_app_key(self):
         return self.config['Dropbox']['APP_KEY']
@@ -95,10 +94,6 @@ class LocalDataManager(DataManager):
         return self.config['Dropbox']['APP_SECRET']
 
     @checkFile
-    def get_dropbox_access_type(self):
-        return self.config['Dropbox']['ACCESS_TYPE']
-
-    @checkFile
     def get_dropbox_token(self):
         try:
             return self.config['Dropbox']['access_token']
@@ -106,9 +101,9 @@ class LocalDataManager(DataManager):
             raise NotInitialized('Access_token is empty')
 
     @checkFile
-    def add_dropbox_token(self, key, secret):
+    def add_dropbox_token(self, key):
         self.config['Dropbox']['access_token'] = {}
-        self.update_dropbox_token(key, secret)
+        self.update_dropbox_token(key)
 
     def flush_dropbox_token(self):
         try:
@@ -118,9 +113,8 @@ class LocalDataManager(DataManager):
         except KeyError:
             raise NotInitialized('access_token is empty')
 
-    def update_dropbox_token(self, key=None, secret=None):
-        self.config['Dropbox']['access_token']['key'] = key or self.config['Dropbox']['access_token']['key']
-        self.config['Dropbox']['access_token']['secret'] = secret or self.config['Dropbox']['access_token']['secret']
+    def update_dropbox_token(self, key=None):
+        self.config['Dropbox']['access_token'] = key or self.config['Dropbox']['access_token']
 
         self.config.write()
 
