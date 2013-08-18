@@ -57,7 +57,8 @@ class AuthManager(object):
     def dropboxAddUser(self, key, secret):
         self.dataManager.add_dropbox_token(key,  secret)
         return self.dropboxAuthentication()
-
+    
+    #http://tinyurl.com/kdv3ttb
     def googledriveAuthentication(self):
         credentials = None
         self.dataManager.update()

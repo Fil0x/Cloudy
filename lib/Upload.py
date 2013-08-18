@@ -54,8 +54,8 @@ class DropboxUploader(object):
 
         self.file_obj.seek(self.offset)
 
-    def set_client(self, client):
-        self.client = client
+    def set_client(self, c):
+        self.client = c
 
     def upload_chunked(self, chunk_size = 1024 * 1024):
         """Uploads data from this ChunkedUploader's file_obj in chunks, until

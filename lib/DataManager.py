@@ -51,6 +51,7 @@ class LocalDataManager(DataManager):
         config['GoogleDrive']['APP_KEY'] = '638332209096.apps.googleusercontent.com'
         config['GoogleDrive']['APP_SECRET'] = '_8_SU5sLWfoMmS93K--Vg6Ig'
         config['GoogleDrive']['SCOPES'] = 'https://www.googleapis.com/auth/drive'
+        config['GoogleDrive']['ROOT'] = '/Apps/CSLab_Cloudy'
         config['GoogleDrive']['REDIRECT_URI'] = 'urn:ietf:wg:oauth:2.0:oob'
 
         config.write()
@@ -86,13 +87,13 @@ class LocalDataManager(DataManager):
 
     #Dropbox information
     @checkFile
-    def get_dropbox_app_key(self):
-        return self.config['Dropbox']['APP_KEY']
-
-    @checkFile
-    def get_dropbox_app_secret(self):
-        return self.config['Dropbox']['APP_SECRET']
-
+    def get_dropbox_auth_info(self):
+        '''Returns the necessary information to request a new dropbox token.
+           Order: APP_KEY, APP_SECRET
+        '''
+        return (self.config['Dropbox']['APP_KEY'],
+               self.config['Dropbox']['APP_SECRET'])
+               
     @checkFile
     def get_dropbox_token(self):
         try:
@@ -120,20 +121,22 @@ class LocalDataManager(DataManager):
 
     #Google Drive information - Supports one user only.
     @checkFile
-    def get_googledrive_app_key(self):
-        return self.config['GoogleDrive']['APP_KEY']
+    def get_googledrive_auth_info(self):
+        '''Returns the necessary information to request a new googledrive token.
+           Order: APP_KEY, APP_SECRET, SCOPES, REDIRECT_URI
+        '''
+        return (self.config['GoogleDrive']['APP_KEY'],
+               self.config['GoogleDrive']['APP_SECRET'],
+               self.config['GoogleDrive']['SCOPES'],
+               self.config['GoogleDrive']['REDIRECT_URI'])
+        
+    @checkFile
+    def get_googledrive_root(self):
+        return self.config['GoogleDrive']['ROOT']
 
     @checkFile
-    def get_googledrive_app_secret(self):
-        return self.config['GoogleDrive']['APP_SECRET']
-
-    @checkFile
-    def get_googledrive_scopes(self):
-        return self.config['GoogleDrive']['SCOPES']
-
-    @checkFile
-    def get_googledrive_redirect_uri(self):
-        return self.config['GoogleDrive']['REDIRECT_URI']
+    def set_googledrive_root(self, new_root):
+        self.config['GoogleDrive']['ROOT'] = new_root
 
     @checkFile
     def get_googledrive_credentials(self):
@@ -151,7 +154,7 @@ class LocalDataManager(DataManager):
             raise KeyError('Credentials are empty')
 
     @checkFile
-    def update_googledrive_credentials(self, credentials):
+    def set_googledrive_credentials(self, credentials):
         self.config['GoogleDrive']['Credentials'] = credentials.to_json()
 
         self.config.write()
