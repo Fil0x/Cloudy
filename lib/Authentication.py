@@ -45,7 +45,7 @@ class AuthManager(object):
             return None
 
         dropboxClient = DropboxClient(access_token)
-
+        
         try:
             dropboxClient.account_info()
         except rest.ErrorResponse as e:
