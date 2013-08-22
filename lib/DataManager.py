@@ -42,6 +42,7 @@ class LocalDataManager(DataManager):
         config['Application']['posY'] = 20
 
         config['Pithos'] = {}
+        config['Pithos']['ROOT'] = 'pithos'
 
         config['Dropbox'] = {}
         config['Dropbox']['APP_KEY'] = '4hc9cdnfp0fuq87'
@@ -65,6 +66,10 @@ class LocalDataManager(DataManager):
         except KeyError:
             raise NotInitialized('Credentials are empty')
 
+    @checkFile
+    def get_pithos_root(self):
+        return self.config['Pithos']['ROOT']
+            
     @checkFile
     def add_pithos_credentials(self, user, url, token):
         self.config['Pithos']['credentials'] = {}
