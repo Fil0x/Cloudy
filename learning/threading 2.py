@@ -6,25 +6,16 @@ import threading
 import logging
 import time
 import random
+import lib.Upload as up
+from lib.Authentication import AuthManager
 
 logging.basicConfig(level=logging.DEBUG,
                     format='(%(threadName)-15s) %(message)s',
                     )
 
-class Worker(object):
-    
-    def __init__(self, id):
-        self.stopped = False
-        self.id = id
-        self.ran = random.randint(0,4)
-    
-    def heavyStuff(self):
-        for i in range(5):
-            if not self.stopped and i != self.ran:
-                time.sleep(2)
-            else:
-                return i
-        return 0
+logging.debug('Creating client...')                    
+dbClient = AuthManager().dropboxAuthentication()
+logging.debug('Client created!')
         
 class MyThreadWithArgs(threading.Thread):
 
@@ -34,17 +25,22 @@ class MyThreadWithArgs(threading.Thread):
                                   verbose=verbose)
         self.args = args
         self.kwargs = kwargs
-        self.worker = Worker(args)
+        self.worker = up.DropboxUploader(self.args)
+        self.worker.client = dbClient
         
         return
 
     def run(self):
-        logging.debug('Calling heavyStuff')
-        i = self.worker.heavyStuff()
-        logging.debug('Worker finished with value: {}'.format(i))
+        logging.debug('Starting Upload of the file:{}'.format(self.args))
+        for i in self.worker.upload_chunked():
+            logging.debug(i)
+        logging.debug('Upload completed.')
+        self.worker.finish('/new.pdf')
         
         return
 
-for i in range(5):
+paths = [r"C:\Users\Fadi\Desktop\03.Colloquial Swedish 2007.pdf"]
+
+for i in paths:
     t = MyThreadWithArgs(args=i)
     t.start()

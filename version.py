@@ -1,1 +1,1 @@
-__version__ = 'Cloudy 0.1.0'
+__version__ = 'Cloudy 0.0.1'

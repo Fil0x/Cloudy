@@ -42,11 +42,12 @@ class LocalDataManager(DataManager):
         config['Application']['posY'] = 20
 
         config['Pithos'] = {}
-        config['Pithos']['ROOT'] = 'pithos'
+        config['Pithos']['ROOT'] = '/pithos'
 
         config['Dropbox'] = {}
         config['Dropbox']['APP_KEY'] = '4hc9cdnfp0fuq87'
         config['Dropbox']['APP_SECRET'] = 'gdajaeymoz2mbue'
+        config['Dropbox']['ROOT'] = '/'
 
         config['GoogleDrive'] = {}
         config['GoogleDrive']['APP_KEY'] = '638332209096.apps.googleusercontent.com'
@@ -67,8 +68,8 @@ class LocalDataManager(DataManager):
             raise NotInitialized('Credentials are empty')
 
     @checkFile
-    def get_pithos_root(self):
-        return self.config['Pithos']['ROOT']
+    def get_service_root(self, service):
+        return self.config[service]['ROOT']
             
     @checkFile
     def add_pithos_credentials(self, user, url, token):
@@ -134,10 +135,6 @@ class LocalDataManager(DataManager):
                self.config['GoogleDrive']['APP_SECRET'],
                self.config['GoogleDrive']['SCOPES'],
                self.config['GoogleDrive']['REDIRECT_URI'])
-        
-    @checkFile
-    def get_googledrive_root(self):
-        return self.config['GoogleDrive']['ROOT']
 
     @checkFile
     def set_googledrive_root(self, new_root):
