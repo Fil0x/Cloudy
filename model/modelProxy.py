@@ -3,6 +3,8 @@ if ".." not in sys.path:
     sys.path.append("..")
 
 import os
+import threading
+import logging
 from PyQt4 import QtCore
 import AppFacade
 from model import Model
@@ -52,3 +54,18 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
         self.model.uploadQueue.delete(service, key)
 
         self.sendNotification(AppFacade.AppFacade.DATA_CHANGED, self.model.uploadQueue)
+
+    class UploadThread(threading.Thread):
+        
+        def __init__(self, group=None, target=None, name=None,
+                 args=(), kwargs=None, verbose=None):
+                 
+            threading.Thread.__init__(self, group=group, target=target, name=name,
+                                  verbose=verbose)
+            self.args = args
+            self.kwargs = kwargs
+            self.worker = None
+
+        def run(self):
+            pass
+        

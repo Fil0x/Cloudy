@@ -5,7 +5,7 @@ if ".." not in sys.path:
 import threading
 import logging
 import time
-import random
+from simpleflake import simpleflake
 import lib.Upload as up
 from lib.Authentication import AuthManager
 
@@ -27,20 +27,26 @@ class MyThreadWithArgs(threading.Thread):
         self.kwargs = kwargs
         self.worker = up.DropboxUploader(self.args)
         self.worker.client = dbClient
-        
-        return
+        self.state = -1 #It can be 0 for stop when the next chunk is uploaded
+                        #or 1 for delete the upload.
 
     def run(self):
         logging.debug('Starting Upload of the file:{}'.format(self.args))
         for i in self.worker.upload_chunked():
             logging.debug(i)
-        logging.debug('Upload completed.')
-        self.worker.finish('/new.pdf')
+            if self.state == 0:
+                return #send signal to UI
+            elif self.state == 1:
+                return #delete the thread, dont update the ui even if 
+                       #a chunk is uploaded in the meantime.
+                
+        self.worker.finish('/new.pdf') #change path
+        logging.debug('Upload completed.') #write to history with global lock
+        #raise event to inform user
         
         return
 
 paths = [r"C:\Users\Fadi\Desktop\03.Colloquial Swedish 2007.pdf"]
 
-for i in paths:
-    t = MyThreadWithArgs(args=i)
-    t.start()
+t = MyThreadWithArgs(name=str(simpleflake()), args=paths[0])
+t.start()

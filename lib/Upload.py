@@ -56,7 +56,7 @@ class DropboxUploader(object):
     def set_client(self, c):
         self.client = c
 
-    def upload_chunked(self, chunk_size = 256 * 1024):
+    def upload_chunked(self, chunk_size = 128 * 1024):
         """Uploads data from this ChunkedUploader's file_obj in chunks, until
         an error occurs. Throws an exception when an error occurs, and can
         be called again to resume the upload.
@@ -72,7 +72,7 @@ class DropboxUploader(object):
             try:
                 (self.offset, self.upload_id) = self.client.upload_chunk(StringIO(self.last_block), next_chunk_size, self.offset, self.upload_id)
                 self.last_block = None
-                yield float(self.offset)/self.target_length
+                yield (float(self.offset)/self.target_length, self.upload_id, self.offset)
             except rest.ErrorResponse, e:
                 reply = e.body
                 if "offset" in reply and reply['offset'] != 0:
@@ -120,6 +120,7 @@ class DropboxUploader(object):
 
 #GoogleDrive stuff
 class GoogleDriveUploader(object):
+
     def __init__(self, path, body, offset, upload_uri, client=None):
         self.path = path
         self.body = body
