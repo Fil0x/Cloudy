@@ -1,5 +1,6 @@
 import os
 import json
+import local
 import inspect
 from configobj import ConfigObj
 
@@ -45,13 +46,13 @@ class LocalDataManager(DataManager):
         config['Pithos']['ROOT'] = '/pithos'
 
         config['Dropbox'] = {}
-        config['Dropbox']['APP_KEY'] = '4hc9cdnfp0fuq87'
-        config['Dropbox']['APP_SECRET'] = 'gdajaeymoz2mbue'
+        config['Dropbox']['APP_KEY'] = local.Dropbox_APPKEY
+        config['Dropbox']['APP_SECRET'] = local.Dropbox_APPSECRET
         config['Dropbox']['ROOT'] = '/'
 
         config['GoogleDrive'] = {}
-        config['GoogleDrive']['APP_KEY'] = '638332209096.apps.googleusercontent.com'
-        config['GoogleDrive']['APP_SECRET'] = '_8_SU5sLWfoMmS93K--Vg6Ig'
+        config['GoogleDrive']['APP_KEY'] = local.GoogleDrive_APPKEY
+        config['GoogleDrive']['APP_SECRET'] = local.GoogleDrive_APPSECRET
         config['GoogleDrive']['SCOPES'] = 'https://www.googleapis.com/auth/drive'
         config['GoogleDrive']['ROOT'] = '/Apps/CSLab_Cloudy'
         config['GoogleDrive']['REDIRECT_URI'] = 'urn:ietf:wg:oauth:2.0:oob'

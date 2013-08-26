@@ -14,7 +14,7 @@ import puremvc.patterns.proxy
 class ModelProxy(puremvc.patterns.proxy.Proxy):
 
     NAME = 'MODELPROXY'
-    threadQueue = []
+    threadDict = {} 
     
     def __init__(self):
         super(ModelProxy, self).__init__(ModelProxy.NAME, [])
@@ -57,15 +57,25 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
 
     class UploadThread(threading.Thread):
         
-        def __init__(self, group=None, target=None, name=None,
+        def __init__(self, uploader, group=None, target=None, name=None,
                  args=(), kwargs=None, verbose=None):
                  
             threading.Thread.__init__(self, group=group, target=target, name=name,
                                   verbose=verbose)
             self.args = args
             self.kwargs = kwargs
-            self.worker = None
+            self.worker = uploader #Uploader already has a validated client.
+            self.state = -1 #It can be 0 to stop when the next chunk is uploaded
+                            #or 1 to delete the upload.
 
         def run(self):
-            pass
-        
+            for i in self.worker.upload_chunked():
+                if self.state == 0:
+                    return #send signal to UI
+                elif self.state == 1:
+                    return #delete the thread, dont update the ui even if 
+                           #a chunk is uploaded in the meantime.
+            
+            if type(self.worker) is DropboxUploader:
+                self.worker.finish('/new.pdf') #change path
+            return 

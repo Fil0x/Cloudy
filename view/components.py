@@ -1,3 +1,4 @@
+import local
 import smtplib
 import operator
 from PyQt4 import Qt
@@ -40,9 +41,6 @@ class SystemTrayIcon(QtGui.QSystemTrayIcon):
 
 class SendMailWorker(QtCore.QThread):
 
-    email = r'cloudyreports@gmail.com'
-    password = r'tromerozepp190'
-
     def __init__(self, name, usermail, message):
         QtCore.QThread.__init__(self)
         self.name = name
@@ -58,19 +56,18 @@ class SendMailWorker(QtCore.QThread):
         msg = MIMEText(self.message)
 
         msg['Subject'] = 'Report'
-        msg['From'] = self.email
-        msg['To'] = self.email
+        msg['From'] = local.email
+        msg['To'] = local.email
 
         mailServer = smtplib.SMTP('smtp.gmail.com', 587)
         mailServer.ehlo()
         mailServer.starttls()
         mailServer.ehlo()
-        mailServer.login(self.email, self.password)
-        mailServer.sendmail(self.email, self.email, msg.as_string())
+        mailServer.login(local.email, local.password)
+        mailServer.sendmail(local.email, local.email, msg.as_string())
         mailServer.close()
 
-        self.emit(QtCore.SIGNAL('completed()'))
-
+        self.emit(QtCore.SIGNAL('sent()'))
 
 class FeedbackPage(QtGui.QWidget):
 
@@ -146,7 +143,7 @@ class FeedbackPage(QtGui.QWidget):
         #cleaned up as the function ends, resulting in a blocked UI.
         self.worker = SendMailWorker(self.nameTxtBox.text(), self.emailTxtBox.text(),
                                      self.msgTxtBox.toPlainText())
-        QtCore.QObject.connect(self.worker, QtCore.SIGNAL('completed()'), self.onMailComplete,
+        QtCore.QObject.connect(self.worker, QtCore.SIGNAL('sent()'), self.onMailComplete,
                                QtCore.Qt.QueuedConnection)
 
         self.worker.start()

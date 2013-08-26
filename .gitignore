@@ -6,3 +6,4 @@
 Configuration/
 images/
 lib/DataManager.py
+local.py
