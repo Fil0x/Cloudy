@@ -4,13 +4,14 @@ import time
 import httplib2
 import mimetypes
 from StringIO import StringIO
-from simpleflake import simpleflake
+
 from UploadManager import LocalUploadManager
 from DataManager import LocalDataManager
 
 from dropbox import rest
 from dropbox import client
 from dropbox import session
+from simpleflake import simpleflake
 from oauth2client.client import Credentials
 from apiclient import errors
 from apiclient.discovery import build
@@ -166,7 +167,7 @@ class UploadQueue(object):
         More information at: http://tinyurl.com/mqbjbpm
         '''
         return str(simpleflake())
-        
+
     def _dropbox_load(self):
         uploadManager = LocalUploadManager()
         uploadsFromFile = uploadManager.get_uploads('Dropbox')
@@ -199,7 +200,7 @@ class UploadQueue(object):
         try:
             dbUploader = DropboxUploader(path)
         except IOError:
-            self.pending_uploads['Dropbox'][id] = {'error':'Invalid path', 
+            self.pending_uploads['Dropbox'][id] = {'error':'Invalid path',
                                                    'path':path}
         else:
             self.pending_uploads['Dropbox'][id] = {'uploader':dbUploader,
@@ -227,7 +228,7 @@ class UploadQueue(object):
     def _googledrive_load(self):
         uploadManager = LocalUploadManager()
         uploadsFromFile = uploadManager.get_uploads('GoogleDrive')
-        
+
         for k, v in uploadsFromFile.items():
             #Check if the file still exists
             try:
@@ -257,7 +258,7 @@ class UploadQueue(object):
             filesize = os.path.getsize(path)
             gdUploader = GoogleDriveUploader(path, body, 0, None)
         except IOError:
-            self.pending_uploads['GoogleDrive'][id] = {'error':'Invalid path', 
+            self.pending_uploads['GoogleDrive'][id] = {'error':'Invalid path',
                                                        'path':path}
         else:
             self.pending_uploads['GoogleDrive'][id] = {'uploader':gdUploader,
@@ -297,7 +298,7 @@ class UploadQueue(object):
 
     def set_client(self, service, client):
         assert(service in services)
-    
+
         for v in self.pending_uploads[service].values():
             v['uploader'].set_client(client)
 

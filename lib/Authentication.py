@@ -1,3 +1,5 @@
+import httplib2
+
 from DataManager import LocalDataManager
 
 from pithos.tools.lib.client import Pithos_Client, Fault
@@ -5,7 +7,6 @@ from dropbox.client import DropboxClient
 from dropbox import rest
 from oauth2client.client import Credentials
 from apiclient.discovery import build
-import httplib2
 
 
 class AuthManager(object):
@@ -45,7 +46,7 @@ class AuthManager(object):
             return None
 
         dropboxClient = DropboxClient(access_token)
-        
+
         try:
             dropboxClient.account_info()
         except rest.ErrorResponse as e:
@@ -57,7 +58,7 @@ class AuthManager(object):
     def dropboxAddUser(self, key, secret):
         self.dataManager.add_dropbox_token(key,  secret)
         return self.dropboxAuthentication()
-    
+
     #http://tinyurl.com/kdv3ttb
     def googledriveAuthentication(self):
         credentials = None
@@ -67,20 +68,20 @@ class AuthManager(object):
             credentials = self.dataManager.get_googledrive_credentials()
         except KeyError:
             return None
-            
+
         credentials = Credentials.new_from_json(credentials)
         http = credentials.authorize(httplib2.Http())
         drive_service = build('drive', 'v2', http=http)
         file = drive_service.files().list()
-        
+
         try:
             file.execute()
         except Exception:
             return None
-        
+
         self.dataManager.update_googledrive_credentials(credentials)
         return drive_service
-        
+
     def googledriveAddUser(self, credentials):
         self.dataManager.update_googledrive_credentials(credentials)
         return self.googledriveAuthentication()

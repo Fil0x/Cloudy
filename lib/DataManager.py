@@ -1,7 +1,9 @@
 import os
 import json
-import local
 import inspect
+
+import local
+
 from configobj import ConfigObj
 
 
@@ -71,7 +73,7 @@ class LocalDataManager(DataManager):
     @checkFile
     def get_service_root(self, service):
         return self.config[service]['ROOT']
-            
+
     @checkFile
     def add_pithos_credentials(self, user, url, token):
         self.config['Pithos']['credentials'] = {}
@@ -100,7 +102,7 @@ class LocalDataManager(DataManager):
         '''
         return (self.config['Dropbox']['APP_KEY'],
                self.config['Dropbox']['APP_SECRET'])
-               
+
     @checkFile
     def get_dropbox_token(self):
         try:

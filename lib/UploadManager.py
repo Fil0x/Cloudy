@@ -1,5 +1,6 @@
 import os
 import inspect
+
 from configobj import ConfigObj
 
 
@@ -27,7 +28,7 @@ class LocalUploadManager(UploadManager):
     def __init__(self, historyName='history.ini', uploadName='upload.ini'):
         self.historyPath = os.path.join(self.basepath, historyName)
         self.uploadPath = os.path.join(self.basepath, uploadName)
-        
+
         for path, attr in [(self.historyPath, 'history'),
                           (self.uploadPath, 'upload')]:
             try:
@@ -59,7 +60,7 @@ class LocalUploadManager(UploadManager):
     @checkFile('uploadPath')
     def googledrive_update_upload(self, id, **kwargs):
         self.upload['GoogleDrive'].setdefault(id, kwargs)
-        
+
         self.upload.write()
 
     @checkFile('uploadPath')
