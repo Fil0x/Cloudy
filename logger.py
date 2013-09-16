@@ -3,11 +3,19 @@ import logging
 
 import version
 
+
+class DebugFilter(object):
+
+    def __init__(self, level):
+        self.__level = level
+
+    def filter(self, logRecord):
+        return logRecord.levelno <= self.__level
+
 #Duplicate logging problem - logging is a singleton.
 class LoggerFactory(object):
 
     def __init__(self):
-        print 'init'
         self.v = version.__version__
         fmt = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
@@ -19,6 +27,8 @@ class LoggerFactory(object):
         ch = logging.StreamHandler()
         ch.setLevel(logging.DEBUG)
         ch.setFormatter(fmt)
+        #We want to print the debug messages only.
+        ch.addFilter(DebugFilter(logging.DEBUG))
 
         #Main file handler
         fh = logging.FileHandler(os.path.join('logs', 'main.log'))
@@ -35,7 +45,10 @@ class LoggerFactory(object):
         logger.addHandler(eh)
 
     def getLogger(self, name):
-        return logging.getLogger('{}.{}'.format(self.v, name))
+        return logging.getLogger('{}{}'.format(self.v, '.{}'.format(name) if name else ''))
 
-def logger_singleton_factory(_singleton=LoggerFactory()):
-    return _singleton
+def logger_singleton_factory(name, _singleton=LoggerFactory()):
+    ''' Returns a logger with root version.__version__.
+        params: 
+        name: the logger's name. '''
+    return _singleton.getLogger(name)

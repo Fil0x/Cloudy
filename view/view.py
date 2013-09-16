@@ -1,3 +1,4 @@
+import os
 import sys
 if ".." not in sys.path:
     sys.path.append("..")
@@ -49,7 +50,7 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
 
     def onAdd(self):
         filenames = QtGui.QFileDialog.getOpenFileNames(self.viewComponent,
-                                     'Open file...', r'C:\Users\Fadi\Desktop')
+                                     'Open file...', os.path.expanduser('~'))
         #TODO: choose service, directory
         for i in filenames:
             self.dataProxy.dropbox_add(str(i))
