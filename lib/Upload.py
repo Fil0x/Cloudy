@@ -16,7 +16,6 @@ from oauth2client.client import Credentials
 from apiclient import errors
 from apiclient.discovery import build
 from apiclient.http import MediaFileUpload
-from apiclient.http import DEFAULT_CHUNK_SIZE
 
 #Dropbox stuff
 def format_path(path):
@@ -42,20 +41,18 @@ class DropboxUploader(object):
     """Contains the logic around a chunked upload, which uploads a
     large file to Dropbox via the /chunked_upload endpoint
     """
-    def __init__(self, path, offset=0, upload_id=None, client=None):
+    def __init__(self, path, remote, offset=0, upload_id=None, client=None):
         self.client = client
         self.offset = offset
         self.upload_id = upload_id
         self.path = path
+        self.remote = remote
 
         self.last_block = None
         self.file_obj = open(path, 'rb')
         self.target_length = os.path.getsize(path)
 
         self.file_obj.seek(self.offset)
-
-    def set_client(self, c):
-        self.client = c
 
     def upload_chunked(self, chunk_size = 128 * 1024):
         """Uploads data from this ChunkedUploader's file_obj in chunks, until
@@ -122,19 +119,17 @@ class DropboxUploader(object):
 #GoogleDrive stuff
 class GoogleDriveUploader(object):
 
-    def __init__(self, path, body, offset, upload_uri, client=None):
+    def __init__(self, path, remote='', offset=0, upload_uri=None, client=None):
         self.path = path
-        self.body = body
+        self.body = {'title':os.path.basename(path)}
         self.offset = offset
+        self.remote = remote
         self.target_length = os.path.getsize(path)
         self.upload_uri = upload_uri
-        self.client = None
+        self.client = client
 
-    def set_client(self, c):
-        self.client = c
-
-    def upload_chunked(self, chunk_size=DEFAULT_CHUNK_SIZE):
-        media_body = MediaFileUpload(self.path, chunksize=DEFAULT_CHUNK_SIZE, resumable=True)
+    def upload_chunked(self, chunk_size=256*1024):
+        media_body = MediaFileUpload(self.path, chunksize=chunk_size, resumable=True)
         file = self.client.files().insert(body=self.body, media_body=media_body)
         file.resumable_progress = self.offset
         file.resumable_uri = self.upload_uri
@@ -182,10 +177,9 @@ class UploadQueue(object):
 
             offset = int(v['offset'])
             upload_id = None if v['upload_id'] == 'None' else v['upload_id']
-            dbUploader = DropboxUploader(v['path'], offset, upload_id)
+            dbUploader = DropboxUploader(v['path'], v['destination'], offset, upload_id)
 
             self.pending_uploads['Dropbox'][k] = {'uploader':dbUploader,
-                                                  'destination':v['destination'],
                                                   'status':v['status'],
                                                   'conflict':v['conflict']}
 
@@ -198,13 +192,12 @@ class UploadQueue(object):
         dbUploader = None
         dm = LocalDataManager()
         try:
-            dbUploader = DropboxUploader(path)
+            dbUploader = DropboxUploader(path, dm.get_service_root('Dropbox'))
         except IOError:
             self.pending_uploads['Dropbox'][id] = {'error':'Invalid path',
                                                    'path':path}
         else:
             self.pending_uploads['Dropbox'][id] = {'uploader':dbUploader,
-                                                   'destination':dm.get_service_root('Dropbox'),
                                                    'status':'Running',
                                                    'conflict':'KeepBoth'}
 
@@ -213,7 +206,7 @@ class UploadQueue(object):
             return {'upload_id': item['uploader'].upload_id or 'None',
                     'offset': str(item['uploader'].offset),
                     'path': item['uploader'].path,
-                    'destination':item['destination'],
+                    'destination':item['uploader'].remote,
                     'status':item['status'],
                     'conflict':item['conflict']}
 
@@ -240,29 +233,25 @@ class UploadQueue(object):
 
             offset = int(v['offset'])
             upload_uri = None if v['upload_uri'] == 'None' else v['upload_uri']
-            gdUploader = GoogleDriveUploader(v['path'], {'title':os.path.basename(v['path'])},
-                                             offset, upload_uri)
+            gdUploader = GoogleDriveUploader(v['path'], v['destination'], offset, upload_uri)
 
             self.pending_uploads['GoogleDrive'][k] = {'uploader':gdUploader,
-                                                      'destination':v['destination'],
                                                       'status':v['status'],
                                                       'conflict':v['conflict']}
 
-    def googledrive_add(self, path, body={}):
+    def googledrive_add(self, path):
         id = self._new_id()
         gdUploader = None
         dm = LocalDataManager()
         try:
             with open(path, 'rb'):
                 pass
-            filesize = os.path.getsize(path)
-            gdUploader = GoogleDriveUploader(path, body, 0, None)
+            gdUploader = GoogleDriveUploader(path, dm.get_service_root('GoogleDrive'))
         except IOError:
             self.pending_uploads['GoogleDrive'][id] = {'error':'Invalid path',
                                                        'path':path}
         else:
             self.pending_uploads['GoogleDrive'][id] = {'uploader':gdUploader,
-                                                       'destination':dm.get_service_root('GoogleDrive'),
                                                        'status':'Running',
                                                        'conflict':'KeepBoth'}
 
@@ -271,7 +260,7 @@ class UploadQueue(object):
             return {'upload_uri':item['uploader'].resumable_uri or 'None',
                     'offset':item['uploader'].resumable_progress,
                     'path':item['uploader'].path,
-                    'destination':item['destination'],
+                    'destination':item['uploader'].remote,
                     'status':item['status'],
                     'conflict':item['conflict']}
 
@@ -300,7 +289,7 @@ class UploadQueue(object):
         assert(service in services)
 
         for v in self.pending_uploads[service].values():
-            v['uploader'].set_client(client)
+            v['uploader'].client = client
 
     def set_state(self, service, key, state):
         self.pending_uploads[service][key]['status'] = state

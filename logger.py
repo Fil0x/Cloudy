@@ -47,7 +47,7 @@ class LoggerFactory(object):
     def getLogger(self, name):
         return logging.getLogger('{}{}'.format(self.v, '.{}'.format(name) if name else ''))
 
-def logger_singleton_factory(name, _singleton=LoggerFactory()):
+def logger_factory(name, _singleton=LoggerFactory()):
     ''' Returns a logger with root version.__version__.
         params: 
         name: the logger's name. '''

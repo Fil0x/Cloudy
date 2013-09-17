@@ -7,3 +7,5 @@ Configuration/
 images/
 lib/DataManager.py
 local.py
+logs/
+tests.py
