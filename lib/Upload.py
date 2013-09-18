@@ -38,10 +38,11 @@ def format_path(path):
 
 class DropboxUploader(object):
     #Copied from client.py in dropbox api.
+    #Crashes if target_length is 0.
     """Contains the logic around a chunked upload, which uploads a
-    large file to Dropbox via the /chunked_upload endpoint
+    large file to Dropbox via the /chunked_upload endpoint.
     """
-    def __init__(self, path, remote, offset=0, upload_id=None, client=None):
+    def __init__(self, path, remote='/', offset=0, upload_id=None, client=None):
         self.client = client
         self.offset = offset
         self.upload_id = upload_id

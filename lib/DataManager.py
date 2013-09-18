@@ -64,15 +64,15 @@ class LocalDataManager(DataManager):
         self.config = ConfigObj(self.configPath)
 
     @checkFile
+    def get_service_root(self, service):
+        return self.config[service]['ROOT']
+        
+    @checkFile
     def get_pithos_credentials(self):
         try:
             return self.config['Pithos']['credentials']
         except KeyError:
-            raise NotInitialized('Credentials are empty')
-
-    @checkFile
-    def get_service_root(self, service):
-        return self.config[service]['ROOT']
+            raise KeyError('Credentials are empty')
 
     @checkFile
     def add_pithos_credentials(self, user, url, token):
@@ -85,7 +85,7 @@ class LocalDataManager(DataManager):
 
             self.config.write()
         except KeyError:
-            raise NotInitialized('Credentials are empty')
+            raise KeyError('Credentials are empty')
 
     def update_pithos_credentials(self, user=None, url=None, token=None):
         self.config['Pithos']['credentials']['user'] = user or self.config['Pithos']['credentials']['user']
@@ -108,7 +108,7 @@ class LocalDataManager(DataManager):
         try:
             return self.config['Dropbox']['access_token']
         except KeyError:
-            raise NotInitialized('Access_token is empty')
+            raise KeyError('Access_token is empty')
 
     @checkFile
     def add_dropbox_token(self, key):
@@ -121,7 +121,7 @@ class LocalDataManager(DataManager):
 
             self.config.write()
         except KeyError:
-            raise NotInitialized('access_token is empty')
+            raise KeyError('access_token is empty')
 
     def update_dropbox_token(self, key=None):
         self.config['Dropbox']['access_token'] = key or self.config['Dropbox']['access_token']
@@ -138,6 +138,12 @@ class LocalDataManager(DataManager):
                self.config['GoogleDrive']['APP_SECRET'],
                self.config['GoogleDrive']['SCOPES'],
                self.config['GoogleDrive']['REDIRECT_URI'])
+
+    @checkFile
+    def set_googledrive_credentials(self, credentials):
+        self.config['GoogleDrive']['Credentials'] = credentials.to_json()
+
+        self.config.write()
 
     @checkFile
     def set_googledrive_root(self, new_root):
@@ -157,12 +163,6 @@ class LocalDataManager(DataManager):
             self.config.write()
         except KeyError:
             raise KeyError('Credentials are empty')
-
-    @checkFile
-    def set_googledrive_credentials(self, credentials):
-        self.config['GoogleDrive']['Credentials'] = credentials.to_json()
-
-        self.config.write()
 
     #Application information
     @checkFile

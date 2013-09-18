@@ -5,10 +5,10 @@ if ".." not in sys.path:
 import os
 import threading
 
+import logger
 import AppFacade
 import lib.Upload
 from model import Model
-import logger
 
 from PyQt4 import QtCore
 import puremvc.patterns.proxy
@@ -32,7 +32,7 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
                 if len(d):
                     name = os.path.basename(d['uploader'].path)
                     progress = round(float(d['uploader'].offset)/d['uploader'].target_length, 2)
-                    data.append([name, service, d['destination'], d['status'],
+                    data.append([name, service, d['uploader'].remote, d['status'],
                               progress, d['conflict'], 'Not ready', key])
 
         return data
@@ -45,8 +45,8 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
 
         self.sendNotification(AppFacade.AppFacade.DATA_CHANGED, self.model.uploadQueue)
 
-    def googledrive_add(self, path, body={}):
-        self.model.uploadQueue.googledrive_add(path, body)
+    def googledrive_add(self, path):
+        self.model.uploadQueue.googledrive_add(path)
 
         self.sendNotification(AppFacade.AppFacade.DATA_CHANGED, self.model.uploadQueue)
 
@@ -59,7 +59,6 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
         self.sendNotification(AppFacade.AppFacade.DATA_CHANGED, self.model.uploadQueue)
 
 class UploadThread(threading.Thread):
-    #TODO: I need the root beforehand.
     def __init__(self, uploader, **kwargs):
 
         threading.Thread.__init__(self, **kwargs)
@@ -82,7 +81,7 @@ class UploadThread(threading.Thread):
         for i in self.worker.upload_chunked():
             l.debug('Uploaded:{}'.format(i))
             if self._state == 1:
-                l.debug('Paused with {}'.format(i))
+                l.debug('Paused:{}'.format(i))
                 return #send signal to UI
             elif self.state == 2:
                 return #delete the thread, dont update the ui even if

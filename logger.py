@@ -12,7 +12,8 @@ class DebugFilter(object):
     def filter(self, logRecord):
         return logRecord.levelno <= self.__level
 
-#Duplicate logging problem - logging is a singleton.
+#SOLVED: Duplicate logging problem - logging is a singleton.
+#Don't use this directly. It has to be a singleton!
 class LoggerFactory(object):
 
     def __init__(self):
@@ -21,6 +22,7 @@ class LoggerFactory(object):
 
         #The application's root logger.
         logger = logging.getLogger(self.v)
+        #Change this to logging.INFO to stop printing the loggging.debug messages.
         logger.setLevel(logging.DEBUG)
 
         #Console handler
@@ -47,8 +49,10 @@ class LoggerFactory(object):
     def getLogger(self, name):
         return logging.getLogger('{}{}'.format(self.v, '.{}'.format(name) if name else ''))
 
+#Call this to get a logger.
 def logger_factory(name, _singleton=LoggerFactory()):
     ''' Returns a logger with root version.__version__.
-        params: 
-        name: the logger's name. '''
+        params:
+        name: the logger's name. 
+    '''
     return _singleton.getLogger(name)

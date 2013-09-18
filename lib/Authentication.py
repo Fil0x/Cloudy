@@ -2,7 +2,7 @@ import httplib2
 
 from DataManager import LocalDataManager
 
-from pithos.tools.lib.client import Pithos_Client, Fault
+#from pithos.tools.lib.client import Pithos_Client, Fault - Deprecated(?)
 from dropbox.client import DropboxClient
 from dropbox import rest
 from oauth2client.client import Credentials
@@ -14,28 +14,11 @@ class AuthManager(object):
         self.dataManager = LocalDataManager()
 
     def pithosAuthentication(self):
-        credentials = None
-        self.dataManager.update()
-
-        try:
-            credentials = self.dataManager.get_pithos_credentials()
-        except KeyError:
-            return None
-
-        pithosClient = Pithos_Client(credentials['url'], credentials['token'],
-                                     credentials['user'])
-
-        try:
-            pithosClient.list_containers()
-        except Fault:
-            return None
-
-        return pithosClient
+        pass
 
     def pithosAddUser(self, user, url, token):
-        self.dataManager.add_pithos_credentials(user, url, token)
-        return self.pithosAuthentication()
-
+        pass
+        
     def dropboxAuthentication(self):
         access_token = None
         self.dataManager.update()
@@ -55,8 +38,8 @@ class AuthManager(object):
 
         return dropboxClient
 
-    def dropboxAddUser(self, key, secret):
-        self.dataManager.add_dropbox_token(key,  secret)
+    def dropboxAddUser(self, key):
+        self.dataManager.add_dropbox_token(key)
         return self.dropboxAuthentication()
 
     #http://tinyurl.com/kdv3ttb

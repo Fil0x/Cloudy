@@ -3,9 +3,9 @@
 #############
 
 *.py[co]
-Configuration/
-images/
 lib/DataManager.py
 local.py
-logs/
 tests.py
+logs/
+images/
+Configuration/
