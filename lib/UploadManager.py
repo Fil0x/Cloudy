@@ -1,5 +1,11 @@
+import sys
+if ".." not in sys.path:
+    sys.path.append("..")
+
 import os
 import inspect
+
+import logger
 
 from configobj import ConfigObj
 
@@ -64,10 +70,20 @@ class LocalUploadManager(UploadManager):
         self.upload.write()
 
     @checkFile('uploadPath')
-    def get_uploads(self, service):
+    def get_uploads(self, service, id=None):
+        '''id: None to get all the uploads, list of the upload ids that you want'''
         assert(service in self.services)
 
-        return self.upload[service]
+        r = {}
+        if not id:
+            r = self.upload[service]
+        elif isinstance(id, list):
+            for i in id:
+                try:
+                    r[i] = self.upload[service][i]
+                except KeyError:
+                    logger.logger_factory('get_uploads').debug('Key:{}'.format(i))
+        return r
 
     def delete_upload(self, service, id):
         assert(service in self.services)
@@ -76,7 +92,7 @@ class LocalUploadManager(UploadManager):
             try:
                 del(self.upload[service][i])
             except KeyError:
-                pass
+                logger.logger_factory('delete_upload').debug('Key:{}'.format(i))
 
         if isinstance(id,list):
             map(delete_item, id)

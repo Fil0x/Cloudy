@@ -21,11 +21,12 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
     def __init__(self):
         super(ModelProxy, self).__init__(ModelProxy.NAME, [])
 
-        self.active_threads = {}
+        self._active_threads = {} # {'id':UploadThread, ...}
         self.model = Model()
         self.sendNotification(AppFacade.AppFacade.DATA_CHANGED, self.model.uploadQueue)
 
     def detailed_view_data(self):
+        #TODO: change it
         data = []
         for service, items in self.model.uploadQueue.pending_uploads.iteritems():
             for key, d in items.iteritems():
@@ -36,7 +37,7 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
                               progress, d['conflict'], 'Not ready', key])
 
         return data
-
+        
     def start_uploads(self):
         pass
 

@@ -72,7 +72,7 @@ class LocalDataManager(DataManager):
         try:
             return self.config['Pithos']['credentials']
         except KeyError:
-            raise KeyError('Credentials are empty')
+            raise KeyError('Pithos: credentials are empty')
 
     @checkFile
     def add_pithos_credentials(self, user, url, token):
@@ -85,7 +85,7 @@ class LocalDataManager(DataManager):
 
             self.config.write()
         except KeyError:
-            raise KeyError('Credentials are empty')
+            raise KeyError('Pithos: credentials are empty')
 
     def update_pithos_credentials(self, user=None, url=None, token=None):
         self.config['Pithos']['credentials']['user'] = user or self.config['Pithos']['credentials']['user']
@@ -108,7 +108,7 @@ class LocalDataManager(DataManager):
         try:
             return self.config['Dropbox']['access_token']
         except KeyError:
-            raise KeyError('Access_token is empty')
+            raise KeyError('Dropbox: access_token is empty.')
 
     @checkFile
     def add_dropbox_token(self, key):
@@ -121,7 +121,7 @@ class LocalDataManager(DataManager):
 
             self.config.write()
         except KeyError:
-            raise KeyError('access_token is empty')
+            raise KeyError('Dropbox: access_token is empty')
 
     def update_dropbox_token(self, key=None):
         self.config['Dropbox']['access_token'] = key or self.config['Dropbox']['access_token']
@@ -154,7 +154,7 @@ class LocalDataManager(DataManager):
         try:
             return self.config['GoogleDrive']['Credentials']
         except KeyError:
-            raise KeyError('Credentials are empty')
+            raise KeyError('GoogleDrive: credentials are empty.')
 
     def flush_googledrive_credentials(self):
         try:
@@ -162,7 +162,7 @@ class LocalDataManager(DataManager):
 
             self.config.write()
         except KeyError:
-            raise KeyError('Credentials are empty')
+            raise KeyError('GoogleDrive: credentials are empty.')
 
     #Application information
     @checkFile

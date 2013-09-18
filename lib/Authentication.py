@@ -1,6 +1,7 @@
 import httplib2
 
 from DataManager import LocalDataManager
+import errors
 
 #from pithos.tools.lib.client import Pithos_Client, Fault - Deprecated(?)
 from dropbox.client import DropboxClient
@@ -13,44 +14,43 @@ class AuthManager(object):
     def __init__(self):
         self.dataManager = LocalDataManager()
 
-    def pithosAuthentication(self):
+    def pithos_authentication(self):
         pass
 
-    def pithosAddUser(self, user, url, token):
+    def pithos_add_user(self, user, url, token):
         pass
         
-    def dropboxAuthentication(self):
+    def dropbox_authentication(self):
         access_token = None
         self.dataManager.update()
 
-        try:
-            access_token = self.dataManager.get_dropbox_token()
-        except KeyError:
-            return None
+        #A KeyError will be raised if there is no token.
+        access_token = self.dataManager.get_dropbox_token()
 
         dropboxClient = DropboxClient(access_token)
 
         try:
             dropboxClient.account_info()
         except rest.ErrorResponse as e:
+            #The token is invalid.
+            raise errors.InvalidAuth('Dropbox token is invalid')
+        except rest.RESTSocketError as e:
+            #No internet.
             return None
-        #RESTSocketError
 
         return dropboxClient
 
-    def dropboxAddUser(self, key):
+    def dropbox_add_user(self, key):
         self.dataManager.add_dropbox_token(key)
         return self.dropboxAuthentication()
 
     #http://tinyurl.com/kdv3ttb
-    def googledriveAuthentication(self):
+    def googledrive_authentication(self):
         credentials = None
         self.dataManager.update()
 
-        try:
-            credentials = self.dataManager.get_googledrive_credentials()
-        except KeyError:
-            return None
+        #A KeyError will be raised if there is no token.
+        credentials = self.dataManager.get_googledrive_credentials()
 
         credentials = Credentials.new_from_json(credentials)
         http = credentials.authorize(httplib2.Http())
@@ -59,12 +59,12 @@ class AuthManager(object):
 
         try:
             file.execute()
-        except Exception:
-            return None
+        except Exception as e:
+            raise e #dunno..
 
         self.dataManager.set_googledrive_credentials(credentials)
         return drive_service
 
-    def googledriveAddUser(self, credentials):
+    def googledrive_add_user(self, credentials):
         self.dataManager.update_googledrive_credentials(credentials)
         return self.googledriveAuthentication()
