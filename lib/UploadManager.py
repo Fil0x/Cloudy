@@ -6,6 +6,7 @@ import os
 import inspect
 
 import logger
+from DataManager import Manager
 
 from configobj import ConfigObj
 
@@ -24,13 +25,10 @@ def checkFile(fileType):
     return fdec
 
 
-class UploadManager(object):
-    filedir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-    basepath =  os.path.join(os.path.dirname(filedir), 'Configuration')
+class LocalUploadManager(Manager):
+
     services = ['Dropbox', 'Pithos', 'GoogleDrive']
 
-
-class LocalUploadManager(UploadManager):
     def __init__(self, historyName='history.ini', uploadName='upload.ini'):
         self.historyPath = os.path.join(self.basepath, historyName)
         self.uploadPath = os.path.join(self.basepath, uploadName)

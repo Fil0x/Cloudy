@@ -18,11 +18,11 @@ def checkFile(f):
         return f(*args)
     return wrapper
 
-class DataManager(object):
+class Manager(object):
     filedir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
     basepath =  os.path.join(os.path.dirname(filedir), 'Configuration')
 
-class LocalDataManager(DataManager):
+class LocalDataManager(Manager):
     def __init__(self, configName='config.ini'):
         self.configPath = os.path.join(self.basepath,configName)
 

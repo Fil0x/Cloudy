@@ -139,13 +139,13 @@ class GoogleDriveUploader(object):
             try:
                 status, response = file.next_chunk()
                 if status:
-                    print "Upload %d%% complete." % int(status.progress() * 100)
                     yield (status.progress(), self.path, self.upload_uri, self.offset)
             except Exception:
                 print 'Something happened'
                 self.offset = file.resumable_progress
                 self.upload_uri = file.resumable_uri
         #Error handle
+        #In a successful upload the response will be not None
 #End GoogleDrive stuff
 
 class UploadQueue(object):
