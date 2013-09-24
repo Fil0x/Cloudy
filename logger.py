@@ -19,6 +19,7 @@ class LoggerFactory(object):
     def __init__(self):
         self.v = version.__version__
         fmt = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        fmt_dbg = logging.Formatter('%(asctime)s - %(name)s - %(message)s')
 
         #The application's root logger.
         logger = logging.getLogger(self.v)
@@ -28,7 +29,7 @@ class LoggerFactory(object):
         #Console handler
         ch = logging.StreamHandler()
         ch.setLevel(logging.DEBUG)
-        ch.setFormatter(fmt)
+        ch.setFormatter(fmt_dbg)
         #We want to print the debug messages only.
         ch.addFilter(DebugFilter(logging.DEBUG))
 

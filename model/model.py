@@ -9,5 +9,5 @@ from lib.Authentication import AuthManager
 class Model(object):
     def __init__(self):
         #TODO:upload history
-        self.uploadQueue = UploadQueue()
-        self.authManager = AuthManager()
+        self.uq = UploadQueue()
+        self.am = AuthManager()

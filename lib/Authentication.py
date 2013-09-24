@@ -1,7 +1,8 @@
 import httplib2
 
-from DataManager import LocalDataManager
 import errors
+from DataManager import Manager
+from DataManager import LocalDataManager
 
 #from pithos.tools.lib.client import Pithos_Client, Fault - Deprecated(?)
 from dropbox.client import DropboxClient
@@ -10,17 +11,31 @@ from oauth2client.client import Credentials
 from apiclient.discovery import build
 
 
-class AuthManager(object):
+class AuthManager(Manager):
     def __init__(self):
         self.dataManager = LocalDataManager()
-
-    def pithos_authentication(self):
+        self.auth_functions = [self._dropbox_auth, 
+                               self._pithos_auth, 
+                               self._googledrive_auth]         
+        
+        self.service_auth = dict(zip(self.services, self.auth_functions))
+    
+    def authenticate(self, service):
+        '''Use this function to get a service client.
+           params:
+           service: one of the following 'Dropbox', 'Pithos', 'GoogleDrive'.
+        '''
+        assert(service in self.services)
+        
+        return self.service_auth[service]()
+        
+    def _pithos_auth(self):
         pass
 
     def pithos_add_user(self, user, url, token):
         pass
         
-    def dropbox_authentication(self):
+    def _dropbox_auth(self):
         access_token = None
         self.dataManager.update()
 
@@ -45,7 +60,7 @@ class AuthManager(object):
         return self.dropboxAuthentication()
 
     #http://tinyurl.com/kdv3ttb
-    def googledrive_authentication(self):
+    def _googledrive_auth(self):
         credentials = None
         self.dataManager.update()
 

@@ -26,9 +26,6 @@ def checkFile(fileType):
 
 
 class LocalUploadManager(Manager):
-
-    services = ['Dropbox', 'Pithos', 'GoogleDrive']
-
     def __init__(self, historyName='history.ini', uploadName='upload.ini'):
         self.historyPath = os.path.join(self.basepath, historyName)
         self.uploadPath = os.path.join(self.basepath, uploadName)

@@ -21,6 +21,7 @@ def checkFile(f):
 class Manager(object):
     filedir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
     basepath =  os.path.join(os.path.dirname(filedir), 'Configuration')
+    services = local.services
 
 class LocalDataManager(Manager):
     def __init__(self, configName='config.ini'):
