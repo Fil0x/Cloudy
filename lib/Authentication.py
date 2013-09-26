@@ -57,7 +57,7 @@ class AuthManager(Manager):
 
     def dropbox_add_user(self, key):
         self.dataManager.add_dropbox_token(key)
-        return self.dropboxAuthentication()
+        return self._dropbox_auth()
 
     #http://tinyurl.com/kdv3ttb
     def _googledrive_auth(self):
@@ -82,4 +82,4 @@ class AuthManager(Manager):
 
     def googledrive_add_user(self, credentials):
         self.dataManager.update_googledrive_credentials(credentials)
-        return self.googledriveAuthentication()
+        return self._googledrive_auth()

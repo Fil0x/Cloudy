@@ -21,9 +21,7 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
     NAME = 'MODELPROXY'
     
     add_queue = Queue.Queue() 
-    stop_queue = Queue.Queue()
     upload_queue = Queue.Queue()
-    finished_queue = Queue.Queue()
 
     def __init__(self):
         super(ModelProxy, self).__init__(ModelProxy.NAME, [])
@@ -43,16 +41,32 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
     def _create_clients(self):
         #Change this to create only the clients that the user uses.
         self.logger.debug('Init: creating clients.')
-        
+        self.logger.debug('Done: creating clients.')
+    
+    #Exposed functions
     def add_file(self, service, path):
-        ''' The message that will be added by add() will have the following form:
-            tuple: ('add', service, path)
-        '''
         assert(service in local.services)
         
-    
         self.add_queue.put(('add', service, path))
         
+    def stop_file(self, id):
+        assert(id in self.active_threads)
+        
+        self.upload_queue.put(('stop', id))
+        
+    def delete_file(self, id):
+        assert(id in self.active_threads)
+        
+        self.upload_queue.put(('delete', id))
+    
+    def resume_file(self, service, id):
+        assert(service in local.services)
+        
+        r = self.model.uq.get(service, id)
+        if 'error' in r:
+            return #notify controller that the path is invalid
+        self.add_queue.put(('resume', service, id, r))
+    
     def detailed_view_data(self):
         #TODO: change it
         data = []
@@ -65,22 +79,29 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
                               progress, d['conflict'], 'Not ready', key])
 
         return data
-
+    #End of exposed functions
+    
     def start_uploads(self):
-        pass
-
+        self.logger.debug('Starting uploads...')
+        r = self.model.uq.get_running()
+        
+        for s, v in r.iteritems():
+            for id, data in v.iteritems():
+                self.logger.debug('Item added: {}/{}'.format(s, id))
+                self.add_queue.put(('resume', s, id, data))
+    
     def add(self, service, path):
         return self.model.uq.add(service, path)
-
+        
     def save(self):
         self.model.uq.save()
 
     def authenticate(self, service):
         return self.model.am.authenticate(service)
         
-    def delete(self, service, key):
-        self.model.uq.delete(service, key)
- 
+    def delete(self, service, id):
+        self.model.uq.delete(service, id)
+       
 class UploadSupervisorThread(threading.Thread):
     def __init__(self, in_queue, proxy, **kwargs):
         threading.Thread.__init__(self, **kwargs)
@@ -99,7 +120,22 @@ class UploadSupervisorThread(threading.Thread):
                 self.proxy.active_threads[msg[2]] = t
                 t.start()
                 self.logger.debug('Started!')
- 
+            elif msg[0] in 'stop':
+                '''Get the thread, change its state to 1, remove it 
+                   from the active_threads.
+                '''
+                self.proxy.active_threads[msg[1]].state = 1
+                del self.proxy.active_threads[msg[1]]
+            elif msg[0] in 'delete':
+                '''Get the thread, change its state to 2, remove it 
+                   from the active_threads.
+                '''
+                t = self.proxy.active_threads[msg[1]]
+                t.state = 2
+                #Clean up
+                self.proxy.delete(t.service, msg[1])
+                del self.proxy.active_threads[msg[1]]
+                
 class AddTaskThread(threading.Thread):
 
     def __init__(self, in_queue, out_queue, proxy, **kwargs):
@@ -109,35 +145,32 @@ class AddTaskThread(threading.Thread):
         self.in_queue = in_queue
         self.out_queue = out_queue
         self.proxy = proxy
-        self.logger = logger.logger_factory(self.__class__.__name__)
         self.daemon = True
+        self.logger = logger.logger_factory(self.__class__.__name__)
         self.logger.debug('Initialized')
         
     def run(self):
         while True:
             #Block here until we have an item to add.
             msg = self.in_queue.get()
+            self.logger.debug('Authenticating with {}'.format(msg[1]))
+            #is it cached?
+            client = self.proxy.authenticate(msg[1])
+            self.logger.debug('Authentication done')
+            #Errorrrrsssss
             if msg[0] in 'add':
-                '''Ok, we got an 'add' message. The actions that we have to take are:
-                   1)Check the client cache for an existent client.
-                    1a)If there is a client, check if its working.
-                    1b)If the client is invalid then create a new one.
-                     (invalid tokens??)
-                   2)Create an uploader.
-                   3)Put him in the upload_queue.
-                   4)Read next message.
-                '''
-                self.logger.debug('Authenticating with {}'.format(msg[1]))
-                client = self.proxy.authenticate(msg[1])
-                if not client:
-                    self.logger.debug('fak')
+                id, d = self.proxy.add(msg[1], msg[2])
+                if 'error' in d:
+                    pass #send message to controller, invalid path
+                d['uploader'].client = client
                 
-                #Errorrrrsssss
-                id, uploader = self.proxy.add(msg[1], msg[2])
-                uploader.client = client
                 self.logger.debug('Putting the uploader in queue.')
-                self.out_queue.put(('add', msg[1], id, uploader))
-
+                self.out_queue.put(('add', msg[1], id, d['uploader']))
+            elif msg[0] in 'resume':
+                self.logger.debug('Resuming...')
+                msg[3]['uploader'].client = client
+                self.out_queue.put(('add', msg[1], msg[2], msg[3]['uploader']))
+                
 class UploadThread(threading.Thread):
     def __init__(self, uploader, service, init_state=0, **kwargs):
 
@@ -155,7 +188,8 @@ class UploadThread(threading.Thread):
     @state.setter
     def state(self, value):
         assert(value in range(3))
-
+        
+        self.logger.debug('Changing state to {}'.format(value))
         self._state = value
 
     def run(self):
@@ -165,6 +199,7 @@ class UploadThread(threading.Thread):
                 self.logger.debug('Paused:{}'.format(i))
                 return #send signal to UI
             elif self.state == 2:
+                self.logger.debug('Deleted:{}'.format(i))
                 return #delete the thread, dont update the ui even if
                        #a chunk is uploaded in the meantime.
 

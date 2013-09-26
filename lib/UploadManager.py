@@ -3,7 +3,6 @@ if ".." not in sys.path:
     sys.path.append("..")
 
 import os
-import inspect
 
 import logger
 from DataManager import Manager
@@ -27,6 +26,8 @@ def checkFile(fileType):
 
 class LocalUploadManager(Manager):
     def __init__(self, historyName='history.ini', uploadName='upload.ini'):
+        self.logger = logger.logger_factory(self.__class__.__name__)
+        
         self.historyPath = os.path.join(self.basepath, historyName)
         self.uploadPath = os.path.join(self.basepath, uploadName)
 
@@ -77,7 +78,7 @@ class LocalUploadManager(Manager):
                 try:
                     r[i] = self.upload[service][i]
                 except KeyError:
-                    logger.logger_factory('get_uploads').debug('Key:{}'.format(i))
+                    self.logger.debug('Key(get):{}'.format(i))
         return r
 
     def delete_upload(self, service, id):
@@ -87,7 +88,7 @@ class LocalUploadManager(Manager):
             try:
                 del(self.upload[service][i])
             except KeyError:
-                logger.logger_factory('delete_upload').debug('Key:{}'.format(i))
+                self.logger.debug('Key(delete):{}'.format(i))
 
         if isinstance(id,list):
             map(delete_item, id)

@@ -1,8 +1,6 @@
 ﻿import re
 import os
-import time
 import httplib2
-import mimetypes
 from StringIO import StringIO
 
 import local
@@ -12,11 +10,11 @@ from UploadManager import LocalUploadManager
 from dropbox import rest
 from dropbox import client
 from dropbox import session
-from simpleflake import simpleflake
-from oauth2client.client import Credentials
 from apiclient import errors
+from simpleflake import simpleflake
 from apiclient.discovery import build
 from apiclient.http import MediaFileUpload
+from oauth2client.client import Credentials
 
 #Dropbox stuff
 def format_path(path):
@@ -169,7 +167,7 @@ class UploadQueue(object):
         '''
         return str(simpleflake())
 
-    #Function called on initialization
+    #initialization functions
     def _dropbox_load(self):
         #Function called on initialization
         uploadManager = LocalUploadManager()
@@ -191,7 +189,6 @@ class UploadQueue(object):
                                                   'status':v['status'],
                                                   'conflict':v['conflict']}
 
-    #Function called on initialization
     def _googledrive_load(self):
         uploadManager = LocalUploadManager()
         uploadsFromFile = uploadManager.get_uploads('GoogleDrive')
@@ -213,6 +210,8 @@ class UploadQueue(object):
                                                       'status':v['status'],
                                                       'conflict':v['conflict']}
 
+    #End of initialization funtions
+    
     def _dropbox_add(self, path):
         '''
         path: localpath to the file.
@@ -230,7 +229,7 @@ class UploadQueue(object):
             self.pending_uploads['Dropbox'][id] = {'uploader':uploader,
                                                    'status':'Running',
                                                    'conflict':'KeepBoth'}
-        return (id, uploader)
+        return (id, self.pending_uploads['Dropbox'][id])
 
     def _dropbox_save(self):
         def create_dict(item):
@@ -290,21 +289,43 @@ class UploadQueue(object):
     def add(self, service, path):
         return getattr(self, '_{}_add'.format(service.lower()))(path)
         
-    def delete(self, service, key):
+    def delete(self, service, id):
         try:
-            del(self.pending_uploads[service][key])
+            del(self.pending_uploads[service][id])
         except KeyError:
             raise KeyError('No such key.')
 
+    def get_running(self, service=''):
+        r = {}
+        if service:
+            assert(service in local.services)
+            r[service] = {}
+            for k, v in self.pending_uploads[service].iteritems():
+                if 'error' not in v and v['status'] == 'Running':
+                    r[service][k] = v
+        else:
+            for s, v in self.pending_uploads.iteritems():
+                r[s] = {}
+                for id, data in v.iteritems():
+                    if 'error' not in data and data['status'] == 'Running':
+                        r[s][id] = data
+            
+        return r
+            
+    def get(self, service, id):
+        assert(id in self.pending_uploads[service])
+    
+        return self.pending_uploads[service][id]
+            
     def save(self):
         self._dropbox_save()
         self._googledrive_save()
 
     def set_client(self, service, client):
-        assert(service in services)
+        assert(service in local.services)
 
         for v in self.pending_uploads[service].values():
             v['uploader'].client = client
 
-    def set_state(self, service, key, state):
-        self.pending_uploads[service][key]['status'] = state
+    def set_state(self, service, id, status):
+        self.pending_uploads[service][id]['status'] = status

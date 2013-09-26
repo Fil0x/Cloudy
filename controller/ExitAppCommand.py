@@ -12,5 +12,5 @@ class ExitAppCommand(puremvc.patterns.command.SimpleCommand, puremvc.interfaces.
     def execute(self, notification):
         #The application is closing, we have to store the uploads
         #that are not completed.
-        self.facade.retrieveProxy(model.modelProxy.ModelProxy.NAME).dump()
+        self.facade.retrieveProxy(model.modelProxy.ModelProxy.NAME).save()
         QtCore.QCoreApplication.instance().quit()
