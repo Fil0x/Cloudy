@@ -127,6 +127,9 @@ class GoogleDriveUploader(object):
         self.target_length = os.path.getsize(path)
         self.upload_uri = upload_uri
         self.client = client
+        #These variables will be filled after the file has been uploaded.
+        self.sharelink = None
+        self.title = None
 
     def upload_chunked(self, chunk_size=256*1024):
         media_body = MediaFileUpload(self.path, chunksize=chunk_size, resumable=True)
@@ -144,7 +147,8 @@ class GoogleDriveUploader(object):
                 self.offset = file.resumable_progress
                 self.upload_uri = file.resumable_uri
         #Error handle
-        #In a successful upload the response will be not None
+        self.sharelink = response['alternateLink']
+        self.title = response['title']
 #End GoogleDrive stuff
 
 class UploadQueue(object):
@@ -211,7 +215,8 @@ class UploadQueue(object):
                                                       'conflict':v['conflict']}
 
     #End of initialization funtions
-    
+
+    #Upload functions
     def _dropbox_add(self, path):
         '''
         path: localpath to the file.
@@ -241,12 +246,12 @@ class UploadQueue(object):
                     'conflict':item['conflict']}
 
         uploadManager = LocalUploadManager()
-        uploadManager.flush_uploads('Dropbox')
+        uploadManager.delete_upload('Dropbox')
         self._remove_invalids('Dropbox')
 
         for k, v in self.pending_uploads['Dropbox'].iteritems():
             d = create_dict(v)
-            uploadManager.dropbox_update_upload(k, **d)
+            uploadManager.add_upload('Dropbox', k, **d)
 
     def _googledrive_add(self, path):
         id = self._new_id()
@@ -263,7 +268,7 @@ class UploadQueue(object):
             self.pending_uploads['GoogleDrive'][id] = {'uploader':uploader,
                                                        'status':'Running',
                                                        'conflict':'KeepBoth'}
-        return (id, uploader)
+        return (id, self.pending_uploads['GoogleDrive'][id])
 
     def _googledrive_save(self):
         def create_dict(item):
@@ -275,20 +280,40 @@ class UploadQueue(object):
                     'conflict':item['conflict']}
 
         uploadManager = LocalUploadManager()
-        uploadManager.flush_uploads('GoogleDrive')
+        uploadManager.delete_upload('GoogleDrive')
         self._remove_invalids('GoogleDrive')
 
         for k, v in self.pending_uploads['GoogleDrive'].iteritems():
             d = create_dict(v)
-            uploadManager.googledrive_update_upload(k, **d)
+            uploadManager.add_upload('GoogleDrive', k, **d)
 
     def _remove_invalids(self, s):
         self.pending_uploads[s] = {k:v for k,v in self.pending_uploads[s].items() if 'error' not in v}
+    #end of Upload functions
+    
+    #History functions - exposed
+    def add_history(self, service, id, **kwargs):
+        ''' name=remote_filename, date=date, path=remote path, link=share_link '''
+        upload_manager = LocalUploadManager()
+        
+        upload_manager.add_history(service, id, **kwargs)
+
+    def get_history(self, service, id=None):
+        upload_manager = LocalUploadManager()
+        
+        return upload_manager.get_history(service, id)
+        
+    def delete_history(self, service, id=None):
+        upload_manager = LocalUploadManager()
+        
+        upload_manager.delete_history(service, id)
+        
+    #end of History functions
     
     #Exposed functions.
     def add(self, service, path):
         return getattr(self, '_{}_add'.format(service.lower()))(path)
-        
+
     def delete(self, service, id):
         try:
             del(self.pending_uploads[service][id])
@@ -309,14 +334,14 @@ class UploadQueue(object):
                 for id, data in v.iteritems():
                     if 'error' not in data and data['status'] == 'Running':
                         r[s][id] = data
-            
+
         return r
-            
+
     def get(self, service, id):
         assert(id in self.pending_uploads[service])
-    
+
         return self.pending_uploads[service][id]
-            
+
     def save(self):
         self._dropbox_save()
         self._googledrive_save()
@@ -329,3 +354,4 @@ class UploadQueue(object):
 
     def set_state(self, service, id, status):
         self.pending_uploads[service][id]['status'] = status
+    #end of exposed functions

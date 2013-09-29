@@ -10,7 +10,7 @@ from DataManager import Manager
 from configobj import ConfigObj
 
 
-def checkFile(fileType):
+def check_file(fileType):
     def fdec(func):
         def f(*args, **kwargs):
             path = getattr(args[0], fileType)
@@ -27,7 +27,7 @@ def checkFile(fileType):
 class LocalUploadManager(Manager):
     def __init__(self, historyName='history.ini', uploadName='upload.ini'):
         self.logger = logger.logger_factory(self.__class__.__name__)
-        
+
         self.historyPath = os.path.join(self.basepath, historyName)
         self.uploadPath = os.path.join(self.basepath, uploadName)
 
@@ -45,27 +45,23 @@ class LocalUploadManager(Manager):
     def _create_file(self, path, attr):
         config = ConfigObj(path)
 
-        config['Dropbox'] = {}
-        config['Pithos'] = {}
-        config['GoogleDrive'] = {}
+        for s in self.services:
+            config[s] = {}
 
         config.write()
 
         setattr(self, attr, config)
 
-    @checkFile('uploadPath')
-    def dropbox_update_upload(self, id, **kwargs):
-        self.upload['Dropbox'].setdefault(id, kwargs)
+    #upload functions
+    @check_file('uploadPath')
+    def add_upload(self, service, id, **kwargs):
+        assert(service in self.services)
+
+        self.upload[service].setdefault(id, kwargs)
 
         self.upload.write()
 
-    @checkFile('uploadPath')
-    def googledrive_update_upload(self, id, **kwargs):
-        self.upload['GoogleDrive'].setdefault(id, kwargs)
-
-        self.upload.write()
-
-    @checkFile('uploadPath')
+    @check_file('uploadPath')
     def get_uploads(self, service, id=None):
         '''id: None to get all the uploads, list of the upload ids that you want'''
         assert(service in self.services)
@@ -79,10 +75,10 @@ class LocalUploadManager(Manager):
                     r[i] = self.upload[service][i]
                 except KeyError:
                     #It should never appear.
-                    self.logger.debug('Key(get):{}'.format(i))
+                    self.logger.debug('Key(get, upload):{}'.format(i))
         return r
 
-    def delete_upload(self, service, id):
+    def delete_upload(self, service, id=None):
         assert(service in self.services)
 
         def delete_item(i):
@@ -91,16 +87,60 @@ class LocalUploadManager(Manager):
             except KeyError:
                 self.logger.debug('Key(delete):{}'.format(i))
 
-        if isinstance(id,list):
+        if not id:
+            self.upload[service] = {}
+        elif isinstance(id,list):
             map(delete_item, id)
         else:
             del(self.upload[service][id])
 
         self.upload.write()
+    #End of upload functions
 
-    def flush_uploads(self, service):
+    #history functions
+    @check_file('historyPath')
+    def add_history(self, service, id, **kwargs):
+        ''' remote filename, remote path, date & time, share link '''
         assert(service in self.services)
 
-        self.upload[service] = {}
+        if id in self.history[service]:
+            del self.history[service][id]
+        self.history[service].setdefault(id, kwargs)
 
-        self.upload.write()
+        self.history.write()
+
+    @check_file('historyPath')
+    def get_history(self, service, id=None):
+        ''' id=list '''
+        assert(service in self.services)
+
+        r = {}
+        if not id:
+            r = self.history[service]
+        elif isinstance(id, list):
+            for i in id:
+                try:
+                    r[i] = self.history[service][i]
+                except KeyError:
+                    #It should never appear.
+                    self.logger.debug('Key(get, history):{}'.format(i))
+        return r
+
+    def delete_history(self, service, id=None):
+        assert(service in self.services)
+
+        def delete_item(i):
+            try:
+                del(self.history[service][i])
+            except KeyError:
+                self.logger.debug('Key(delete, history):{}'.format(i))
+
+        if not id:
+            self.history[service] = {}
+        elif isinstance(id,list):
+            map(delete_item, id)
+        else:
+            del(self.history[service][id])
+
+        self.history.write()
+    #end of history functions

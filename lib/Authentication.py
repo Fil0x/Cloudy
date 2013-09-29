@@ -20,6 +20,7 @@ class AuthManager(Manager):
         
         self.service_auth = dict(zip(self.services, self.auth_functions))
     
+    #exposed functions
     def authenticate(self, service):
         '''Use this function to get a service client.
            params:
@@ -28,7 +29,8 @@ class AuthManager(Manager):
         assert(service in self.services)
         
         return self.service_auth[service]()
-        
+    #end of exposed functions
+    
     def _pithos_auth(self):
         pass
 
@@ -70,9 +72,9 @@ class AuthManager(Manager):
         credentials = Credentials.new_from_json(credentials)
         http = credentials.authorize(httplib2.Http())
         drive_service = build('drive', 'v2', http=http)
-        file = drive_service.files().list()
 
         try:
+            file = drive_service.files().list()
             file.execute()
         except Exception as e:
             raise e #dunno..
