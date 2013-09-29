@@ -54,7 +54,7 @@ class DropboxUploader(object):
 
         self.file_obj.seek(self.offset)
 
-    def upload_chunked(self, chunk_size = 128 * 1024):
+    def upload_chunked(self, chunk_size=128*1024):
         """Uploads data from this ChunkedUploader's file_obj in chunks, until
         an error occurs. Throws an exception when an error occurs, and can
         be called again to resume the upload.

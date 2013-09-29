@@ -41,10 +41,6 @@ class LocalDataManager(Manager):
     def _create_config_file(self):
         config = ConfigObj(self.configPath)
 
-        config['Application'] = {}
-        config['Application']['posX'] = 20
-        config['Application']['posY'] = 20
-
         config['Pithos'] = {}
         config['Pithos']['ROOT'] = '/pithos'
 
@@ -164,18 +160,3 @@ class LocalDataManager(Manager):
             self.config.write()
         except KeyError:
             raise KeyError('GoogleDrive: credentials are empty.')
-
-    #Application information
-    @checkFile
-    def get_application_info(self):
-        appInfo = self.config['Application']
-        for key in appInfo.keys():
-            appInfo[key] = int(appInfo[key])
-
-        return appInfo
-
-    def update_application_info(self, posX=None, posY=None):
-        self.config['Application']['posX'] = posX or self.config['Application']['posX']
-        self.config['Application']['posY'] = posY or self.config['Application']['posY']
-
-        self.config.write()

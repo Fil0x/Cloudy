@@ -103,7 +103,7 @@ class FeedbackPage(QtGui.QWidget):
         closeBtn.setIcon(QtGui.QIcon(self.closeBtnPath))
         closeBtn.setIconSize(QtCore.QSize(31, 31))
         closeBtn.setCursor(QtCore.Qt.PointingHandCursor)
-        closeBtn.clicked.connect(lambda: self.hide())
+        closeBtn.clicked.connect(lambda: self.deleteLater())
 
         self.mainFrame = QtGui.QFrame(self)
         self.mainFrame.setGeometry(80, 80, 458, 250)

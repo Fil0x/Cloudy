@@ -78,6 +78,7 @@ class LocalUploadManager(Manager):
                 try:
                     r[i] = self.upload[service][i]
                 except KeyError:
+                    #It should never appear.
                     self.logger.debug('Key(get):{}'.format(i))
         return r
 

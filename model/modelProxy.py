@@ -22,6 +22,7 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
     
     add_queue = Queue.Queue() 
     upload_queue = Queue.Queue()
+    history_queue = Queue.Queue()
 
     def __init__(self):
         super(ModelProxy, self).__init__(ModelProxy.NAME, [])
@@ -29,20 +30,16 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
         self.active_threads = {} # {'id':UploadThread, ...}
         self.model = Model()
         self.logger = logger.logger_factory(self.__class__.__name__)
-        self._create_clients() #TODO
         
         self.upt = UploadSupervisorThread(self.upload_queue, self)
         self.att = AddTaskThread(self.add_queue, self.upload_queue, self)
+        self.ht  = HistoryThread(self.history_queue, self)
         self.upt.start()
         self.att.start()
+        #self.ht.start()
         
         #self.sendNotification(AppFacade.AppFacade.DATA_CHANGED, self.model.uq)
 
-    def _create_clients(self):
-        #Change this to create only the clients that the user uses.
-        self.logger.debug('Init: creating clients.')
-        self.logger.debug('Done: creating clients.')
-    
     #Exposed functions
     def add_file(self, service, path):
         assert(service in local.services)
@@ -79,7 +76,6 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
                               progress, d['conflict'], 'Not ready', key])
 
         return data
-    #End of exposed functions
     
     def start_uploads(self):
         self.logger.debug('Starting uploads...')
@@ -89,6 +85,14 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
             for id, data in v.iteritems():
                 self.logger.debug('Item added: {}/{}'.format(s, id))
                 self.add_queue.put(('resume', s, id, data))
+    
+    def stop_uploads(self):
+        self.logger.debug('Stopping ALL uploads...')
+        for k, v in self.active_threads.iteritems():
+            self.logger.debug('Stopping: {}...'.format(k))
+            v.state = 1
+    
+    #End of exposed functions
     
     def add(self, service, path):
         return self.model.uq.add(service, path)
@@ -101,7 +105,20 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
         
     def delete(self, service, id):
         self.model.uq.delete(service, id)
-       
+
+class HistoryThread(threading.Thread):
+    def __init__(self, in_queue, proxy, **kwargs):
+        threading.Thread.__init__(self, **kwargs)
+        
+        self.in_queue = in_queue
+        self.proxy = proxy
+        self.daemon = True
+        self.logger = logger.logger_factory(self.__class__.__name__)
+        self.logger.debug('Initialized')
+        
+    def run(self):
+        pass
+        
 class UploadSupervisorThread(threading.Thread):
     def __init__(self, in_queue, proxy, **kwargs):
         threading.Thread.__init__(self, **kwargs)
@@ -179,7 +196,7 @@ class UploadThread(threading.Thread):
         self.service = service
         self.logger = logger.logger_factory(self.__class__.__name__)
         self._state = init_state #It can be 1 to stop when the next chunk is uploaded
-                        #or 2 to delete the upload.
+                                 #or 2 to delete the upload.
 
     @property
     def state(self):
@@ -197,12 +214,16 @@ class UploadThread(threading.Thread):
             self.logger.debug('Uploaded:{}'.format(i))
             if self._state == 1:
                 self.logger.debug('Paused:{}'.format(i))
-                return #send signal to UI
+                if self.service == 'Dropbox':
+                    break
+                else:
+                    return #send signal to UI
             elif self.state == 2:
                 self.logger.debug('Deleted:{}'.format(i))
                 return #delete the thread, dont update the ui even if
                        #a chunk is uploaded in the meantime.
 
-        if self.service in 'Dropbox':
-            self.worker.finish('{}{}'.format(self.worker.remote, os.path.basename(self.worker.path)))
+        self.worker.finish('{}{}'.format(self.worker.remote, os.path.basename(self.worker.path)))
+        #send signal to UI
         return
+        
