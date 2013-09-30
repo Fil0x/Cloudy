@@ -123,7 +123,9 @@ class HistoryThread(threading.Thread):
             self.logger.debug('Got msg')
             if msg[0] in 'add':
                 self.proxy.model.uq.add_history(msg[1], msg[2], **msg[3])
-                self.logger.debug('added item')
+                self.logger.debug('added item:{}'.format(msg[2]))
+                self.proxy.delete(msg[1], msg[2])
+                del self.proxy.active_threads[msg[2]]
                 #update ui
             elif msg[0] in 'remove':
                 self.proxy.uq.delete_history(msg[1], [msg[2]])
@@ -204,7 +206,7 @@ class AddTaskThread(threading.Thread):
                 self.out_queue.put(('add', msg[1], msg[2], msg[3]['uploader']))
 
 class UploadThread(threading.Thread):
-    def __init__(self, uploader, service, out_queue, id, init_state=0, **kwargs):
+    def __init__(self, uploader, service, out_queue, id, **kwargs):
 
         threading.Thread.__init__(self, **kwargs)
         self.worker = uploader #Uploader already has a validated client.
@@ -212,8 +214,7 @@ class UploadThread(threading.Thread):
         self.id = id
         self.out_queue = out_queue
         self.logger = logger.logger_factory(self.__class__.__name__)
-        self._state = init_state #It can be 1 to stop when the next chunk is uploaded
-                                 #or 2 to delete the upload.
+        self._state = 0
 
     @property
     def state(self):
@@ -227,6 +228,7 @@ class UploadThread(threading.Thread):
         self._state = value
 
     def run(self):
+        self.logger.debug('Starting:{}'.format(self.id))
         for i in self.worker.upload_chunked():
             self.logger.debug('Uploaded:{}'.format(i))
             if self._state == 1:

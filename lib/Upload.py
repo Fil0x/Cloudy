@@ -37,7 +37,6 @@ def format_path(path):
 
 class DropboxUploader(object):
     #Copied from client.py in dropbox api.
-    #Crashes if target_length is 0.
     """Contains the logic around a chunked upload, which uploads a
     large file to Dropbox via the /chunked_upload endpoint.
     """
@@ -70,7 +69,11 @@ class DropboxUploader(object):
             try:
                 (self.offset, self.upload_id) = self.client.upload_chunk(StringIO(self.last_block), next_chunk_size, self.offset, self.upload_id)
                 self.last_block = None
-                yield (float(self.offset)/self.target_length, self.path, self.upload_id, self.offset)
+                try:
+                    yield (float(self.offset)/self.target_length, self.path)
+                except ZeroDivisionError:
+                    #The file was empty, it's 100% be default.
+                    yield (1.0, self.path)
             except rest.ErrorResponse, e:
                 reply = e.body
                 if "offset" in reply and reply['offset'] != 0:
@@ -141,14 +144,17 @@ class GoogleDriveUploader(object):
             try:
                 status, response = file.next_chunk()
                 if status:
-                    yield (status.progress(), self.path, self.upload_uri, self.offset)
+                    yield (status.progress(), self.path)
             except Exception:
+                #https://developers.google.com/drive/handle-errors
                 print 'Something happened'
                 self.offset = file.resumable_progress
                 self.upload_uri = file.resumable_uri
         #Error handle
-        self.sharelink = response['alternateLink']
-        self.title = response['title']
+        if response:
+            yield (1.0, self.path)
+            self.sharelink = response['alternateLink']
+            self.title = response['title']
 #End GoogleDrive stuff
 
 class UploadQueue(object):
