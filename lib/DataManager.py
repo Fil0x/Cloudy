@@ -3,6 +3,7 @@ import json
 import inspect
 
 import local
+from lib.util import raw
 
 from configobj import ConfigObj
 
@@ -24,8 +25,8 @@ class Manager(object):
     services = local.services
 
 class LocalDataManager(Manager):
-    def __init__(self, configName='config.ini'):
-        self.configPath = os.path.join(self.basepath,configName)
+    def __init__(self, config_name='config.ini'):
+        self.configPath = os.path.join(self.basepath,raw(config_name))
 
         try:
             with open(self.configPath,'r') as f:
