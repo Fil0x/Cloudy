@@ -304,7 +304,7 @@ class UploadQueue(object):
         
         upload_manager.add_history(service, id, **kwargs)
 
-    def get_history(self, service, id=None):
+    def get_history(self, service=None, id=None):
         upload_manager = LocalUploadManager()
         
         return upload_manager.get_history(service, id)

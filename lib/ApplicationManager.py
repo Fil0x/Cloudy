@@ -40,6 +40,7 @@ class ApplicationManager(Manager):
         config['Compact'] = {}
         config['Compact']['pos'] = [-1, -1]
         config['Compact']['screen_id'] = 0
+        config['Compact']['orientation'] = 'V' #or 'H'
 
         config['Settings'] = {}
 
@@ -107,3 +108,12 @@ class ApplicationManager(Manager):
         self.config['Detailed']['maximized'] = value
 
         self.config.write()
+
+    def get_orientation(self):
+        return self.config['Compact']['orientation']
+        
+    def set_orientation(self, value):
+        assert value in ['V', 'H'], 'Orientation must be V or H'
+    
+        self.config['Compact']['orientation'] = value
+        

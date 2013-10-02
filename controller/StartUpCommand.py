@@ -3,12 +3,15 @@ if ".." not in sys.path:
     sys.path.append("..")
 
 import version
-from view.view import SysTrayMediator
-from view.view import DetailedWindowMediator
-from view.components import DetailedWindow
 import model.modelProxy
-import puremvc.patterns.command
+from view.view import SysTrayMediator
+from view.components import DetailedWindow
+from view.components import HistoryWindow
+from view.view import DetailedWindowMediator
+from view.view import HistoryWindowMediator
+
 import puremvc.patterns
+import puremvc.patterns.command
 
 
 class StartUpCommand(puremvc.patterns.command.SimpleCommand, puremvc.interfaces.ICommand):
@@ -17,3 +20,4 @@ class StartUpCommand(puremvc.patterns.command.SimpleCommand, puremvc.interfaces.
         
         self.facade.registerMediator(SysTrayMediator(notification.getBody()))
         self.facade.registerMediator(DetailedWindowMediator(DetailedWindow(version.__version__)))
+        self.facade.registerMediator(HistoryWindowMediator(HistoryWindow()))

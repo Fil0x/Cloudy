@@ -106,12 +106,16 @@ class LocalUploadManager(Manager):
         if id in self.history[service]:
             del self.history[service][id]
         self.history[service].setdefault(id, kwargs)
+        self.history[service][id]['date'] = date[:date.index('.')]
 
         self.history.write()
 
     @check_file('historyPath')
-    def get_history(self, service, id=None):
+    def get_history(self, service=None, id=None):
         ''' id=list '''
+        if not service:
+            return self.history.dict()
+        
         assert(service in self.services)
 
         r = {}

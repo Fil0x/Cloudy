@@ -6,17 +6,18 @@ from PyQt4 import QtGui
 from PyQt4 import QtCore
 from email.MIMEText import MIMEText
 
+#@Mediator = Action will be handled by its mediator.
 
 class SystemTrayIcon(QtGui.QSystemTrayIcon):
     def __init__(self, parent=None):
         QtGui.QSystemTrayIcon.__init__(self, parent)
 
-        icon = QtGui.QIcon('images/favicon.ico')
+        icon = QtGui.QIcon(r'images/favicon.ico')
         self.setIcon(icon)
 
         menu = QtGui.QMenu(parent)
 
-        #Open action clicked event will be handled by its mediator
+        #@Mediator
         self.openAction = menu.addAction('Open')
 
         menu.addSeparator()
@@ -24,12 +25,9 @@ class SystemTrayIcon(QtGui.QSystemTrayIcon):
         feedbackAction = menu.addAction('Send feedback')
         feedbackAction.triggered.connect(self.onFeedback)
 
-        #Settings action clicked event will be handled by its mediator
-        self.settingsAction = menu.addAction('Preferences')
-
         menu.addSeparator()
 
-        #Exit action clicked event will be handled by its mediator
+        #@Mediator
         self.exitAction = menu.addAction('Quit')
 
         self.setContextMenu(menu)
@@ -139,8 +137,6 @@ class FeedbackPage(QtGui.QWidget):
         for i in self.mainFrame.children():
             i.setEnabled(False)
 
-        #The worker thread has to be a class member otherwise it gets
-        #cleaned up as the function ends, resulting in a blocked UI.
         self.worker = SendMailWorker(self.nameTxtBox.text(), self.emailTxtBox.text(),
                                      self.msgTxtBox.toPlainText())
         QtCore.QObject.connect(self.worker, QtCore.SIGNAL('sent()'), self.onMailComplete,
@@ -164,16 +160,16 @@ class FeedbackPage(QtGui.QWidget):
 
 
 class DetailedWindow(QtGui.QMainWindow):
-    
+
     addBtnPath = r'images/detailed-add.png'
     removeBtnPath = r'images/detailed-remove.png'
     playBtnPath = r'images/detailed-play.png'
     stopBtnPath = r'images/detailed-stop.png'
     settingsBtnPath = r'images/detailed-configure.png'
     tableBackgroundPath = r'images/detailed-background.jpg'
-    
+
     windowStyle = r'QMainWindow {background-color: rgba(108, 149, 218, 100%)}'
-    
+
     def __init__(self, title):
         QtGui.QWidget.__init__(self)
         self.setWindowTitle(title)
@@ -183,7 +179,7 @@ class DetailedWindow(QtGui.QMainWindow):
         self.header = ['Name', 'Service', 'Destination', 'Status',
                        'Progress', 'Conflict', 'Completed']
         self.table = self._createTable()
-        
+
         self._createRibbon()
         self._createSideSpaces()
 
@@ -192,6 +188,7 @@ class DetailedWindow(QtGui.QMainWindow):
         tab.insertTab(0, self.table, 'Active')
         tab.insertTab(1, QtGui.QLabel('HISTORY'), 'History')
         tab.insertTab(2, QtGui.QLabel('LOGS'), 'Logs')
+        tab.insertTab(3, QtGui.QLabel('Settings'), 'Settings')
 
         self.setCentralWidget(tab)
 
@@ -199,7 +196,7 @@ class DetailedWindow(QtGui.QMainWindow):
         sb.setFixedHeight(18)
         sb.setStatusTip('Ready')
         self.setStatusBar(sb)
-    
+
     def set_model_data(self, data):
         self.table.setModel(MyTableModel(data, self.header, self))
         QtCore.QObject.connect(self.table.selectionModel(),
@@ -207,15 +204,15 @@ class DetailedWindow(QtGui.QMainWindow):
                                self.selection_changed)
         if data:
             self.table.setColumnHidden(7, True)
-    
+
     def closeEvent(self, event):
-        ''' 
-        Override this event so the app won't close 
+        '''
+        Override this event so the app won't close
         when we press 'X'.
         '''
         self.setVisible(False)
         event.ignore()
-     
+
     def selection_changed(self, new, old):
         for i in new.indexes():
             self.table.selectRow(i.row())
@@ -228,51 +225,50 @@ class DetailedWindow(QtGui.QMainWindow):
         leftDockWidget.setTitleBarWidget(QtGui.QWidget())
         leftDockWidget.setWidget(QtGui.QLabel(' '))
         self.addDockWidget(Qt.Qt.LeftDockWidgetArea, leftDockWidget)
-        
+
         rightDockWidget = QtGui.QDockWidget()
         rightDockWidget.setTitleBarWidget(QtGui.QWidget())
         rightDockWidget.setWidget(QtGui.QLabel(' '))
         self.addDockWidget(Qt.Qt.RightDockWidgetArea, rightDockWidget)
-        
-            
+
+
     def _createRibbon(self):
         def _createDockWidget(elem):
             dockWidget = QtGui.QDockWidget()
             #Hide the dock title bar
             dockWidget.setTitleBarWidget(QtGui.QWidget())
-            
+
             setattr(self, elem, QtGui.QPushButton())
             getattr(self, elem).setIcon(QtGui.QIcon(getattr(self, elem + 'Path')))
             getattr(self, elem).setFlat(True)
             dockWidget.setWidget(getattr(self, elem))
             self.addDockWidget(Qt.Qt.TopDockWidgetArea, dockWidget)
-        
-        #Handlers will be assigned in DetailedWindowMediator.
+
+        #@Mediator
         _createDockWidget('addBtn')
         _createDockWidget('removeBtn')
         _createDockWidget('playBtn')
         _createDockWidget('stopBtn')
-        _createDockWidget('settingsBtn')
-            
+
     def _createTable(self):
         tbl = QtGui.QTableView()
         #tbl.setStyleSheet('background-image: url({})'.format(self.tableBackgroundPath))
-        
+
         tm = MyTableModel([], self.header, self)
         tbl.setModel(tm)
         QtCore.QObject.connect(tbl.selectionModel(),
                                QtCore.SIGNAL("selectionChanged(QItemSelection, QItemSelection)"),
                                self.selection_changed)
-        
+
         tbl.setMinimumSize(704, 300)
         tbl.setShowGrid(False)
-        
+
         font = QtGui.QFont('Arial', 8)
         tbl.setFont(font)
-        
+
         vh = tbl.verticalHeader()
         vh.setVisible(False)
-        
+
         hh = tbl.horizontalHeader()
         for i in range(len(self.header)):
             hh.setResizeMode(i, QtGui.QHeaderView.Stretch)
@@ -283,36 +279,313 @@ class DetailedWindow(QtGui.QMainWindow):
         tbl.setSortingEnabled(True)
 
         return tbl
-      
+
 class MyTableModel(QtCore.QAbstractTableModel):
     def __init__(self, data, header, parent=None):
         QtCore.QAbstractTableModel.__init__(self, parent)
-        
+
         self.arraydata = data
         self.header = header
-        
+
     def rowCount(self, parent):
         return len(self.arraydata)
-        
+
     def columnCount(self, parent):
         return len(self.arraydata[0]) if len(self.arraydata) else 0
-        
+
     def data(self, index, role):
         if not index.isValid():
             return QtCore.QVariant()
         elif role != Qt.Qt.DisplayRole:
             return QtCore.QVariant()
         return QtCore.QVariant(self.arraydata[index.row()][index.column()])
-        
+
     def headerData(self, col, orientation, role):
         #The 8th column is the key and we don't want to show it.
         if col != 7 and orientation == Qt.Qt.Horizontal and role == Qt.Qt.DisplayRole:
             return QtCore.QVariant(self.header[col])
         return QtCore.QVariant()
-        
+
     def sort(self, Ncol, order):
         self.emit(QtCore.SIGNAL("layoutAboutToBeChanged()"))
-        self.arraydata = sorted(self.arraydata, key=operator.itemgetter(Ncol))        
+        self.arraydata = sorted(self.arraydata, key=operator.itemgetter(Ncol))
         if order == Qt.Qt.DescendingOrder:
             self.arraydata.reverse()
         self.emit(QtCore.SIGNAL("layoutChanged()"))
+
+'''
+ISSUE: if the list gets updated while the mouse is over an element,
+it will be moved down but the click will still copy the share of that element.
+'''
+class ListViewModel(QtCore.QAbstractListModel):
+
+    def __init__(self, data, max_count=5, parent=None, *args):
+        QtCore.QAbstractListModel.__init__(self, parent, *args)
+        self.data = data
+        self.max_count = max_count
+
+    def rowCount(self, parent=QtCore.QModelIndex()):
+        return len(self.data)
+
+    def data(self, index, role):
+        if index.isValid() and role == QtCore.Qt.DisplayRole:
+            return QtCore.QVariant(self.data[index.row()])
+        else:
+            return QtCore.QVariant()
+
+    def addNewElements(self, items):
+        ''' [[img, filename, sharelink]...] '''
+        if len(items) >= self.max_count:
+            self.beginRemoveRows(QtCore.QModelIndex(), 0, self.max_count - 1)
+            del self.data[:]
+            self.endRemoveRows()
+        elif (len(self.data) + len(items)) > self.max_count:
+            begin_row = self.max_count - len(items)
+            end_row = len(self.data) - 1
+            self.beginRemoveRows(QtCore.QModelIndex(), begin_row, end_row)
+            self.data = self.data[:begin_row]
+            self.endRemoveRows()
+
+        self.beginInsertRows(QtCore.QModelIndex(), 0, len(items) - 1)
+        for i in items:
+            self.data.insert(0, i)
+
+        self.endInsertRows()
+
+class ListItemDelegate(QtGui.QStyledItemDelegate):
+
+    sharelink_path = r'images/popup-sharelink.png'
+    sharelink_pos = QtCore.QPoint(220, 2)
+
+    def __init__(self, device, font):
+        QtGui.QStyledItemDelegate.__init__(self, device)
+
+        self.font = font
+        self.brush = QtGui.QBrush(QtGui.QColor('#E5FFFF'))
+        self.sharelink_img = QtGui.QImage(self.sharelink_path)
+        self.date_color = QtGui.QColor(QtCore.Qt.black)
+        self.date_color.setAlpha(80)
+
+    def paint(self, painter, option, index):
+        painter.save()
+        model = index.model()
+        d = model.data[index.row()]
+
+        if option.state & QtGui.QStyle.State_MouseOver:
+            painter.fillRect(option.rect, self.brush)
+
+        painter.translate(option.rect.topLeft())
+        painter.setClipRect(option.rect.translated(-option.rect.topLeft()))
+        painter.setFont(self.font)
+        painter.drawImage(QtCore.QPoint(5, 5), d[0])
+        painter.drawText(QtCore.QPoint(40, 15), d[1])
+        painter.setPen(self.date_color)
+        painter.drawText(QtCore.QPoint(40, 30), d[3])
+        if option.state & QtGui.QStyle.State_MouseOver:
+            painter.drawImage(self.sharelink_pos, self.sharelink_img)
+
+        painter.restore()
+
+
+    def editorEvent(self, event, model, option, index):
+        sharelink_rect = self.sharelink_img.rect().translated(self.sharelink_pos.x(),
+                                                option.rect.top() + self.sharelink_pos.y())
+        if event.type() == QtCore.QEvent.MouseButtonRelease:
+            if sharelink_rect.contains(event.pos()):
+                model = index.model()
+                link = model.data[index.row()][2]
+                import webbrowser
+                webbrowser.open(link)
+
+        return False
+
+    def sizeHint(self, option, index):
+        model = index.model()
+        d = model.data[index.row()]
+        return QtCore.QSize(35, 35)
+
+class HistoryWindow(QtGui.QWidget):
+
+    db_path = r'images/dropbox-small.png'
+    pithos_path = r'images/pithos-small.png'
+    gd_path = r'images/googledrive-small.png'
+    main_frame_background = r'QWidget {background-color:white}'
+    static_title_style = r'QLabel {font-weight:bold}'
+    close_button_img = r'images/popup-cancel.png'
+    font = QtGui.QFont('Tahoma', 10)
+
+
+    def __init__(self, width=320, height=240):
+        QtGui.QWidget.__init__(self)
+
+        self.data = [] #[[self.gd_icon, 'foo.pdf', 'html', 'date']]
+        self.dropbox_icon = QtGui.QImage(self.db_path)
+        self.pithos_icon = QtGui.QImage(self.pithos_path)
+        self.googledrive_icon = QtGui.QImage(self.gd_path)
+
+        self.setVisible(False)
+        self.setFixedSize(width, height)
+        self.center()
+
+        self.setWindowFlags(QtCore.Qt.CustomizeWindowHint)
+
+        self.main_frame = QtGui.QFrame(self)
+        self.main_frame.setGeometry(0, 0, width, height)
+        self.main_frame.setStyleSheet(self.main_frame_background)
+
+        #Upper layout
+        static_title = QtGui.QLabel('Recently uploaded')
+        static_title.setStyleSheet(self.static_title_style)
+        static_title.setFont(self.font)
+
+        close_button = QtGui.QPushButton(self.main_frame)
+        close_button.setFlat(True)
+        close_button.setIcon(QtGui.QIcon(self.close_button_img))
+        close_button.clicked.connect(self.onClose)
+
+        upper_layout = QtGui.QHBoxLayout()
+        upper_layout.addWidget(static_title, 1)
+        upper_layout.addWidget(close_button, 0)
+
+        #Main layout
+        line = QtGui.QFrame(self)
+        line.setGeometry(QtCore.QRect(0, 30, width, 2))
+        line.setFrameShape(QtGui.QFrame.HLine)
+
+        self.model = ListViewModel(self.data, parent=self)
+
+        self.list = QtGui.QListView()
+        self.list.setModel(self.model)
+        self.list.setItemDelegate(ListItemDelegate(self, self.font))
+        self.list.setMouseTracking(True)
+
+        main_layout = QtGui.QVBoxLayout()
+        main_layout.addLayout(upper_layout)
+        main_layout.addWidget(line)
+        main_layout.addWidget(self.list)
+
+        self.main_frame.setLayout(main_layout)
+    
+    def onClose(self):
+        #Need to think of a better way
+        self.setVisible(False)
+    
+    def add_item(self, service, file_name, link, date):
+        e = getattr(self, '{}_icon'.format(service.lower()))
+        l = [[e, file_name, link, date]]
+        self.model.addNewElements(l)
+     
+    #find tray icon and place it on top
+    def center(self):
+        appRect = self.frameGeometry()
+        clientArea = QtGui.QDesktopWidget().availableGeometry().center()
+        appRect.moveCenter(clientArea)
+        self.move(appRect.topLeft())
+
+class MyLabel(QtGui.QLabel):
+    def __init__(self, normal, scaled):
+        QtGui.QLabel.__init__(self)
+
+        self.normal = normal
+        self.scaled = scaled
+        self.setPixmap(self.normal)
+        self.setMouseTracking(True)
+        self.setAcceptDrops(True)
+
+    def dragEnterEvent(self, event):
+        event.accept()
+
+        print 'omg'
+        self.setPixmap(self.scaled)
+
+    def dragLeaveEvent(self, event):
+        event.accept()
+
+        print 'omg1'
+        self.setPixmap(self.normal)
+
+    def dropEvent(self, event):
+        event.accept()
+
+        print 'omg2'
+        self.setPixmap(self.normal)
+
+class CompactWindow(QtGui.QWidget):
+
+    dropbox = r'images/dropbox-{}.png'
+    googledrive = r'images/googledrive-{}.png'
+    pithos = r'images/pithos-{}.png'
+    main_frame_background = r'QWidget {background-color:white}'
+
+    def __init__(self, services, orientation, pos, screen_id):
+        QtGui.QWidget.__init__(self)
+
+        #Data
+        self.items = {} #Key is the label's id.
+        self.move_pos = None
+        self.services = services
+        self.orientation = orientation #Expansion
+
+        self.dropbox_images = []
+        self.pithos_images = []
+        self.googledrive_images = []
+        for i in range(2):
+            for t in ['normal', 'scaled']:
+                self.dropbox_images.append(QtGui.QPixmap(self.dropbox.format(t)))
+                self.pithos_images.append(QtGui.QPixmap(self.pithos.format(t)))
+                self.googledrive_images.append(QtGui.QPixmap(self.googledrive.format(t)))
+        #End data
+
+        self.setWindowFlags(QtCore.Qt.CustomizeWindowHint |
+                            QtCore.Qt.WindowCloseButtonHint)
+        d = QtGui.QApplication.desktop()
+        pos_rect = d.availableGeometry(screen_id).adjusted(pos[0], pos[1], 0, 0)
+        self.move(pos_rect.topLeft())
+
+        self.main_frame = QtGui.QFrame(self)
+        self.main_frame.setStyleSheet(self.main_frame_background)
+
+        size = self.size()
+        self.main_frame.resize(size.width(), size.height())
+
+        #main layout
+        self.layout = getattr(QtGui, 'Q{}BoxLayout'.format(orientation))()
+        for s in services:
+            self.layout.addWidget(self.add_item(s), QtCore.Qt.AlignCenter)
+
+        self.main_frame.setLayout(self.layout)
+        if orientation == 'H':
+            self.main_frame.resize(len(services)*88, 85)
+            self.layout.setAlignment(QtCore.Qt.AlignVCenter)
+        else:
+            self.main_frame.resize(87, len(services)*80)
+            self.layout.setAlignment(QtCore.Qt.AlignHCenter)
+
+    def mousePressEvent(self, event):
+        self.move_pos = event.pos()
+
+    def mouseMoveEvent(self, event):
+        if event.buttons() & QtCore.Qt.LeftButton:
+            diff = event.pos() - self.move_pos
+            new_pos = self.pos() + diff
+
+            self.move(new_pos)
+
+    def add_item(self, service):
+        e = getattr(self, '{}_images'.format(service.lower()))
+
+        label = MyLabel(e[0], e[1])
+
+        self.items[id(label)] = service
+
+        return label
+
+    def onClick(self):
+        r = self.geometry()
+        end = r.adjusted(0, 0, 0, 70)
+
+        self.anim = QtCore.QPropertyAnimation(self, 'geometry')
+        self.anim.setDuration(600)
+        self.anim.setStartValue(r)
+        self.anim.setEndValue(end)
+        self.anim.start()

@@ -65,6 +65,11 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
             return #notify controller that the path is invalid
         self.add_queue.put(('resume', service, id, r))
 
+    def get_history(self):
+        r = self.model.uq.get_history()
+        self.logger.debug('got item')
+        return r
+        
     def detailed_view_data(self):
         #TODO: change it
         data = []
@@ -131,10 +136,6 @@ class HistoryThread(threading.Thread):
                 self.proxy.uq.delete_history(msg[1], [msg[2]])
                 self.logger.debug('removed item')
                 #update ui
-            elif msg[0] in 'get':
-                r = self.proxy.get_history(msg[1], [msg[2]])
-                self.logger.debug('got item')
-                #return the data to the ui
 
 class UploadSupervisorThread(threading.Thread):
     def __init__(self, in_queue, out_queue, proxy, **kwargs):
