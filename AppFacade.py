@@ -7,10 +7,9 @@ from controller.DataUpdatedCommand import DataUpdatedCommand
 class AppFacade(puremvc.patterns.facade.Facade):
     STARTUP = 'startup'
     EXIT = 'exit'
-    #History window
-    SHOW_HISTORY = 'show_history'
+    
     UPDATE_HISTORY = 'update_history'
-    #End of History window
+    
     SHOW_DETAILED = 'show_detailed'
     SHOW_COMPACT = 'show_compact'
     

@@ -29,6 +29,8 @@ class SystemTrayIcon(QtGui.QSystemTrayIcon):
 
         #@Mediator
         self.exitAction = menu.addAction('Quit')
+        #@Mediator
+        #Handler for the left click.
 
         self.setContextMenu(menu)
 
@@ -333,6 +335,11 @@ class ListViewModel(QtCore.QAbstractListModel):
         else:
             return QtCore.QVariant()
 
+    def removeAll(self):
+        self.beginRemoveRows(QtCore.QModelIndex(), 0, self.max_count - 1)
+        del self.data[:]
+        self.endRemoveRows()
+
     def addNewElements(self, items):
         ''' [[img, filename, sharelink]...] '''
         if len(items) >= self.max_count:
@@ -465,16 +472,21 @@ class HistoryWindow(QtGui.QWidget):
         main_layout.addWidget(self.list)
 
         self.main_frame.setLayout(main_layout)
-    
+
     def onClose(self):
         #Need to think of a better way
         self.setVisible(False)
-    
+
     def add_item(self, service, file_name, link, date):
         e = getattr(self, '{}_icon'.format(service.lower()))
         l = [[e, file_name, link, date]]
         self.model.addNewElements(l)
-     
+
+    def update_all(self, items):
+        self.model.removeAll()
+        for i in items:
+            self.add_item(*i[:])
+
     #find tray icon and place it on top
     def center(self):
         appRect = self.frameGeometry()

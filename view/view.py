@@ -26,7 +26,7 @@ class SysTrayMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMe
 
     def onActivate(self, reason):
         if reason == QtGui.QSystemTrayIcon.Trigger:
-            self.facade.sendNotification(AppFacade.AppFacade.SHOW_HISTORY)
+            self.facade.sendNotification(AppFacade.AppFacade.UPDATE_HISTORY)
 
     def onOpen(self):
         self.facade.sendNotification(AppFacade.AppFacade.SHOW_DETAILED)
@@ -97,19 +97,23 @@ class HistoryWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
 
     def listNotificationInterests(self):
         return [
-            AppFacade.AppFacade.SHOW_HISTORY,
             AppFacade.AppFacade.UPDATE_HISTORY
         ]
 
     def handleNotification(self, notification):
-        def _update_window(r, window):
-            for k, v in r.iteritems():
-                for id, item in v.iteritems():
-                    window.add_item(k, item['path'], item['link'], item['date'])
         note_name = notification.getName()
-        r = self.proxy.get_history()
-        if note_name == AppFacade.AppFacade.SHOW_HISTORY and not self.viewComponent.isVisible():
-            self.viewComponent.setVisible(True)
-            _update_window(r, self.viewComponent)
-        elif note_name == AppFacade.AppFacade.UPDATE_HISTORY and self.viewComponent.isVisible():
-            _update_window(r, self.viewComponent)
+        body = notification.getBody()
+        if note_name == AppFacade.AppFacade.UPDATE_HISTORY:
+            if not self.viewComponent.isVisible() and not body:
+                l = []
+                r = self.proxy.get_history()
+                for k, v in r.iteritems():
+                    for id, item in v.iteritems():
+                        l.append([k, item['path'], item['link'], item['date']])
+                self.viewComponent.update_all(l)
+                self.viewComponent.setVisible(True)
+            elif body:
+                self.viewComponent.add_item(body[0], body[1]['path'],
+                                            body[1]['link'], body[1]['date'])
+                if not self.viewComponent.isVisible():
+                    self.viewComponent.setVisible(True)
