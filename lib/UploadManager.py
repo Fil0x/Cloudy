@@ -106,7 +106,8 @@ class LocalUploadManager(Manager):
         if id in self.history[service]:
             del self.history[service][id]
         self.history[service].setdefault(id, kwargs)
-        self.history[service][id]['date'] = date[:date.index('.')]
+        d = kwargs['date']
+        self.history[service][id]['date'] = d[:d.index('.')]
 
         self.history.write()
 

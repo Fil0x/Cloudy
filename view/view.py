@@ -54,7 +54,7 @@ class CompactWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
         self.viewComponent.setVisible(True)
             
     def onDrop(self, data):
-        print data
+        self.proxy.add_file(data[0], str(data[1]))
         
 class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMediator):
 
@@ -113,6 +113,8 @@ class HistoryWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
 
         self.proxy = self.facade.retrieveProxy(model.modelProxy.ModelProxy.NAME)
 
+        self.proxy.ht.signals.trigger.connect(self.onAdd)
+        
     def listNotificationInterests(self):
         return [
             AppFacade.AppFacade.UPDATE_HISTORY
@@ -130,8 +132,9 @@ class HistoryWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
                         l.append([k, item['path'], item['link'], item['date']])
                 self.viewComponent.update_all(l)
                 self.viewComponent.setVisible(True)
-            elif body:
-                self.viewComponent.add_item(body[0], body[1]['path'],
-                                            body[1]['link'], body[1]['date'])
-                if not self.viewComponent.isVisible():
-                    self.viewComponent.setVisible(True)
+    
+    def onAdd(self, body):
+        self.viewComponent.add_item(body[0], body[1]['path'],
+                                    body[1]['link'], body[1]['date'])
+        if not self.viewComponent.isVisible():
+            self.viewComponent.setVisible(True)

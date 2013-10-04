@@ -69,7 +69,7 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
         r = self.model.uq.get_history()
         self.logger.debug('got item')
         return r
-        
+
     def detailed_view_data(self):
         #TODO: change it
         data = []
@@ -112,6 +112,9 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
     def delete(self, service, id):
         self.model.uq.delete(service, id)
 
+class Signals(QtCore.QObject):
+    trigger = QtCore.pyqtSignal(list)
+
 class HistoryThread(threading.Thread):
     def __init__(self, in_queue, proxy, **kwargs):
         threading.Thread.__init__(self, **kwargs)
@@ -121,6 +124,8 @@ class HistoryThread(threading.Thread):
         self.daemon = True
         self.logger = logger.logger_factory(self.__class__.__name__)
         self.logger.debug('Initialized')
+        
+        self.signals = Signals()
 
     def run(self):
         while True:
@@ -131,7 +136,8 @@ class HistoryThread(threading.Thread):
                 self.logger.debug('added item:{}'.format(msg[2]))
                 self.proxy.delete(msg[1], msg[2])
                 del self.proxy.active_threads[msg[2]]
-                self.proxy.sendNotification(AppFacade.AppFacade.UPDATE_HISTORY, body=[msg[1], msg[3]])
+                #There is no other easy way to send the message to the main thread
+                self.signals.trigger.emit([msg[1], msg[3]]) 
             elif msg[0] in 'remove':
                 self.proxy.uq.delete_history(msg[1], [msg[2]])
                 self.logger.debug('removed item')
@@ -243,7 +249,7 @@ class UploadThread(threading.Thread):
                 return #delete the thread, dont update the ui even if
                        #a chunk is uploaded in the meantime.
 
-        #If I reach this point, the upload is complete and I have to save it to the history.        
+        #If I reach this point, the upload is complete and I have to save it to the history.
         d = {}
         if self.service in 'Dropbox':
             response = self.worker.finish('{}{}'.format(self.worker.remote, os.path.basename(self.worker.path)))
