@@ -21,7 +21,7 @@ class ApplicationManager(Manager):
         self.config_path = os.path.join(self.basepath, raw(config_path))
 
         try:
-            with open(config_path, 'r') as f:
+            with open(self.config_path, 'r') as f:
                 pass
         except IOError:
             self._create_config_file()

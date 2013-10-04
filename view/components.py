@@ -1,6 +1,10 @@
-import local
+import os
 import smtplib
 import operator
+
+import local
+from lib.util import raw
+
 from PyQt4 import Qt
 from PyQt4 import QtGui
 from PyQt4 import QtCore
@@ -495,7 +499,9 @@ class HistoryWindow(QtGui.QWidget):
         self.move(appRect.topLeft())
 
 class MyLabel(QtGui.QLabel):
-    def __init__(self, normal, scaled):
+    droppedSignal = QtCore.pyqtSignal(tuple)
+
+    def __init__(self, normal, scaled, service):
         QtGui.QLabel.__init__(self)
 
         self.normal = normal
@@ -503,24 +509,30 @@ class MyLabel(QtGui.QLabel):
         self.setPixmap(self.normal)
         self.setMouseTracking(True)
         self.setAcceptDrops(True)
+        self.service = service
 
     def dragEnterEvent(self, event):
         event.accept()
 
-        print 'omg'
         self.setPixmap(self.scaled)
 
     def dragLeaveEvent(self, event):
         event.accept()
 
-        print 'omg1'
         self.setPixmap(self.normal)
 
-    def dropEvent(self, event):
-        event.accept()
-
-        print 'omg2'
+    def dropEvent(self, e):
+        e.accept()
         self.setPixmap(self.normal)
+        
+        m = e.mimeData()
+        if m.hasUrls() and len(m.urls()) < 4:
+            for url in m.urls():
+                p = raw(url.path()[1:])
+                if os.path.isfile(p):
+                    self.droppedSignal.emit((self.service, p))
+                #else:
+                    #Dont accept the folders for now
 
 class CompactWindow(QtGui.QWidget):
 
@@ -533,7 +545,7 @@ class CompactWindow(QtGui.QWidget):
         QtGui.QWidget.__init__(self)
 
         #Data
-        self.items = {} #Key is the label's id.
+        self.items = {} #Key is a service.
         self.move_pos = None
         self.services = services
         self.orientation = orientation #Expansion
@@ -585,11 +597,9 @@ class CompactWindow(QtGui.QWidget):
 
     def add_item(self, service):
         e = getattr(self, '{}_images'.format(service.lower()))
+        label = MyLabel(e[0], e[1], service)
 
-        label = MyLabel(e[0], e[1])
-
-        self.items[id(label)] = service
-
+        self.items[service] = label
         return label
 
     def onClick(self):

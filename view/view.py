@@ -5,8 +5,10 @@ if ".." not in sys.path:
 
 import AppFacade
 import model.modelProxy
-from PyQt4 import QtCore, QtGui
+from lib.ApplicationManager import ApplicationManager
+
 import puremvc.interfaces
+from PyQt4 import QtCore, QtGui
 import puremvc.patterns.mediator
 
 
@@ -38,6 +40,22 @@ class SysTrayMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMe
     def onExit(self):
         self.facade.sendNotification(AppFacade.AppFacade.EXIT)
 
+class CompactWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMediator):
+    
+    NAME = 'CompactWindowMediator'
+    
+    def __init__(self, viewComponent): 
+        super(CompactWindowMediator, self).__init__(CompactWindowMediator.NAME, viewComponent)
+        self.proxy = self.facade.retrieveProxy(model.modelProxy.ModelProxy.NAME)
+        
+        p = ApplicationManager()
+        for s in p.get_services():
+            self.viewComponent.items[s].droppedSignal.connect(self.onDrop)
+        self.viewComponent.setVisible(True)
+            
+    def onDrop(self, data):
+        print data
+        
 class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMediator):
 
     NAME = 'DetailedWindowMediator'
