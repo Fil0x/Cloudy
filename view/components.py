@@ -391,7 +391,7 @@ class ListItemDelegate(QtGui.QStyledItemDelegate):
         painter.drawImage(QtCore.QPoint(5, 5), d[0])
         painter.drawText(QtCore.QPoint(40, 15), d[1])
         painter.setPen(self.date_color)
-        painter.drawText(QtCore.QPoint(40, 30), d[3])
+        painter.drawText(QtCore.QPoint(40, 30), str(d[3]))
         if option.state & QtGui.QStyle.State_MouseOver:
             painter.drawImage(self.sharelink_pos, self.sharelink_img)
 

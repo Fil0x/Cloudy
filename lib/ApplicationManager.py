@@ -72,7 +72,7 @@ class ApplicationManager(Manager):
         return self.config[window]['pos']
 
     def set_pos(self, window, value):
-        ''' window = Detailed, Compact , value=List'''
+        ''' window=Detailed,Compact , value=List'''
         assert(isinstance(value, list))
 
         self.config[window]['pos'] = value

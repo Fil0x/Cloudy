@@ -1,5 +1,7 @@
 import os
 import sys
+from operator import itemgetter
+import datetime
 if ".." not in sys.path:
     sys.path.append("..")
 
@@ -112,29 +114,44 @@ class HistoryWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
         super(HistoryWindowMediator, self).__init__(HistoryWindowMediator.NAME, viewComponent)
 
         self.proxy = self.facade.retrieveProxy(model.modelProxy.ModelProxy.NAME)
-
+        #To avoid the constant reading from the disk.
+        self.initialized = False
+        
         self.proxy.ht.signals.trigger.connect(self.onAdd)
         
     def listNotificationInterests(self):
         return [
             AppFacade.AppFacade.UPDATE_HISTORY
         ]
-
+    
+    def _format_history(self):
+        l = []
+        r = self.proxy.get_history()
+        date_fmt = lambda x:datetime.datetime.strptime(x, '%Y-%m-%d %H:%M:%S')
+        for k, v in r.iteritems():
+            for id, item in v.iteritems():
+                date = date_fmt(item['date'])
+                l.append([k, item['path'], item['link'], date])
+        return sorted(l, key=itemgetter(3))
+    
     def handleNotification(self, notification):
         note_name = notification.getName()
         body = notification.getBody()
         if note_name == AppFacade.AppFacade.UPDATE_HISTORY:
             if not self.viewComponent.isVisible() and not body:
-                l = []
-                r = self.proxy.get_history()
-                for k, v in r.iteritems():
-                    for id, item in v.iteritems():
-                        l.append([k, item['path'], item['link'], item['date']])
-                self.viewComponent.update_all(l)
+                #TODO: limit the items that are passed to max_count.
+                self.viewComponent.update_all(self._format_history())
                 self.viewComponent.setVisible(True)
+                self.initialized = True
     
     def onAdd(self, body):
-        self.viewComponent.add_item(body[0], body[1]['path'],
-                                    body[1]['link'], body[1]['date'])
+        if self.initialized:
+            d = str(body[1]['date'])[:body[1]['date'].index('.')]
+            d = datetime.datetime.strptime(d, '%Y-%m-%d %H:%M:%S')
+            self.viewComponent.add_item(body[0], body[1]['path'],
+                                        body[1]['link'], d)
+        else:
+            self.viewComponent.update_all(self._format_history())
+            self.initialized = True
         if not self.viewComponent.isVisible():
             self.viewComponent.setVisible(True)

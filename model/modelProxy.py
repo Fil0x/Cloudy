@@ -258,7 +258,7 @@ class UploadThread(threading.Thread):
             url = self.worker.client.share(path)['url']
             #Create the dictionary
             d['name'] = os.path.basename(self.worker.path)
-            d['date'] = str(datetime.datetime.now())
+            d['date'] = datetime.datetime.now()
             d['path'] = path
             d['link'] = url
             self.logger.debug('Putting in queue.')
@@ -266,7 +266,7 @@ class UploadThread(threading.Thread):
             #send signal to UI
         elif self.service in 'GoogleDrive':
             d['name'] = os.path.basename(self.worker.path)
-            d['date'] = str(datetime.datetime.now())
+            d['date'] = datetime.datetime.now()
             d['path'] = self.worker.title
             d['link'] = self.worker.sharelink
             self.logger.debug('Putting in queue.')
