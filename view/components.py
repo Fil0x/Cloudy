@@ -165,15 +165,124 @@ class FeedbackPage(QtGui.QWidget):
         self.move(appRect.topLeft())
 
 
-class DetailedWindow(QtGui.QMainWindow):
+class MyTableModel(QtCore.QAbstractTableModel):
+    def __init__(self, header, data=None, parent=None):
+        QtCore.QAbstractTableModel.__init__(self, parent)
 
+        #Hax
+        self.data = [['']*(len(header)+1)] if not data else data
+        self.header = header
+        self.hidden_col = len(header)
+
+    def rowCount(self, parent):
+        return len(self.data)
+
+    def columnCount(self, parent):
+        return len(self.data[0]) if len(self.data) else 0
+
+    def data(self, index, role):
+        if not index.isValid():
+            return QtCore.QVariant()
+        elif role != Qt.Qt.DisplayRole:
+            return QtCore.QVariant()
+        return QtCore.QVariant(self.data[index.row()][index.column()])
+
+    def headerData(self, col, orientation, role):
+        if col != self.hidden_col and orientation == Qt.Qt.Horizontal and role == Qt.Qt.DisplayRole:
+            return QtCore.QVariant(self.header[col])
+        return QtCore.QVariant()
+
+    def sort(self, Ncol, order):
+        self.emit(QtCore.SIGNAL("layoutAboutToBeChanged()"))
+        self.data = sorted(self.data, key=operator.itemgetter(Ncol))
+        if order == Qt.Qt.DescendingOrder:
+            self.data.reverse()
+        self.emit(QtCore.SIGNAL("layoutChanged()"))
+        
+    def add_item(self, item):
+        self.beginInsertRows(QtCore.QModelIndex(), len(self.data), len(self.data))
+        self.data.append(item)
+        self.endInsertRows()
+        
+    def remove(self, id, index=None):
+        i = 0
+        if index:
+            i = index
+        else:
+            i = zip(*self.data)[-1].index(id)
+        self.beginRemoveRows(QtCore.QModelIndex(), i, i)
+        self.data = self.data[0:i] + self.data[i+1:]
+        self.endRemoveRows()
+        
+    def remove_all(self):
+        self.beginRemoveRows(QtCore.QModelIndex(), 0, len(self.data) - 1)
+        del self.data[:]
+        self.endRemoveRows()
+        
+class BaseDelegate(QtGui.QStyledItemDelegate):
+
+    def __init__(self, device, font, color, images=None):
+        QtGui.QStyledItemDelegate.__init__(self, device)
+
+        self.font = font
+        self.images = images
+        self.brush = QtGui.QBrush(color)
+        
+    def createEditor(self, parent, option, index):
+        return None
+        
+class UploadTableDelegate(BaseDelegate):
+        
+    def paint(self, painter, option, index):
+        painter.save()
+        model = index.model()
+        d = model.data[index.row()][index.column()]
+        
+        if index.row() % 2:
+            painter.fillRect(option.rect, self.brush)
+        
+        painter.translate(option.rect.topLeft())
+        painter.setFont(self.font)
+        #painter.drawImage(QtCore.QPoint(5, 5), self.images[0])
+        if len(d) >= 20:
+            d = d[:20] + '...'
+        painter.drawText(QtCore.QPoint(40, 20), d)
+        '''
+        painter.setPen(self.date_color)
+        painter.drawText(QtCore.QPoint(40, 30), str(d[3]))
+        if option.state & QtGui.QStyle.State_MouseOver:
+            painter.drawImage(self.sharelink_pos, self.sharelink_img)
+        '''
+        painter.restore()
+
+    def editorEvent(self, event, model, option, index):
+        '''sharelink_rect = self.sharelink_img.rect().translated(self.sharelink_pos.x(),
+                                                option.rect.top() + self.sharelink_pos.y())
+        if event.type() == QtCore.QEvent.MouseButtonRelease:
+            if sharelink_rect.contains(event.pos()):
+                model = index.model()
+                link = model.data[index.row()][2]
+                import webbrowser
+                webbrowser.open(link)'''
+
+        return False
+
+    def sizeHint(self, option, index):
+        model = index.model()
+        d = model.data[index.row()]
+        return QtCore.QSize(100, 40)
+
+class DetailedWindow(QtGui.QMainWindow):
+    #http://www.jankoatwarpspeed.com/ultimate-guide-to-table-ui-patterns/
+    
+    font = QtGui.QFont('Tahoma', 10)
     addBtnPath = r'images/detailed-add.png'
-    removeBtnPath = r'images/detailed-remove.png'
     playBtnPath = r'images/detailed-play.png'
     stopBtnPath = r'images/detailed-stop.png'
+    file_icon_path = r'images/detailed-doc.png'
+    removeBtnPath = r'images/detailed-remove.png'
     settingsBtnPath = r'images/detailed-configure.png'
     tableBackgroundPath = r'images/detailed-background.jpg'
-
     windowStyle = r'QMainWindow {background-color: rgba(108, 149, 218, 100%)}'
 
     def __init__(self, title):
@@ -181,47 +290,52 @@ class DetailedWindow(QtGui.QMainWindow):
         self.setWindowTitle(title)
         self.setVisible(False)
         self.setStyleSheet(self.windowStyle)
-
-        self.header = ['Name', 'Service', 'Destination', 'Status',
-                       'Progress', 'Conflict', 'Completed']
-        self.table = self._createTable()
+        
+        file_image = QtGui.QImage(self.file_icon_path)
+        c = QtGui.QColor('#E5FFFF')
+        
+        self.history_header = ['Name', 'Destination', 'Service', 'Date']
+        self.uploads_header = ['Name', 'Progress', 'Status', 'Destination', 
+                               'Service', 'Conflict']
+        self.data = [map(str, range(1, 8)), map(str, range(2, 9))]*2
+        self.data2 = [map(str, range(2, 7)), map(str, range(1, 6))]*2
+        
+        self.upload_table = self._create_table(self.uploads_header)
+        self.upload_table.setItemDelegate(UploadTableDelegate(self, self.font, c))
+        
+        self.history_table = self._create_table(self.history_header)
+        self.history_table.setItemDelegate(UploadTableDelegate(self, self.font, c))
 
         self._createRibbon()
         self._createSideSpaces()
 
         tab = QtGui.QTabWidget()
         tab.setTabShape(QtGui.QTabWidget.Triangular)
-        tab.insertTab(0, self.table, 'Active')
-        tab.insertTab(1, QtGui.QLabel('HISTORY'), 'History')
-        tab.insertTab(2, QtGui.QLabel('LOGS'), 'Logs')
-        tab.insertTab(3, QtGui.QLabel('Settings'), 'Settings')
+        tab.insertTab(0, self.upload_table, 'Active')
+        tab.insertTab(1, self.history_table, 'History')
+        tab.insertTab(2, QtGui.QLabel('SETTINGS'), 'Settings')
 
         self.setCentralWidget(tab)
 
-        sb = QtGui.QStatusBar()
-        sb.setFixedHeight(18)
-        sb.setStatusTip('Ready')
-        self.setStatusBar(sb)
-
-    def set_model_data(self, data):
-        self.table.setModel(MyTableModel(data, self.header, self))
-        QtCore.QObject.connect(self.table.selectionModel(),
-                               QtCore.SIGNAL("selectionChanged(QItemSelection, QItemSelection)"),
-                               self.selection_changed)
-        if data:
-            self.table.setColumnHidden(7, True)
-
+    def add_history_item(self, item):
+        #[name, dest, service, date, id]
+        self.history_table.model().add_item(item)
+        
+    def update_all_history(self, items):
+        self.history_table.model().remove_all()
+        for i in items:
+            self.add_history_item(i)
+            
+    def delete_history_item(self, id, row=None):
+        self.history_table.model().remove(id, row)
+        
     def closeEvent(self, event):
-        '''
-        Override this event so the app won't close
-        when we press 'X'.
-        '''
         self.setVisible(False)
         event.ignore()
 
     def selection_changed(self, new, old):
         for i in new.indexes():
-            self.table.selectRow(i.row())
+            self.upload_table.selectRow(i.row())
 
     def _createSideSpaces(self):
         '''
@@ -236,7 +350,6 @@ class DetailedWindow(QtGui.QMainWindow):
         rightDockWidget.setTitleBarWidget(QtGui.QWidget())
         rightDockWidget.setWidget(QtGui.QLabel(' '))
         self.addDockWidget(Qt.Qt.RightDockWidgetArea, rightDockWidget)
-
 
     def _createRibbon(self):
         def _createDockWidget(elem):
@@ -256,11 +369,10 @@ class DetailedWindow(QtGui.QMainWindow):
         _createDockWidget('playBtn')
         _createDockWidget('stopBtn')
 
-    def _createTable(self):
+    def _create_table(self, header):
         tbl = QtGui.QTableView()
-        #tbl.setStyleSheet('background-image: url({})'.format(self.tableBackgroundPath))
 
-        tm = MyTableModel([], self.header, self)
+        tm = MyTableModel(header, parent=self)
         tbl.setModel(tm)
         QtCore.QObject.connect(tbl.selectionModel(),
                                QtCore.SIGNAL("selectionChanged(QItemSelection, QItemSelection)"),
@@ -268,56 +380,21 @@ class DetailedWindow(QtGui.QMainWindow):
 
         tbl.setMinimumSize(704, 300)
         tbl.setShowGrid(False)
-
-        font = QtGui.QFont('Arial', 8)
-        tbl.setFont(font)
+        tbl.setFont(self.font)
+        tbl.hideColumn(len(header))
 
         vh = tbl.verticalHeader()
         vh.setVisible(False)
 
         hh = tbl.horizontalHeader()
-        for i in range(len(self.header)):
+        for i in range(len(header)):
             hh.setResizeMode(i, QtGui.QHeaderView.Stretch)
 
         # set column width to fit contents
         tbl.resizeColumnsToContents()
-
         tbl.setSortingEnabled(True)
 
         return tbl
-
-class MyTableModel(QtCore.QAbstractTableModel):
-    def __init__(self, data, header, parent=None):
-        QtCore.QAbstractTableModel.__init__(self, parent)
-
-        self.arraydata = data
-        self.header = header
-
-    def rowCount(self, parent):
-        return len(self.arraydata)
-
-    def columnCount(self, parent):
-        return len(self.arraydata[0]) if len(self.arraydata) else 0
-
-    def data(self, index, role):
-        if not index.isValid():
-            return QtCore.QVariant()
-        elif role != Qt.Qt.DisplayRole:
-            return QtCore.QVariant()
-        return QtCore.QVariant(self.arraydata[index.row()][index.column()])
-
-    def headerData(self, col, orientation, role):
-        #The 8th column is the key and we don't want to show it.
-        if col != 7 and orientation == Qt.Qt.Horizontal and role == Qt.Qt.DisplayRole:
-            return QtCore.QVariant(self.header[col])
-        return QtCore.QVariant()
-
-    def sort(self, Ncol, order):
-        self.emit(QtCore.SIGNAL("layoutAboutToBeChanged()"))
-        self.arraydata = sorted(self.arraydata, key=operator.itemgetter(Ncol))
-        if order == Qt.Qt.DescendingOrder:
-            self.arraydata.reverse()
-        self.emit(QtCore.SIGNAL("layoutChanged()"))
 
 '''
 ISSUE: if the list gets updated while the mouse is over an element,

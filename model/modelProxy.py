@@ -256,7 +256,6 @@ class UploadThread(threading.Thread):
             path = response['path']
             #Get the share link
             url = self.worker.client.share(path)['url']
-            #Create the dictionary
             d['name'] = os.path.basename(self.worker.path)
             d['date'] = datetime.datetime.now()
             d['path'] = path
