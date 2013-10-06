@@ -267,11 +267,14 @@ class UploadThread(threading.Thread):
             self.out_queue.put(('add', self.service, self.id, d))
             #send signal to UI
         elif self.service in 'GoogleDrive':
+            b={'withLink':True, 'role':'reader', 'type':'anyone'}
+            shareurl = 'https://docs.google.com/file/d/{}/edit?usp=sharing'
+            r = self.worker.client.permissions().insert(fileId=self.worker.id, body=b).execute()
             d['name'] = os.path.basename(self.worker.path)
             date = str(datetime.datetime.now())
             d['date'] = date[:date.index('.')]
             d['path'] = self.worker.title
-            d['link'] = self.worker.sharelink
+            d['link'] = shareurl.format(self.worker.id)
             self.logger.debug('Putting in queue.')
             self.out_queue.put(('add', self.service, self.id, d))
             #send signal to UI

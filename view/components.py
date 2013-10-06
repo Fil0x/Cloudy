@@ -590,6 +590,9 @@ class HistoryWindow(QtGui.QWidget):
 
         self.main_frame.setLayout(main_layout)
 
+    def showEvent(self, e):
+        self.fix_position()
+        
     def fix_position(self):
         p = self.position()
         if p:

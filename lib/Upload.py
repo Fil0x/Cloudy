@@ -153,8 +153,8 @@ class GoogleDriveUploader(object):
         #Error handle
         if response:
             yield (1.0, self.path)
-            self.sharelink = response['alternateLink']
             self.title = response['title']
+            self.id = response['id']
 #End GoogleDrive stuff
 
 class UploadQueue(object):
