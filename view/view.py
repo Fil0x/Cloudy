@@ -6,6 +6,7 @@ if ".." not in sys.path:
     sys.path.append("..")
 
 import AppFacade
+import logger
 import model.modelProxy
 from lib.ApplicationManager import ApplicationManager
 
@@ -73,8 +74,14 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         for item in zip(buttons, methods):
             QtCore.QObject.connect(getattr(viewComponent, item[0] + 'Btn'), QtCore.SIGNAL('clicked()'),
                                    item[1], QtCore.Qt.QueuedConnection)
+                                   
         self.viewComponent.update_all_history(self._format_history())
+        self.proxy.ht.signals.history_detailed.connect(self.onHistoryAdd)
 
+    def onHistoryAdd(self, body):
+        self.viewComponent.add_history_item([body[2]['path'], body[2]['link'], body[0], 
+                                             body[2]['date'], body[1]])
+        
     def _format_history(self):
         l = []
         r = self.proxy.get_history()
@@ -125,10 +132,11 @@ class HistoryWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
         super(HistoryWindowMediator, self).__init__(HistoryWindowMediator.NAME, viewComponent)
 
         self.proxy = self.facade.retrieveProxy(model.modelProxy.ModelProxy.NAME)
+        self.logger = logger.logger_factory(self.__class__.__name__)
         #To avoid the constant reading from the disk.
         self.initialized = False
 
-        self.proxy.ht.signals.trigger.connect(self.onAdd)
+        self.proxy.ht.signals.history_compact.connect(self.onAdd)
 
     def listNotificationInterests(self):
         return [
@@ -138,11 +146,9 @@ class HistoryWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
     def _format_history(self):
         l = []
         r = self.proxy.get_history()
-        date_fmt = lambda x:datetime.datetime.strptime(x, '%Y-%m-%d %H:%M:%S')
         for k, v in r.iteritems():
             for id, item in v.iteritems():
-                date = date_fmt(item['date'])
-                l.append([k, item['path'], item['link'], date])
+                l.append([k, item['path'], item['link'], item['date']])
         return sorted(l, key=itemgetter(3))
 
     def handleNotification(self, notification):
@@ -157,11 +163,8 @@ class HistoryWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
 
     def onAdd(self, body):
         if self.initialized:
-            date = str(body[1]['date'])
-            d = date[:date.index('.')]
-            d = datetime.datetime.strptime(d, '%Y-%m-%d %H:%M:%S')
             self.viewComponent.add_item(body[0], body[1]['path'],
-                                        body[1]['link'], d)
+                                        body[1]['link'], body[1]['date'])
         else:
             self.viewComponent.update_all(self._format_history())
             self.initialized = True

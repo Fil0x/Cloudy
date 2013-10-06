@@ -113,7 +113,8 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
         self.model.uq.delete(service, id)
 
 class Signals(QtCore.QObject):
-    trigger = QtCore.pyqtSignal(list)
+    history_compact = QtCore.pyqtSignal(list)
+    history_detailed = QtCore.pyqtSignal(list)
 
 class HistoryThread(threading.Thread):
     def __init__(self, in_queue, proxy, **kwargs):
@@ -137,7 +138,8 @@ class HistoryThread(threading.Thread):
                 self.proxy.delete(msg[1], msg[2])
                 del self.proxy.active_threads[msg[2]]
                 #There is no other easy way to send the message to the main thread
-                self.signals.trigger.emit([msg[1], msg[3]]) 
+                self.signals.history_compact.emit([msg[1], msg[3]]) 
+                self.signals.history_detailed.emit([msg[1], msg[2], msg[3]])
             elif msg[0] in 'remove':
                 self.proxy.uq.delete_history(msg[1], [msg[2]])
                 self.logger.debug('removed item')
@@ -257,7 +259,8 @@ class UploadThread(threading.Thread):
             #Get the share link
             url = self.worker.client.share(path)['url']
             d['name'] = os.path.basename(self.worker.path)
-            d['date'] = datetime.datetime.now()
+            date = str(datetime.datetime.now())
+            d['date'] = date[:date.index('.')]
             d['path'] = path
             d['link'] = url
             self.logger.debug('Putting in queue.')
@@ -265,7 +268,8 @@ class UploadThread(threading.Thread):
             #send signal to UI
         elif self.service in 'GoogleDrive':
             d['name'] = os.path.basename(self.worker.path)
-            d['date'] = datetime.datetime.now()
+            date = str(datetime.datetime.now())
+            d['date'] = date[:date.index('.')]
             d['path'] = self.worker.title
             d['link'] = self.worker.sharelink
             self.logger.debug('Putting in queue.')

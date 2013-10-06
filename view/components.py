@@ -221,12 +221,11 @@ class MyTableModel(QtCore.QAbstractTableModel):
         
 class BaseDelegate(QtGui.QStyledItemDelegate):
 
-    def __init__(self, device, font, color, images=None):
+    def __init__(self, device, font, images=None):
         QtGui.QStyledItemDelegate.__init__(self, device)
 
         self.font = font
         self.images = images
-        self.brush = QtGui.QBrush(color)
         
     def createEditor(self, parent, option, index):
         return None
@@ -238,8 +237,43 @@ class UploadTableDelegate(BaseDelegate):
         model = index.model()
         d = model.data[index.row()][index.column()]
         
-        if index.row() % 2:
-            painter.fillRect(option.rect, self.brush)
+        painter.translate(option.rect.topLeft())
+        painter.setFont(self.font)
+        #painter.drawImage(QtCore.QPoint(5, 5), self.images[0])
+        if len(d) >= 20:
+            d = d[:20] + '...'
+        painter.drawText(QtCore.QPoint(40, 20), d)
+        '''
+        painter.setPen(self.date_color)
+        painter.drawText(QtCore.QPoint(40, 30), str(d[3]))
+        if option.state & QtGui.QStyle.State_MouseOver:
+            painter.drawImage(self.sharelink_pos, self.sharelink_img)
+        '''
+        painter.restore()
+
+    def editorEvent(self, event, model, option, index):
+        '''sharelink_rect = self.sharelink_img.rect().translated(self.sharelink_pos.x(),
+                                                option.rect.top() + self.sharelink_pos.y())
+        if event.type() == QtCore.QEvent.MouseButtonRelease:
+            if sharelink_rect.contains(event.pos()):
+                model = index.model()
+                link = model.data[index.row()][2]
+                import webbrowser
+                webbrowser.open(link)'''
+
+        return False
+
+    def sizeHint(self, option, index):
+        model = index.model()
+        d = model.data[index.row()]
+        return QtCore.QSize(100, 40)
+
+class HistoryTableDelegate(BaseDelegate):
+        
+    def paint(self, painter, option, index):
+        painter.save()
+        model = index.model()
+        d = model.data[index.row()][index.column()]
         
         painter.translate(option.rect.topLeft())
         painter.setFont(self.font)
@@ -284,6 +318,7 @@ class DetailedWindow(QtGui.QMainWindow):
     settingsBtnPath = r'images/detailed-configure.png'
     tableBackgroundPath = r'images/detailed-background.jpg'
     windowStyle = r'QMainWindow {background-color: rgba(108, 149, 218, 100%)}'
+    table_style = r'alternate-background-color: #E5FFFF;background-color: white;'
 
     def __init__(self, title):
         QtGui.QWidget.__init__(self)
@@ -292,7 +327,6 @@ class DetailedWindow(QtGui.QMainWindow):
         self.setStyleSheet(self.windowStyle)
         
         file_image = QtGui.QImage(self.file_icon_path)
-        c = QtGui.QColor('#E5FFFF')
         
         self.history_header = ['Name', 'Destination', 'Service', 'Date']
         self.uploads_header = ['Name', 'Progress', 'Status', 'Destination', 
@@ -301,10 +335,10 @@ class DetailedWindow(QtGui.QMainWindow):
         self.data2 = [map(str, range(2, 7)), map(str, range(1, 6))]*2
         
         self.upload_table = self._create_table(self.uploads_header)
-        self.upload_table.setItemDelegate(UploadTableDelegate(self, self.font, c))
+        self.upload_table.setItemDelegate(UploadTableDelegate(self, self.font))
         
         self.history_table = self._create_table(self.history_header)
-        self.history_table.setItemDelegate(UploadTableDelegate(self, self.font, c))
+        self.history_table.setItemDelegate(HistoryTableDelegate(self, self.font))
 
         self._createRibbon()
         self._createSideSpaces()
@@ -391,6 +425,8 @@ class DetailedWindow(QtGui.QMainWindow):
             hh.setResizeMode(i, QtGui.QHeaderView.Stretch)
 
         # set column width to fit contents
+        tbl.setAlternatingRowColors(True);
+        tbl.setStyleSheet(self.table_style);
         tbl.resizeColumnsToContents()
         tbl.setSortingEnabled(True)
 
@@ -468,7 +504,7 @@ class ListItemDelegate(QtGui.QStyledItemDelegate):
         painter.drawImage(QtCore.QPoint(5, 5), d[0])
         painter.drawText(QtCore.QPoint(40, 15), d[1])
         painter.setPen(self.date_color)
-        painter.drawText(QtCore.QPoint(40, 30), str(d[3]))
+        painter.drawText(QtCore.QPoint(40, 30), d[3])
         if option.state & QtGui.QStyle.State_MouseOver:
             painter.drawImage(self.sharelink_pos, self.sharelink_img)
 
