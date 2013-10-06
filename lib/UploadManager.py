@@ -103,9 +103,7 @@ class LocalUploadManager(Manager):
         ''' remote filename, remote path, date & time, share link '''
         assert(service in self.services)
 
-        if id in self.history[service]:
-            del self.history[service][id]
-        self.history[service].setdefault(id, kwargs)
+        self.history[service][id] = kwargs
         
         self.history.write()
 

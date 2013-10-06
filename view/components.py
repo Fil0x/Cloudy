@@ -590,6 +590,37 @@ class HistoryWindow(QtGui.QWidget):
 
         self.main_frame.setLayout(main_layout)
 
+    def fix_position(self):
+        p = self.position()
+        if p:
+            self.move(p)
+        
+    def position(self, m=20):
+        d = QtGui.QApplication.desktop()
+        av = d.availableGeometry()
+        sc = d.screenGeometry()
+        width = self.width()
+        height = self.height()
+        
+        x = sc.x() - av.x()
+        y = sc.y() - av.y()
+        w = sc.width() - av.width()
+        h = sc.height() - av.height()
+        
+        if h > 0: #bottom or top
+            if y < 0: #top
+                return QtCore.QPoint(sc.width()-width-m, h+m)
+            else: #bottom
+                return QtCore.QPoint(sc.width()-width-m, av.height()-height-m)
+        elif w > 0: #left or right
+            if x < 0: #left
+                return QtCore.QPoint(w+m, sc.height()-height-m)
+            else: #right
+                return QtCore.QPoint(av.width()-width-m, sc.height()-height-m)
+        
+        #Taskbar is hidden
+        return None
+        
     def onClose(self):
         #Need to think of a better way
         self.setVisible(False)

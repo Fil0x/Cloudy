@@ -159,6 +159,7 @@ class HistoryWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
                 #TODO: limit the items that are passed to max_count.
                 self.viewComponent.update_all(self._format_history())
                 self.viewComponent.setVisible(True)
+                self.viewComponent.fix_position()
                 self.initialized = True
 
     def onAdd(self, body):
@@ -169,4 +170,5 @@ class HistoryWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
             self.viewComponent.update_all(self._format_history())
             self.initialized = True
         if not self.viewComponent.isVisible():
+            self.viewComponent.fix_position()
             self.viewComponent.setVisible(True)
