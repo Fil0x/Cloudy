@@ -200,9 +200,21 @@ class MyTableModel(QtCore.QAbstractTableModel):
         self.emit(QtCore.SIGNAL("layoutChanged()"))
         
     def add_item(self, item):
+        if len(self.data) == 1 and self.data[0][0] == '':
+            self.beginRemoveRows(QtCore.QModelIndex(), 0, 0)
+            del self.data[0]
+            self.endRemoveRows()
+
         self.beginInsertRows(QtCore.QModelIndex(), len(self.data), len(self.data))
         self.data.append(item)
         self.endInsertRows()
+        
+    def update_item(self, item):
+        if len(self.data) == 1 and self.data[0][0] == '':
+            return
+        i = zip(*self.data)[-1].index(item[0])
+        self.data[i][1] = item[1]
+        self.dataChanged.emit(self.index(i, 1), self.index(i, 1))
         
     def remove(self, id, index=None):
         i = 0
@@ -329,10 +341,8 @@ class DetailedWindow(QtGui.QMainWindow):
         file_image = QtGui.QImage(self.file_icon_path)
         
         self.history_header = ['Name', 'Destination', 'Service', 'Date']
-        self.uploads_header = ['Name', 'Progress', 'Status', 'Destination', 
-                               'Service', 'Conflict']
-        self.data = [map(str, range(1, 8)), map(str, range(2, 9))]*2
-        self.data2 = [map(str, range(2, 7)), map(str, range(1, 6))]*2
+        self.uploads_header = ['Name', 'Progress', 'Service', 'Status', 
+                               'Destination', 'Conflict']
         
         self.upload_table = self._create_table(self.uploads_header)
         self.upload_table.setItemDelegate(UploadTableDelegate(self, self.font))
@@ -350,7 +360,18 @@ class DetailedWindow(QtGui.QMainWindow):
         tab.insertTab(2, QtGui.QLabel('SETTINGS'), 'Settings')
 
         self.setCentralWidget(tab)
+        
+        sb = QtGui.QStatusBar(self)
+        sb.addWidget(QtGui.QLabel('Ready'))
+        self.setStatusBar(sb)
 
+    def add_upload_item(self, item):
+        # [filename, progress, service, status, dest, conflict]
+        self.upload_table.model().add_item(item)
+        
+    def update_upload_item(self, item):
+        self.upload_table.model().update_item(item)
+        
     def add_history_item(self, item):
         #[name, dest, service, date, id]
         self.history_table.model().add_item(item)

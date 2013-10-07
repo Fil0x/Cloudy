@@ -9,11 +9,11 @@ import threading
 
 import local
 import logger
+import globals
 import AppFacade
 import lib.Upload
 from model import Model
 
-from PyQt4 import QtCore
 import puremvc.patterns.proxy
 
 
@@ -31,15 +31,14 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
         self.active_threads = {} # {'id':UploadThread, ...}
         self.model = Model()
         self.logger = logger.logger_factory(self.__class__.__name__)
+        self.g = globals.get_globals()
 
-        self.upt = UploadSupervisorThread(self.upload_queue, self.history_queue, self)
-        self.att = AddTaskThread(self.add_queue, self.upload_queue, self)
-        self.ht  = HistoryThread(self.history_queue, self)
+        self.upt = UploadSupervisorThread(self.upload_queue, self.history_queue, self, self.g)
+        self.att = AddTaskThread(self.add_queue, self.upload_queue, self, self.g)
+        self.ht  = HistoryThread(self.history_queue, self, self.g)
         self.upt.start()
         self.att.start()
         self.ht.start()
-
-        #self.sendNotification(AppFacade.AppFacade.DATA_CHANGED, self.model.uq)
 
     #Exposed functions
     def add_file(self, service, path):
@@ -112,22 +111,18 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
     def delete(self, service, id):
         self.model.uq.delete(service, id)
 
-class Signals(QtCore.QObject):
-    history_compact = QtCore.pyqtSignal(list)
-    history_detailed = QtCore.pyqtSignal(list)
 
 class HistoryThread(threading.Thread):
-    def __init__(self, in_queue, proxy, **kwargs):
+    def __init__(self, in_queue, proxy, globals, **kwargs):
         threading.Thread.__init__(self, **kwargs)
 
         self.in_queue = in_queue
         self.proxy = proxy
+        self.globals = globals
         self.daemon = True
         self.logger = logger.logger_factory(self.__class__.__name__)
         self.logger.debug('Initialized')
         
-        self.signals = Signals()
-
     def run(self):
         while True:
             msg = msg = self.in_queue.get()
@@ -138,42 +133,44 @@ class HistoryThread(threading.Thread):
                 self.proxy.delete(msg[1], msg[2])
                 del self.proxy.active_threads[msg[2]]
                 #There is no other easy way to send the message to the main thread
-                self.signals.history_compact.emit([msg[1], msg[3]]) 
-                self.signals.history_detailed.emit([msg[1], msg[2], msg[3]])
+                self.proxy.facade.sendNotification(AppFacade.AppFacade.HISTORY_UPDATE_COMPACT,
+                                            [self.globals, msg[1], msg[3]])
+                self.proxy.facade.sendNotification(AppFacade.AppFacade.HISTORY_UPDATE_DETAILED,
+                                            [self.globals, msg[1], msg[2], msg[3]])
             elif msg[0] in 'remove':
                 self.proxy.uq.delete_history(msg[1], [msg[2]])
                 self.logger.debug('removed item')
                 #update ui
 
 class UploadSupervisorThread(threading.Thread):
-    def __init__(self, in_queue, out_queue, proxy, **kwargs):
+    def __init__(self, in_queue, out_queue, proxy, globals, **kwargs):
         threading.Thread.__init__(self, **kwargs)
 
         self.in_queue = in_queue
         self.out_queue = out_queue #History queue for the upload threads
         self.proxy = proxy
+        self.globals = globals
         self.daemon = True
         self.logger = logger.logger_factory(self.__class__.__name__)
         self.logger.debug('Initialized')
-
+        
     def run(self):
         while True:
             msg = self.in_queue.get()
             if msg[0] in 'add':
-                t = UploadThread(msg[3], msg[1], self.out_queue, msg[2])
+                t = UploadThread(msg[3], msg[1], self.out_queue, msg[2], 
+                                 self.proxy, self.globals)
                 self.proxy.active_threads[msg[2]] = t
                 t.start()
+                # [filename, progress, service, status, dest, conflict]
+                filename = os.path.basename(msg[3].path)
+                l = [self.globals, filename, '0%', msg[1], 'Running', msg[3].remote, 'TODO', msg[2]]
+                self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_ADDED, l)
                 self.logger.debug('Started!')
             elif msg[0] in 'stop':
-                '''Get the thread, change its state to 1, remove it
-                   from the active_threads.
-                '''
                 self.proxy.active_threads[msg[1]].state = 1
                 del self.proxy.active_threads[msg[1]]
             elif msg[0] in 'delete':
-                '''Get the thread, change its state to 2, remove it
-                   from the active_threads.
-                '''
                 t = self.proxy.active_threads[msg[1]]
                 t.state = 2
                 self.proxy.delete(t.service, msg[1])
@@ -181,13 +178,14 @@ class UploadSupervisorThread(threading.Thread):
 
 class AddTaskThread(threading.Thread):
 
-    def __init__(self, in_queue, out_queue, proxy, **kwargs):
+    def __init__(self, in_queue, out_queue, proxy, globals, **kwargs):
         ''' in_queue=add_queue, out_queue=upload_queue '''
         threading.Thread.__init__(self, **kwargs)
 
         self.in_queue = in_queue
         self.out_queue = out_queue
         self.proxy = proxy
+        self.globals = globals
         self.daemon = True
         self.logger = logger.logger_factory(self.__class__.__name__)
         self.logger.debug('Initialized')
@@ -215,11 +213,13 @@ class AddTaskThread(threading.Thread):
                 self.out_queue.put(('add', msg[1], msg[2], msg[3]['uploader']))
 
 class UploadThread(threading.Thread):
-    def __init__(self, uploader, service, out_queue, id, **kwargs):
+    def __init__(self, uploader, service, out_queue, id, proxy, globals, **kwargs):
 
         threading.Thread.__init__(self, **kwargs)
         self.worker = uploader #Uploader already has a validated client.
         self.service = service
+        self.proxy = proxy
+        self.globals = globals
         self.id = id
         self.out_queue = out_queue
         self.logger = logger.logger_factory(self.__class__.__name__)
@@ -250,7 +250,9 @@ class UploadThread(threading.Thread):
                 self.logger.debug('Deleted:{}'.format(i))
                 return #delete the thread, dont update the ui even if
                        #a chunk is uploaded in the meantime.
-
+            progress = str(round(i[0], 3)*100) + '%'
+            self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_UPDATED, 
+                                               [self.globals, self.id, progress])
         #If I reach this point, the upload is complete and I have to save it to the history.
         d = {}
         if self.service in 'Dropbox':

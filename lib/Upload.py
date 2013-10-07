@@ -72,7 +72,7 @@ class DropboxUploader(object):
                 try:
                     yield (float(self.offset)/self.target_length, self.path)
                 except ZeroDivisionError:
-                    #The file was empty, it's 100% be default.
+                    #The file was empty, it's 100% by default.
                     yield (1.0, self.path)
             except rest.ErrorResponse, e:
                 reply = e.body

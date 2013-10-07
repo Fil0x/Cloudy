@@ -1,12 +1,13 @@
 import os
 import sys
-from operator import itemgetter
 import datetime
+from operator import itemgetter
 if ".." not in sys.path:
     sys.path.append("..")
 
-import AppFacade
 import logger
+import globals
+import AppFacade
 import model.modelProxy
 from lib.ApplicationManager import ApplicationManager
 
@@ -32,11 +33,10 @@ class SysTrayMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMe
 
     def onActivate(self, reason):
         if reason == QtGui.QSystemTrayIcon.Trigger:
-            self.facade.sendNotification(AppFacade.AppFacade.UPDATE_HISTORY)
+            self.facade.sendNotification(AppFacade.AppFacade.HISTORY_UPDATE_COMPACT)
 
     def onOpen(self):
         self.facade.sendNotification(AppFacade.AppFacade.SHOW_DETAILED)
-        self.facade.sendNotification(AppFacade.AppFacade.DATA_CHANGED)
 
     def onSettings(self):
         print 'Opening settings'
@@ -68,7 +68,8 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         super(DetailedWindowMediator, self).__init__(DetailedWindowMediator.NAME, viewComponent)
 
         self.proxy = self.facade.retrieveProxy(model.modelProxy.ModelProxy.NAME)
-
+        self.g = globals.get_globals()
+        
         buttons = ['add', 'remove', 'play', 'stop']
         methods = [self.onAdd, self.onRemove, self.onPlay, self.onStop]
         for item in zip(buttons, methods):
@@ -76,7 +77,16 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
                                    item[1], QtCore.Qt.QueuedConnection)
                                    
         self.viewComponent.update_all_history(self._format_history())
-        self.proxy.ht.signals.history_detailed.connect(self.onHistoryAdd)
+        
+        self.g.signals.history_detailed.connect(self.onHistoryAdd)
+        self.g.signals.upload_detailed_start.connect(self.onUploadStart)
+        self.g.signals.upload_detailed_update.connect(self.onUploadUpdate)
+        
+    def onUploadStart(self, body):
+        self.viewComponent.add_upload_item(body)
+        
+    def onUploadUpdate(self, body):
+        self.viewComponent.update_upload_item(body)
 
     def onHistoryAdd(self, body):
         self.viewComponent.add_history_item([body[2]['path'], body[2]['link'], body[0], 
@@ -112,7 +122,6 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
     def listNotificationInterests(self):
         return [
             AppFacade.AppFacade.SHOW_DETAILED,
-            AppFacade.AppFacade.DATA_CHANGED
         ]
 
     def handleNotification(self, notification):
@@ -120,9 +129,6 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
 
         if note_name == AppFacade.AppFacade.SHOW_DETAILED and not self.viewComponent.isVisible():
             self.viewComponent.setVisible(True)
-        elif note_name == AppFacade.AppFacade.DATA_CHANGED and self.viewComponent.isVisible():
-            #self.viewComponent.set_model_data(self.proxy.detailed_view_data())
-            pass
 
 class HistoryWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMediator):
 
@@ -132,15 +138,17 @@ class HistoryWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
         super(HistoryWindowMediator, self).__init__(HistoryWindowMediator.NAME, viewComponent)
 
         self.proxy = self.facade.retrieveProxy(model.modelProxy.ModelProxy.NAME)
+        self.g = globals.get_globals()
+        
         self.logger = logger.logger_factory(self.__class__.__name__)
         #To avoid the constant reading from the disk.
         self.initialized = False
-
-        self.proxy.ht.signals.history_compact.connect(self.onAdd)
+        
+        self.g.signals.history_compact.connect(self.onAdd)
 
     def listNotificationInterests(self):
         return [
-            AppFacade.AppFacade.UPDATE_HISTORY
+            AppFacade.AppFacade.HISTORY_UPDATE_COMPACT
         ]
 
     def _format_history(self):
@@ -154,7 +162,7 @@ class HistoryWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
     def handleNotification(self, notification):
         note_name = notification.getName()
         body = notification.getBody()
-        if note_name == AppFacade.AppFacade.UPDATE_HISTORY:
+        if note_name == AppFacade.AppFacade.HISTORY_UPDATE_COMPACT:
             if not self.viewComponent.isVisible() and not body:
                 #TODO: limit the items that are passed to max_count.
                 self.viewComponent.update_all(self._format_history())

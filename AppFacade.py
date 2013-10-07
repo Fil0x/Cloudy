@@ -1,20 +1,26 @@
+import globals
+
 import puremvc.patterns.facade
 from controller.StartUpCommand import StartUpCommand
 from controller.ExitAppCommand import ExitAppCommand
-from controller.DataUpdatedCommand import DataUpdatedCommand
+from controller.HistoryCommand import HistoryCommand
+from controller.UploadCommand import UploadCommand
 
 
 class AppFacade(puremvc.patterns.facade.Facade):
     STARTUP = 'startup'
     EXIT = 'exit'
-    
-    UPDATE_HISTORY = 'update_history'
-    
+
     SHOW_DETAILED = 'show_detailed'
     SHOW_COMPACT = 'show_compact'
-    
-    DATA_CHANGED = 'data_changed'
-    DATA_UPDATED = 'data_updated'
+
+    HISTORY_UPDATE_COMPACT = 'compact_update_history'
+    HISTORY_UPDATE_DETAILED = 'detailed_update_history'
+
+    UPLOAD_ADDED = 'upload_added'
+    UPLOAD_UPDATED = 'upload_updated'
+
+    globals = globals.Globals()
 
     def __init__(self):
         self.initializeFacade()
@@ -32,5 +38,8 @@ class AppFacade(puremvc.patterns.facade.Facade):
         super(AppFacade, self).initializeController()
 
         super(AppFacade, self).registerCommand(AppFacade.STARTUP, StartUpCommand)
-        super(AppFacade, self).registerCommand(AppFacade.DATA_UPDATED, DataUpdatedCommand)
+        super(AppFacade, self).registerCommand(AppFacade.HISTORY_UPDATE_COMPACT, HistoryCommand)
+        super(AppFacade, self).registerCommand(AppFacade.HISTORY_UPDATE_DETAILED, HistoryCommand)
+        super(AppFacade, self).registerCommand(AppFacade.UPLOAD_ADDED, UploadCommand)
+        super(AppFacade, self).registerCommand(AppFacade.UPLOAD_UPDATED, UploadCommand)
         super(AppFacade, self).registerCommand(AppFacade.EXIT, ExitAppCommand)
