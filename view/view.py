@@ -33,7 +33,8 @@ class SysTrayMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMe
 
     def onActivate(self, reason):
         if reason == QtGui.QSystemTrayIcon.Trigger:
-            self.facade.sendNotification(AppFacade.AppFacade.HISTORY_UPDATE_COMPACT)
+            self.facade.sendNotification(AppFacade.AppFacade.HISTORY_SHOW_COMPACT, 
+                                         [globals.get_globals()])
 
     def onOpen(self):
         self.facade.sendNotification(AppFacade.AppFacade.SHOW_DETAILED)
@@ -81,12 +82,16 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         self.g.signals.history_detailed.connect(self.onHistoryAdd)
         self.g.signals.upload_detailed_start.connect(self.onUploadStart)
         self.g.signals.upload_detailed_update.connect(self.onUploadUpdate)
+        self.g.signals.upload_detailed_finish.connect(self.onUploadComplete)
         
     def onUploadStart(self, body):
         self.viewComponent.add_upload_item(body)
         
     def onUploadUpdate(self, body):
         self.viewComponent.update_upload_item(body)
+        
+    def onUploadComplete(self, id):
+        self.viewComponent.delete_upload_item(id)
 
     def onHistoryAdd(self, body):
         self.viewComponent.add_history_item([body[2]['path'], body[2]['link'], body[0], 
@@ -144,12 +149,11 @@ class HistoryWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
         #To avoid the constant reading from the disk.
         self.initialized = False
         
-        self.g.signals.history_compact.connect(self.onAdd)
+        self.g.signals.history_compact_show.connect(self.onShow)
+        self.g.signals.history_compact_update.connect(self.onAdd)
 
     def listNotificationInterests(self):
-        return [
-            AppFacade.AppFacade.HISTORY_UPDATE_COMPACT
-        ]
+        return []
 
     def _format_history(self):
         l = []
@@ -159,15 +163,12 @@ class HistoryWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
                 l.append([k, item['path'], item['link'], item['date']])
         return sorted(l, key=itemgetter(3))
 
-    def handleNotification(self, notification):
-        note_name = notification.getName()
-        body = notification.getBody()
-        if note_name == AppFacade.AppFacade.HISTORY_UPDATE_COMPACT:
-            if not self.viewComponent.isVisible() and not body:
-                #TODO: limit the items that are passed to max_count.
-                self.viewComponent.update_all(self._format_history())
-                self.viewComponent.setVisible(True)
-                self.initialized = True
+    def onShow(self):
+        if not self.viewComponent.isVisible():
+            #TODO: limit the items that are passed to max_count.
+            self.viewComponent.update_all(self._format_history())
+            self.viewComponent.setVisible(True)
+            self.initialized = True
 
     def onAdd(self, body):
         if self.initialized:

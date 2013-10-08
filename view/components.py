@@ -372,6 +372,9 @@ class DetailedWindow(QtGui.QMainWindow):
     def update_upload_item(self, item):
         self.upload_table.model().update_item(item)
         
+    def delete_upload_item(self, id):
+        self.upload_table.model().remove(id)
+        
     def add_history_item(self, item):
         #[name, dest, service, date, id]
         self.history_table.model().add_item(item)

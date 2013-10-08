@@ -137,6 +137,8 @@ class HistoryThread(threading.Thread):
                                             [self.globals, msg[1], msg[3]])
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.HISTORY_UPDATE_DETAILED,
                                             [self.globals, msg[1], msg[2], msg[3]])
+                self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_DONE,
+                                            [self.globals, msg[2]])
             elif msg[0] in 'remove':
                 self.proxy.uq.delete_history(msg[1], [msg[2]])
                 self.logger.debug('removed item')
