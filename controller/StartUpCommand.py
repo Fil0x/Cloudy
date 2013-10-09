@@ -5,9 +5,9 @@ if ".." not in sys.path:
 import version
 import model.modelProxy
 from view.view import SysTrayMediator
-from view.components import HistoryWindow
-from view.components import CompactWindow
-from view.components import DetailedWindow
+from view.History import HistoryWindow
+from view.Compact import CompactWindow
+from view.Detailed import DetailedWindow
 from view.view import CompactWindowMediator
 from view.view import HistoryWindowMediator
 from view.view import DetailedWindowMediator

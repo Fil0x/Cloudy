@@ -2,7 +2,7 @@ import sys
 from PyQt4 import QtGui
 
 from AppFacade import AppFacade
-from view.components import SystemTrayIcon
+from view.SysTray import SystemTrayIcon
 
 if __name__ == '__main__':
     qtApp = QtGui.QApplication(sys.argv)
