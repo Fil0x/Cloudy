@@ -234,11 +234,11 @@ class DetailedWindow(QtGui.QMainWindow):
             index = len(self.history_header)
             m = self.history_table.model()
             sm = self.history_table.selectionModel()
-            service = self.history_header.index('Service')
+            service_index = self.history_header.index('Service')
             
         for i in sm.selectedRows():
             id = m.data[i.row()][index]
-            service = m.data[i.row()][service]
+            service = m.data[i.row()][service_index]
             r.append([id, service])
 
         return r
