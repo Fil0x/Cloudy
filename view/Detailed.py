@@ -223,6 +223,13 @@ class DetailedWindow(QtGui.QMainWindow):
     def get_current_tab(self):
         return self.tab.currentIndex()
     
+    def show_add_file_warning(self):
+        msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning,
+                "No Services added", 'You are not authenticated with any service.',
+                QtGui.QMessageBox.NoButton, self)
+        msgBox.addButton("&Close", QtGui.QMessageBox.AcceptRole)
+        msgBox.exec_()
+    
     def get_selected_ids(self, n):
         r = []
         if n == 0:

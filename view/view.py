@@ -9,6 +9,7 @@ import logger
 import globals
 import AppFacade
 import model.modelProxy
+from FileChooser import FileChooser
 from lib.util import raw
 from lib.ApplicationManager import ApplicationManager
 
@@ -76,6 +77,7 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
 
         self.proxy = self.facade.retrieveProxy(model.modelProxy.ModelProxy.NAME)
         self.g = globals.get_globals()
+        self.f = None #File chooser
 
         buttons = ['add', 'remove', 'play', 'stop']
         methods = [self.onAdd, self.onRemove, self.onPlay, self.onStop]
@@ -112,14 +114,29 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         return sorted(l, key=itemgetter(3))
 
     def onAdd(self):
-        filenames = QtGui.QFileDialog.getOpenFileNames(self.viewComponent,
-                                     'Open file...', os.path.expanduser('~'))
-        #TODO: choose service, directory
-        #for i in filenames:
-            #self.proxy.dropbox_add(str(i))
-
-        #Ask the model proxy for the new data.
-        #self.viewComponent.set_model_data(self.proxy.detailed_view_data())
+        p = ApplicationManager()
+        if not p.get_services():
+            self.viewComponent.show_add_file_warning()
+            return
+        
+        if not self.f:
+            self.f = FileChooser(p.get_services(), self.viewComponent)
+            self.f.okButton.clicked.connect(self.onFileDialogOK)
+            self.f.cancelButton.clicked.connect(self.onFileDialogCancel)
+            self.f.closeEvent = self.onFileDialogCancel
+            self.f.show()
+        else:
+            self.f.activateWindow()
+        
+    def onFileDialogOK(self, event):
+        paths = self.f.get_filenames()
+        
+        self.f.close()
+        self.f = None
+        
+    def onFileDialogCancel(self, event):
+        self.f.close()
+        self.f = None
 
     def onPlay(self):
         print 'OnPlay'
