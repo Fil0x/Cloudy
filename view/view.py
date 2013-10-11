@@ -34,7 +34,7 @@ class SysTrayMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMe
 
     def onActivate(self, reason):
         if reason == QtGui.QSystemTrayIcon.Trigger:
-            self.facade.sendNotification(AppFacade.AppFacade.HISTORY_SHOW_COMPACT, 
+            self.facade.sendNotification(AppFacade.AppFacade.HISTORY_SHOW_COMPACT,
                                          [globals.get_globals()])
 
     def onOpen(self):
@@ -76,33 +76,33 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
 
         self.proxy = self.facade.retrieveProxy(model.modelProxy.ModelProxy.NAME)
         self.g = globals.get_globals()
-        
+
         buttons = ['add', 'remove', 'play', 'stop']
         methods = [self.onAdd, self.onRemove, self.onPlay, self.onStop]
         for item in zip(buttons, methods):
             QtCore.QObject.connect(getattr(viewComponent, item[0] + 'Btn'), QtCore.SIGNAL('clicked()'),
                                    item[1], QtCore.Qt.QueuedConnection)
-                                   
+
         self.viewComponent.update_all_history(self._format_history())
-        
+
         self.g.signals.history_detailed.connect(self.onHistoryAdd)
         self.g.signals.upload_detailed_start.connect(self.onUploadStart)
         self.g.signals.upload_detailed_update.connect(self.onUploadUpdate)
         self.g.signals.upload_detailed_finish.connect(self.onUploadComplete)
-        
+
     def onUploadStart(self, body):
         self.viewComponent.add_upload_item(body)
-        
+
     def onUploadUpdate(self, body):
         self.viewComponent.update_upload_item(body)
-        
+
     def onUploadComplete(self, id):
         self.viewComponent.delete_upload_item(id)
 
     def onHistoryAdd(self, body):
-        self.viewComponent.add_history_item([body[2]['path'], body[2]['link'], body[0], 
+        self.viewComponent.add_history_item([body[2]['path'], body[2]['link'], body[0],
                                              body[2]['date'], body[1]])
-        
+
     def _format_history(self):
         l = []
         r = self.proxy.get_history()
@@ -110,7 +110,7 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
             for id, item in v.iteritems():
                 l.append([item['path'], item['link'], k, item['date'], id])
         return sorted(l, key=itemgetter(3))
-        
+
     def onAdd(self):
         filenames = QtGui.QFileDialog.getOpenFileNames(self.viewComponent,
                                      'Open file...', os.path.expanduser('~'))
@@ -127,7 +127,10 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
     def onRemove(self):
         index = self.viewComponent.get_current_tab()
         delete = self.viewComponent.get_selected_ids(index)
-        
+
+        if not delete:
+            return
+            
         if index == 0:
             pass
         elif index == 1:
@@ -166,11 +169,11 @@ class HistoryWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
 
         self.proxy = self.facade.retrieveProxy(model.modelProxy.ModelProxy.NAME)
         self.g = globals.get_globals()
-        
+
         self.logger = logger.logger_factory(self.__class__.__name__)
         #To avoid the constant reading from the disk.
         self.initialized = False
-        
+
         self.g.signals.history_compact_show.connect(self.onShow)
         self.g.signals.history_compact_update.connect(self.onAdd)
 
@@ -178,14 +181,14 @@ class HistoryWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
         return [
             AppFacade.AppFacade.DELETE_HISTORY_COMPACT
         ]
-    
+
     def handleNotification(self, notification):
         note_name = notification.getName()
         body = notification.getBody()
         if note_name == AppFacade.AppFacade.DELETE_HISTORY_COMPACT:
             if self.viewComponent.isVisible():
                 self.viewComponent.update_all(self._format_history())
-    
+
     def _format_history(self):
         l = []
         r = self.proxy.get_history()

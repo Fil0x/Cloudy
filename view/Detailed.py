@@ -33,6 +33,9 @@ class MyTableModel(QtCore.QAbstractTableModel):
         return QtCore.QVariant()
 
     def sort(self, Ncol, order):
+        if not self.data:
+            return
+            
         self.emit(QtCore.SIGNAL("layoutAboutToBeChanged()"))
         self.data = sorted(self.data, key=operator.itemgetter(Ncol))
         if order == Qt.Qt.DescendingOrder:
