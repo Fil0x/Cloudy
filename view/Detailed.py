@@ -56,12 +56,8 @@ class MyTableModel(QtCore.QAbstractTableModel):
         self.data[i][1] = item[1]
         self.dataChanged.emit(self.index(i, 1), self.index(i, 1))
         
-    def remove(self, id, index=None):
-        i = 0
-        if index:
-            i = index
-        else:
-            i = zip(*self.data)[-1].index(id)
+    def remove(self, id):
+        i = zip(*self.data)[-1].index(id)
         self.beginRemoveRows(QtCore.QModelIndex(), i, i)
         self.data = self.data[0:i] + self.data[i+1:]
         self.endRemoveRows()
@@ -73,11 +69,12 @@ class MyTableModel(QtCore.QAbstractTableModel):
         
 class BaseDelegate(QtGui.QStyledItemDelegate):
 
-    def __init__(self, device, font, images=None):
+    def __init__(self, device, font, color, images=None):
         QtGui.QStyledItemDelegate.__init__(self, device)
 
         self.font = font
         self.images = images
+        self.brush = QtGui.QBrush(color)
         
     def createEditor(self, parent, option, index):
         return None
@@ -91,7 +88,10 @@ class UploadTableDelegate(BaseDelegate):
         
         painter.translate(option.rect.topLeft())
         painter.setFont(self.font)
-        #painter.drawImage(QtCore.QPoint(5, 5), self.images[0])
+        
+        if option.state & QtGui.QStyle.State_Selected:
+            painter.fillRect(option.rect, option.palette.highlight())
+        
         if len(d) >= 20:
             d = d[:20] + '...'
         painter.drawText(QtCore.QPoint(40, 20), d)
@@ -127,30 +127,22 @@ class HistoryTableDelegate(BaseDelegate):
         model = index.model()
         d = model.data[index.row()][index.column()]
         
+        if option.state & QtGui.QStyle.State_Selected:
+        #if option.state & QtGui.QStyle.State_MouseOver:
+            painter.fillRect(option.rect, option.palette.highlight())  
+        elif index.row() % 2 == 1:
+            painter.fillRect(option.rect, self.brush)
+        
         painter.translate(option.rect.topLeft())
         painter.setFont(self.font)
-        #painter.drawImage(QtCore.QPoint(5, 5), self.images[0])
+        
         if len(d) >= 20:
             d = d[:20] + '...'
         painter.drawText(QtCore.QPoint(40, 20), d)
-        '''
-        painter.setPen(self.date_color)
-        painter.drawText(QtCore.QPoint(40, 30), str(d[3]))
-        if option.state & QtGui.QStyle.State_MouseOver:
-            painter.drawImage(self.sharelink_pos, self.sharelink_img)
-        '''
+        
         painter.restore()
 
     def editorEvent(self, event, model, option, index):
-        '''sharelink_rect = self.sharelink_img.rect().translated(self.sharelink_pos.x(),
-                                                option.rect.top() + self.sharelink_pos.y())
-        if event.type() == QtCore.QEvent.MouseButtonRelease:
-            if sharelink_rect.contains(event.pos()):
-                model = index.model()
-                link = model.data[index.row()][2]
-                import webbrowser
-                webbrowser.open(link)'''
-
         return False
 
     def sizeHint(self, option, index):
@@ -170,7 +162,6 @@ class DetailedWindow(QtGui.QMainWindow):
     settingsBtnPath = r'images/detailed-configure.png'
     tableBackgroundPath = r'images/detailed-background.jpg'
     windowStyle = r'QMainWindow {background-color: rgba(108, 149, 218, 100%)}'
-    table_style = r'alternate-background-color: #E5FFFF;background-color: white;'
 
     def __init__(self, title):
         QtGui.QWidget.__init__(self)
@@ -184,27 +175,74 @@ class DetailedWindow(QtGui.QMainWindow):
         self.uploads_header = ['Name', 'Progress', 'Service', 'Status', 
                                'Destination', 'Conflict']
         
+        c = QtGui.QColor('#E5FFFF')
+        
         self.upload_table = self._create_table(self.uploads_header)
-        self.upload_table.setItemDelegate(UploadTableDelegate(self, self.font))
+        self.upload_table.setItemDelegate(UploadTableDelegate(self, self.font, c))
         
         self.history_table = self._create_table(self.history_header)
-        self.history_table.setItemDelegate(HistoryTableDelegate(self, self.font))
+        self.history_table.setItemDelegate(HistoryTableDelegate(self, self.font, c))
 
         self._createRibbon()
         self._createSideSpaces()
 
-        tab = QtGui.QTabWidget()
-        tab.setTabShape(QtGui.QTabWidget.Triangular)
-        tab.insertTab(0, self.upload_table, 'Active')
-        tab.insertTab(1, self.history_table, 'History')
-        tab.insertTab(2, QtGui.QLabel('SETTINGS'), 'Settings')
+        self.tab = QtGui.QTabWidget()
+        QtCore.QObject.connect(self.tab, QtCore.SIGNAL('currentChanged(int)'),
+                               self.onTabChanged)
+        self.tab.setTabShape(QtGui.QTabWidget.Triangular)
+        self.tab.insertTab(0, self.upload_table, 'Active')
+        self.tab.insertTab(1, self.history_table, 'History')
+        self.tab.insertTab(2, QtGui.QLabel('SETTINGS'), 'Settings')
 
-        self.setCentralWidget(tab)
+        self.setCentralWidget(self.tab)
         
         sb = QtGui.QStatusBar(self)
         sb.addWidget(QtGui.QLabel('Ready'))
         self.setStatusBar(sb)
 
+    def onTabChanged(self, tabIndex):
+        if tabIndex == 0:
+            self.addBtn.setDisabled(False)
+            self.playBtn.setDisabled(False)
+            self.stopBtn.setDisabled(False)
+            self.removeBtn.setDisabled(False)
+        elif tabIndex == 1:
+            self.addBtn.setDisabled(False)
+            self.playBtn.setDisabled(True)
+            self.stopBtn.setDisabled(True)
+            self.removeBtn.setDisabled(False)
+        elif tabIndex == 2:
+            self.addBtn.setDisabled(True)
+            self.playBtn.setDisabled(True)
+            self.stopBtn.setDisabled(True)
+            self.removeBtn.setDisabled(True)
+    
+    def get_current_tab(self):
+        return self.tab.currentIndex()
+    
+    def get_selected_ids(self, n):
+        r = []
+        if n == 0:
+            index = len(self.uploads_header)
+            m = self.upload_table.model()
+            sm = self.upload_table.selectionModel()
+            service = self.uploads_header.index('Service')
+        elif n == 1:
+            index = len(self.history_header)
+            m = self.history_table.model()
+            sm = self.history_table.selectionModel()
+            service = self.history_header.index('Service')
+            
+        for i in sm.selectedRows():
+            id = m.data[i.row()][index]
+            service = m.data[i.row()][service]
+            r.append([id, service])
+
+        return r
+
+    def show_settings(self):
+        self.tab.setCurrentIndex(2)
+        
     def add_upload_item(self, item):
         # [filename, progress, service, status, dest, conflict]
         self.upload_table.model().add_item(item)
@@ -224,8 +262,8 @@ class DetailedWindow(QtGui.QMainWindow):
         for i in items:
             self.add_history_item(i)
             
-    def delete_history_item(self, id, row=None):
-        self.history_table.model().remove(id, row)
+    def delete_history_item(self, id):
+        self.history_table.model().remove(id)
         
     def closeEvent(self, event):
         self.setVisible(False)
@@ -254,27 +292,26 @@ class DetailedWindow(QtGui.QMainWindow):
             dockWidget = QtGui.QDockWidget()
             #Hide the dock title bar
             dockWidget.setTitleBarWidget(QtGui.QWidget())
-
+            
             setattr(self, elem, QtGui.QPushButton())
             getattr(self, elem).setIcon(QtGui.QIcon(getattr(self, elem + 'Path')))
+            getattr(self, elem).setIconSize(QtCore.QSize(30, 30))
             getattr(self, elem).setFlat(True)
+            getattr(self, elem).setMaximumWidth(40)
             dockWidget.setWidget(getattr(self, elem))
             self.addDockWidget(Qt.Qt.TopDockWidgetArea, dockWidget)
 
         #@Mediator
         _createDockWidget('addBtn')
-        _createDockWidget('removeBtn')
         _createDockWidget('playBtn')
         _createDockWidget('stopBtn')
+        _createDockWidget('removeBtn')
 
     def _create_table(self, header):
         tbl = QtGui.QTableView()
 
         tm = MyTableModel(header, parent=self)
         tbl.setModel(tm)
-        QtCore.QObject.connect(tbl.selectionModel(),
-                               QtCore.SIGNAL("selectionChanged(QItemSelection, QItemSelection)"),
-                               self.selection_changed)
 
         tbl.setMinimumSize(704, 300)
         tbl.setShowGrid(False)
@@ -289,9 +326,8 @@ class DetailedWindow(QtGui.QMainWindow):
             hh.setResizeMode(i, QtGui.QHeaderView.Stretch)
 
         # set column width to fit contents
-        tbl.setAlternatingRowColors(True);
-        tbl.setStyleSheet(self.table_style);
         tbl.resizeColumnsToContents()
         tbl.setSortingEnabled(True)
+        tbl.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
 
         return tbl

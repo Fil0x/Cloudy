@@ -1,15 +1,16 @@
 import httplib2
 
+import local
 import errors
 from DataManager import Manager
 from DataManager import LocalDataManager
 
 #from pithos.tools.lib.client import Pithos_Client, Fault - Deprecated(?)
 from dropbox.client import DropboxClient
+from dropbox.client import DropboxOAuth2FlowNoRedirect
 from dropbox import rest
 from oauth2client.client import Credentials
 from apiclient.discovery import build
-
 
 class AuthManager(Manager):
     def __init__(self):
@@ -85,3 +86,7 @@ class AuthManager(Manager):
     def googledrive_add_user(self, credentials):
         self.dataManager.update_googledrive_credentials(credentials)
         return self._googledrive_auth()
+
+    def get_dropbox_flow(self):
+        return DropboxOAuth2FlowNoRedirect(local.Dropbox_APPKEY,
+                                           local.Dropbox_APPSECRET)

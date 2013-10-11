@@ -69,6 +69,10 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
         self.logger.debug('got item')
         return r
 
+    def delete_history(self, data):
+        for i in data:
+            self.model.uq.delete_history(i[1], i[0])
+        
     def detailed_view_data(self):
         #TODO: change it
         data = []

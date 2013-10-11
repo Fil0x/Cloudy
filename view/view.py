@@ -9,6 +9,7 @@ import logger
 import globals
 import AppFacade
 import model.modelProxy
+from lib.util import raw
 from lib.ApplicationManager import ApplicationManager
 
 from PyQt4 import QtGui
@@ -24,8 +25,8 @@ class SysTrayMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMe
     def __init__(self, viewComponent):
         super(SysTrayMediator, self).__init__(SysTrayMediator.NAME, viewComponent)
 
-        actions = ['exitAction', 'openAction']
-        methods = [self.onExit, self.onOpen]
+        actions = ['exitAction', 'openAction', 'settingsAction']
+        methods = [self.onExit, self.onOpen, self.onSettings]
         for item in zip(actions, methods):
             QtCore.QObject.connect(getattr(viewComponent, item[0]), QtCore.SIGNAL('triggered()'),
                                item[1], QtCore.Qt.QueuedConnection)
@@ -40,7 +41,7 @@ class SysTrayMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMe
         self.facade.sendNotification(AppFacade.AppFacade.SHOW_DETAILED)
 
     def onSettings(self):
-        print 'Opening settings'
+        self.facade.sendNotification(AppFacade.AppFacade.SHOW_SETTINGS)
 
     def onExit(self):
         self.facade.sendNotification(AppFacade.AppFacade.EXIT)
@@ -59,7 +60,12 @@ class CompactWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
         self.viewComponent.setVisible(True)
 
     def onDrop(self, data):
-        self.proxy.add_file(data[0], str(data[1]))
+        m = data[1]
+        if m.hasUrls() and len(m.urls()) < 4:
+            for url in m.urls():
+                p = raw(url.path()[1:])
+                if os.path.isfile(p):
+                    self.proxy.add_file(data[0], str(p))
 
 class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMediator):
 
@@ -119,7 +125,14 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         print 'OnPlay'
 
     def onRemove(self):
-        print 'OnRemove'
+        index = self.viewComponent.get_current_tab()
+        delete = self.viewComponent.get_selected_ids(index)
+        
+        if index == 0:
+            pass
+        elif index == 1:
+            self.facade.sendNotification(AppFacade.AppFacade.HISTORY_DELETE_ITEM,
+                                         delete)
 
     def onStop(self):
         print 'OnStop'
@@ -127,13 +140,22 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
     def listNotificationInterests(self):
         return [
             AppFacade.AppFacade.SHOW_DETAILED,
+            AppFacade.AppFacade.SHOW_SETTINGS,
+            AppFacade.AppFacade.DELETE_HISTORY_DETAILED
         ]
 
     def handleNotification(self, notification):
         note_name = notification.getName()
-
+        body = notification.getBody()
         if note_name == AppFacade.AppFacade.SHOW_DETAILED and not self.viewComponent.isVisible():
             self.viewComponent.setVisible(True)
+        elif note_name == AppFacade.AppFacade.SHOW_SETTINGS:
+            self.viewComponent.show_settings()
+            if not self.viewComponent.isVisible():
+                self.viewComponent.setVisible(True)
+        elif note_name == AppFacade.AppFacade.DELETE_HISTORY_DETAILED:
+            for i in body:
+                self.viewComponent.delete_history_item(i)
 
 class HistoryWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMediator):
 
@@ -153,8 +175,17 @@ class HistoryWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
         self.g.signals.history_compact_update.connect(self.onAdd)
 
     def listNotificationInterests(self):
-        return []
-
+        return [
+            AppFacade.AppFacade.DELETE_HISTORY_COMPACT
+        ]
+    
+    def handleNotification(self, notification):
+        note_name = notification.getName()
+        body = notification.getBody()
+        if note_name == AppFacade.AppFacade.DELETE_HISTORY_COMPACT:
+            if self.viewComponent.isVisible():
+                self.viewComponent.update_all(self._format_history())
+    
     def _format_history(self):
         l = []
         r = self.proxy.get_history()
@@ -169,6 +200,8 @@ class HistoryWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
             self.viewComponent.update_all(self._format_history())
             self.viewComponent.setVisible(True)
             self.initialized = True
+        else:
+            self.viewComponent.setVisible(False)
 
     def onAdd(self, body):
         if self.initialized:

@@ -1,7 +1,5 @@
 import os
 
-from lib.util import raw
-
 from PyQt4 import QtGui
 from PyQt4 import QtCore
 
@@ -32,14 +30,8 @@ class MyLabel(QtGui.QLabel):
         e.accept()
         self.setPixmap(self.normal)
         
-        m = e.mimeData()
-        if m.hasUrls() and len(m.urls()) < 4:
-            for url in m.urls():
-                p = raw(url.path()[1:])
-                if os.path.isfile(p):
-                    self.droppedSignal.emit((self.service, p))
-                #else:
-                    #Dont accept the folders for now
+        m = e.mimeData()        
+        self.droppedSignal.emit((self.service, m))
 
 class CompactWindow(QtGui.QWidget):
 

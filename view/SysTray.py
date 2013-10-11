@@ -13,7 +13,9 @@ class SystemTrayIcon(QtGui.QSystemTrayIcon):
 
         #@Mediator
         self.openAction = menu.addAction('Open')
-
+        #@Mediator
+        self.settingsAction = menu.addAction('Settings')
+        
         menu.addSeparator()
 
         feedbackAction = menu.addAction('Send feedback')
@@ -23,6 +25,7 @@ class SystemTrayIcon(QtGui.QSystemTrayIcon):
 
         #@Mediator
         self.exitAction = menu.addAction('Quit')
+        
         #@Mediator
         #Handler for the left click.
 
