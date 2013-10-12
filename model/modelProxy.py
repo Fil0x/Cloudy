@@ -71,7 +71,7 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
 
     def delete_history(self, data):
         for i in data:
-            self.model.uq.delete_history(i[1], i[0])
+            self.history_queue.put(('remove', i[1], i[0]))
         
     def detailed_view_data(self):
         #TODO: change it
@@ -144,9 +144,13 @@ class HistoryThread(threading.Thread):
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_DONE,
                                             [self.globals, msg[2]])
             elif msg[0] in 'remove':
-                self.proxy.uq.delete_history(msg[1], [msg[2]])
+                self.proxy.model.uq.delete_history(msg[1], [msg[2]])
                 self.logger.debug('removed item')
-                #update ui
+                self.proxy.facade.sendNotification(AppFacade.AppFacade.DELETE_HISTORY_DETAILED,
+                                                   [self.globals, msg[2]])
+                self.proxy.facade.sendNotification(AppFacade.AppFacade.DELETE_HISTORY_COMPACT,
+                                                   [self.globals])
+                
 
 class UploadSupervisorThread(threading.Thread):
     def __init__(self, in_queue, out_queue, proxy, globals, **kwargs):
@@ -273,7 +277,6 @@ class UploadThread(threading.Thread):
             d['link'] = url
             self.logger.debug('Putting in queue.')
             self.out_queue.put(('add', self.service, self.id, d))
-            #send signal to UI
         elif self.service in 'GoogleDrive':
             b={'withLink':True, 'role':'reader', 'type':'anyone'}
             shareurl = 'https://docs.google.com/file/d/{}/edit?usp=sharing'
@@ -285,5 +288,4 @@ class UploadThread(threading.Thread):
             d['link'] = shareurl.format(self.worker.id)
             self.logger.debug('Putting in queue.')
             self.out_queue.put(('add', self.service, self.id, d))
-            #send signal to UI
         return

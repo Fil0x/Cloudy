@@ -45,6 +45,8 @@ class AppFacade(puremvc.patterns.facade.Facade):
         super(AppFacade, self).registerCommand(AppFacade.HISTORY_UPDATE_DETAILED, HistoryCommand)
         super(AppFacade, self).registerCommand(AppFacade.HISTORY_SHOW_COMPACT, HistoryCommand)
         super(AppFacade, self).registerCommand(AppFacade.HISTORY_DELETE_ITEM, HistoryCommand)
+        super(AppFacade, self).registerCommand(AppFacade.DELETE_HISTORY_COMPACT, HistoryCommand)
+        super(AppFacade, self).registerCommand(AppFacade.DELETE_HISTORY_DETAILED, HistoryCommand)
         super(AppFacade, self).registerCommand(AppFacade.UPLOAD_ADDED, UploadCommand)
         super(AppFacade, self).registerCommand(AppFacade.UPLOAD_UPDATED, UploadCommand)
         super(AppFacade, self).registerCommand(AppFacade.UPLOAD_DONE, UploadCommand)

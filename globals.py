@@ -3,7 +3,9 @@ from PyQt4 import QtCore
 class Signals(QtCore.QObject):
     history_compact_show = QtCore.pyqtSignal()
     history_compact_update = QtCore.pyqtSignal(list)
+    history_compact_delete = QtCore.pyqtSignal()
     history_detailed = QtCore.pyqtSignal(list)
+    history_detailed_delete = QtCore.pyqtSignal(str)
     upload_detailed_start = QtCore.pyqtSignal(list)
     upload_detailed_update = QtCore.pyqtSignal(list)
     upload_detailed_finish = QtCore.pyqtSignal(str)

@@ -88,6 +88,7 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         self.viewComponent.update_all_history(self._format_history())
 
         self.g.signals.history_detailed.connect(self.onHistoryAdd)
+        self.g.signals.history_detailed_delete.connect(self.onHistoryDelete)
         self.g.signals.upload_detailed_start.connect(self.onUploadStart)
         self.g.signals.upload_detailed_update.connect(self.onUploadUpdate)
         self.g.signals.upload_detailed_finish.connect(self.onUploadComplete)
@@ -105,6 +106,9 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         self.viewComponent.add_history_item([body[2]['path'], body[2]['link'], body[0],
                                              body[2]['date'], body[1]])
 
+    def onHistoryDelete(self, body):
+        self.viewComponent.delete_history_item(body)
+                                             
     def _format_history(self):
         l = []
         r = self.proxy.get_history()
@@ -160,8 +164,7 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
     def listNotificationInterests(self):
         return [
             AppFacade.AppFacade.SHOW_DETAILED,
-            AppFacade.AppFacade.SHOW_SETTINGS,
-            AppFacade.AppFacade.DELETE_HISTORY_DETAILED
+            AppFacade.AppFacade.SHOW_SETTINGS
         ]
 
     def handleNotification(self, notification):
@@ -173,9 +176,7 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
             self.viewComponent.show_settings()
             if not self.viewComponent.isVisible():
                 self.viewComponent.setVisible(True)
-        elif note_name == AppFacade.AppFacade.DELETE_HISTORY_DETAILED:
-            for i in body:
-                self.viewComponent.delete_history_item(i)
+
 
 class HistoryWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMediator):
 
@@ -193,19 +194,18 @@ class HistoryWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
 
         self.g.signals.history_compact_show.connect(self.onShow)
         self.g.signals.history_compact_update.connect(self.onAdd)
+        self.g.signals.history_compact_delete.connect(self.onDelete)
 
     def listNotificationInterests(self):
-        return [
-            AppFacade.AppFacade.DELETE_HISTORY_COMPACT
-        ]
+        return []
 
     def handleNotification(self, notification):
-        note_name = notification.getName()
-        body = notification.getBody()
-        if note_name == AppFacade.AppFacade.DELETE_HISTORY_COMPACT:
-            if self.viewComponent.isVisible():
-                self.viewComponent.update_all(self._format_history())
-
+        pass
+            
+    def onDelete(self):
+        if self.viewComponent.isVisible():
+            self.viewComponent.update_all(self._format_history())
+                
     def _format_history(self):
         l = []
         r = self.proxy.get_history()

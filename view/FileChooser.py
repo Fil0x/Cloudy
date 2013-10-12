@@ -17,6 +17,7 @@ class FileChooser(QtGui.QDialog):
         #@Mediator
         self.cancelButton = QtGui.QPushButton('&Cancel')
 
+        self.total_size = 0
         self.used_services = used_services
         self.filters =  'All Files (*.*);;Images (*.png *.jpg);;PDF (*.pdf);;' +\
                         'Audio (*.mp3 *.wmv *.avi);;ZIP (*.zip *.7z *.tgz)'
@@ -25,7 +26,7 @@ class FileChooser(QtGui.QDialog):
 
         fileLabel = QtGui.QLabel("Service:")
         directoryLabel = QtGui.QLabel("In directory:")
-        self.filesFoundLabel = QtGui.QLabel()
+        self.filesFoundLabel = QtGui.QLabel('0 file(s) with size 0 KB')
         self.currDirLabel = QtGui.QLabel(os.path.expanduser('~'))
 
         self.createFilesTable()
@@ -72,13 +73,13 @@ class FileChooser(QtGui.QDialog):
     def showFiles(self, files):
         self.filesTable.setRowCount(0)
 
-        total_size = 0
+        self.total_size = 0
         for fn in files:
             file = os.path.abspath(fn)
             filename = os.path.basename(file)
             size = os.path.getsize(file)
             size = int((size + 1023) / 1024)
-            total_size += size
+            self.total_size += size
 
             fileNameItem = QtGui.QTableWidgetItem(filename)
             fileNameItem.setFlags(fileNameItem.flags() ^ QtCore.Qt.ItemIsEditable)
@@ -90,12 +91,8 @@ class FileChooser(QtGui.QDialog):
             self.filesTable.insertRow(row)
             self.filesTable.setItem(row, 0, fileNameItem)
             self.filesTable.setItem(row, 1, sizeItem)
-        
-        if total_size > 1023:
-            total_size /= 1024
-            self.filesFoundLabel.setText("{} file(s) with size {} MB".format(len(files), total_size))
-        else:
-            self.filesFoundLabel.setText("{} file(s) with size {} KB".format(len(files), total_size))
+
+        self.formatStatusLabel()
 
     def createComboBox(self, choices=[]):
         comboBox = QtGui.QComboBox()
@@ -117,8 +114,18 @@ class FileChooser(QtGui.QDialog):
         
         self.filesTable.cellDoubleClicked.connect(self.onTableDoubleClick)
         
+    def formatStatusLabel(self):
+        rows = self.filesTable.rowCount()
+        size = self.total_size
+        if self.total_size > 1023:
+            size /= 1024
+            self.filesFoundLabel.setText("{} file(s) with size {} MB".format(rows, size))
+        else:
+            self.filesFoundLabel.setText("{} file(s) with size {} KB".format(rows, size))
+        
     def onTableDoubleClick(self, row, col):
+        self.total_size -= int(self.filesTable.item(row, 1).text().split(' ')[0])
         self.filesTable.removeRow(row)
         if not self.filesTable.rowCount():
             self.okButton.setEnabled(False)
-        
+        self.formatStatusLabel()

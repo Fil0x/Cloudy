@@ -17,6 +17,7 @@ class HistoryCommand(puremvc.patterns.command.SimpleCommand, puremvc.interfaces.
         elif note_name == AppFacade.AppFacade.HISTORY_DELETE_ITEM:
             proxy = self.facade.retrieveProxy(model.modelProxy.ModelProxy.NAME)
             proxy.delete_history(note_body)
-            self.facade.sendNotification(AppFacade.AppFacade.DELETE_HISTORY_DETAILED,
-                                         zip(*note_body)[0])
-            self.facade.sendNotification(AppFacade.AppFacade.DELETE_HISTORY_COMPACT)                                            
+        elif note_name == AppFacade.AppFacade.DELETE_HISTORY_DETAILED:
+            note_body[0].signals.history_detailed_delete.emit(note_body[1])
+        elif note_name == AppFacade.AppFacade.DELETE_HISTORY_COMPACT:
+            note_body[0].signals.history_compact_delete.emit()
