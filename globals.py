@@ -6,9 +6,12 @@ class Signals(QtCore.QObject):
     history_compact_delete = QtCore.pyqtSignal()
     history_detailed = QtCore.pyqtSignal(list)
     history_detailed_delete = QtCore.pyqtSignal(str)
+    
     upload_detailed_start = QtCore.pyqtSignal(list)
     upload_detailed_update = QtCore.pyqtSignal(list)
     upload_detailed_finish = QtCore.pyqtSignal(str)
+    upload_detailed_pausing = QtCore.pyqtSignal(str)
+    upload_detailed_paused = QtCore.pyqtSignal(str)
     
 class Globals(object):
     def __init__(self):

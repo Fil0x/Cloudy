@@ -92,6 +92,8 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         self.g.signals.upload_detailed_start.connect(self.onUploadStart)
         self.g.signals.upload_detailed_update.connect(self.onUploadUpdate)
         self.g.signals.upload_detailed_finish.connect(self.onUploadComplete)
+        self.g.signals.upload_detailed_pausing.connect(self.onUploadPausing)
+        self.g.signals.upload_detailed_paused.connect(self.onUploadPaused)
 
     def onUploadStart(self, body):
         self.viewComponent.add_upload_item(body)
@@ -102,6 +104,12 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
     def onUploadComplete(self, id):
         self.viewComponent.delete_upload_item(id)
 
+    def onUploadPausing(self, id):
+        self.viewComponent.update_item_status([id, 'Pausing'])
+    
+    def onUploadPaused(self, id):
+        self.viewComponent.update_item_status([id, 'Paused'])
+        
     def onHistoryAdd(self, body):
         self.viewComponent.add_history_item([body[2]['path'], body[2]['link'], body[0],
                                              body[2]['date'], body[1]])
@@ -160,11 +168,15 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         if index == 0:
             pass
         elif index == 1:
-            self.facade.sendNotification(AppFacade.AppFacade.HISTORY_DELETE_ITEM,
-                                         delete)
+            self.proxy.delete_history(delete)
 
     def onStop(self):
-        print 'OnStop'
+        delete = self.viewComponent.get_selected_ids(0)
+        
+        if not delete:
+            return
+            
+        self.proxy.stop_file(zip(*delete)[0])
 
     def listNotificationInterests(self):
         return [

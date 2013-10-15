@@ -52,13 +52,19 @@ class MyTableModel(QtCore.QAbstractTableModel):
         self.data.append(item)
         self.endInsertRows()
         
-    def update_item(self, item):
+    def update_row(self, id, data, col):
         if len(self.data) == 1 and self.data[0][0] == '':
             return
-        i = zip(*self.data)[-1].index(item[0])
-        self.data[i][1] = item[1]
-        self.dataChanged.emit(self.index(i, 1), self.index(i, 1))
+        i = zip(*self.data)[-1].index(id)
+        self.data[i][col] = data
+        self.dataChanged.emit(self.index(i, col), self.index(i, col))
         
+    def update_item(self, item):
+        self.update_row(item[0], item[1], 1)
+        
+    def update_status(self, item):
+        self.update_row(item[0], item[1], 3)
+    
     def remove(self, id):
         i = zip(*self.data)[-1].index(id)
         self.beginRemoveRows(QtCore.QModelIndex(), i, i)
@@ -89,6 +95,12 @@ class UploadTableDelegate(BaseDelegate):
         model = index.model()
         d = model.data[index.row()][index.column()]
         
+        if option.state & QtGui.QStyle.State_Selected:
+            painter.fillRect(option.rect, option.palette.highlight())  
+        elif index.row() % 2 == 1:
+            painter.fillRect(option.rect, self.brush)
+        
+        
         painter.translate(option.rect.topLeft())
         painter.setFont(self.font)
         
@@ -107,15 +119,6 @@ class UploadTableDelegate(BaseDelegate):
         painter.restore()
 
     def editorEvent(self, event, model, option, index):
-        '''sharelink_rect = self.sharelink_img.rect().translated(self.sharelink_pos.x(),
-                                                option.rect.top() + self.sharelink_pos.y())
-        if event.type() == QtCore.QEvent.MouseButtonRelease:
-            if sharelink_rect.contains(event.pos()):
-                model = index.model()
-                link = model.data[index.row()][2]
-                import webbrowser
-                webbrowser.open(link)'''
-
         return False
 
     def sizeHint(self, option, index):
@@ -156,6 +159,7 @@ class HistoryTableDelegate(BaseDelegate):
 class DetailedWindow(QtGui.QMainWindow):
     #http://www.jankoatwarpspeed.com/ultimate-guide-to-table-ui-patterns/
     
+    alt_color = '#E5FFFF'
     font = QtGui.QFont('Tahoma', 10)
     addBtnPath = r'images/detailed-add.png'
     playBtnPath = r'images/detailed-play.png'
@@ -178,7 +182,7 @@ class DetailedWindow(QtGui.QMainWindow):
         self.uploads_header = ['Name', 'Progress', 'Service', 'Status', 
                                'Destination', 'Conflict']
         
-        c = QtGui.QColor('#E5FFFF')
+        c = QtGui.QColor(self.alt_color)
         
         self.upload_table = self._create_table(self.uploads_header)
         self.upload_table.setItemDelegate(UploadTableDelegate(self, self.font, c))
@@ -236,7 +240,7 @@ class DetailedWindow(QtGui.QMainWindow):
             index = len(self.uploads_header)
             m = self.upload_table.model()
             sm = self.upload_table.selectionModel()
-            service = self.uploads_header.index('Service')
+            service_index = self.uploads_header.index('Service')
         elif n == 1:
             index = len(self.history_header)
             m = self.history_table.model()
@@ -259,6 +263,9 @@ class DetailedWindow(QtGui.QMainWindow):
         
     def update_upload_item(self, item):
         self.upload_table.model().update_item(item)
+    
+    def update_item_status(self, item):
+        self.upload_table.model().update_status(item)
         
     def delete_upload_item(self, id):
         self.upload_table.model().remove(id)

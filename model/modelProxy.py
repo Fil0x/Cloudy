@@ -46,10 +46,10 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
 
         self.add_queue.put(('add', service, path))
 
-    def stop_file(self, id):
-        assert(id in self.active_threads)
-
-        self.upload_queue.put(('stop', id))
+    def stop_file(self, data):
+        for i in data:
+            assert i in self.active_threads, 'ID:{} not found'.format(i)
+            self.upload_queue.put(('stop', i))
 
     def delete_file(self, id):
         assert(id in self.active_threads)
@@ -179,7 +179,11 @@ class UploadSupervisorThread(threading.Thread):
                 self.logger.debug('Started!')
             elif msg[0] in 'stop':
                 self.proxy.active_threads[msg[1]].state = 1
+                #Emit Pausing...
+                #Memory leak, upload thread is not deleted
                 del self.proxy.active_threads[msg[1]]
+                self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_PAUSING,
+                                                   [self.globals, msg[1]])
             elif msg[0] in 'delete':
                 t = self.proxy.active_threads[msg[1]]
                 t.state = 2
@@ -250,8 +254,14 @@ class UploadThread(threading.Thread):
         self.logger.debug('Starting:{}'.format(self.id))
         for i in self.worker.upload_chunked():
             self.logger.debug('Uploaded:{}'.format(i))
+            progress = str(round(i[0], 3)*100) + '%'
+            self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_UPDATED, 
+                                               [self.globals, self.id, progress])
+                                               
             if self._state == 1:
                 self.logger.debug('Paused:{}'.format(i))
+                self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_PAUSED,
+                                                   [self.globals, self.id])
                 if self.service in 'Dropbox':
                     return #break and check if progress == 100%
                 else:
@@ -260,9 +270,7 @@ class UploadThread(threading.Thread):
                 self.logger.debug('Deleted:{}'.format(i))
                 return #delete the thread, dont update the ui even if
                        #a chunk is uploaded in the meantime.
-            progress = str(round(i[0], 3)*100) + '%'
-            self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_UPDATED, 
-                                               [self.globals, self.id, progress])
+                       
         #If I reach this point, the upload is complete and I have to save it to the history.
         d = {}
         if self.service in 'Dropbox':

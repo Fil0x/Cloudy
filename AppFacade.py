@@ -19,12 +19,13 @@ class AppFacade(puremvc.patterns.facade.Facade):
     HISTORY_SHOW_COMPACT = 'compact_show_history'
     HISTORY_UPDATE_COMPACT = 'compact_update_history'
     HISTORY_UPDATE_DETAILED = 'detailed_update_history'
-    HISTORY_DELETE_ITEM = 'delete_item_history'
 
     UPLOAD_ADDED = 'upload_added'
     UPLOAD_UPDATED = 'upload_updated'
     UPLOAD_DONE = 'upload_done'
-
+    UPLOAD_PAUSING = 'upload_pausing'
+    UPLOAD_PAUSED = 'upload_paused'
+    
     def __init__(self):
         self.initializeFacade()
 
@@ -44,10 +45,11 @@ class AppFacade(puremvc.patterns.facade.Facade):
         super(AppFacade, self).registerCommand(AppFacade.HISTORY_UPDATE_COMPACT, HistoryCommand)
         super(AppFacade, self).registerCommand(AppFacade.HISTORY_UPDATE_DETAILED, HistoryCommand)
         super(AppFacade, self).registerCommand(AppFacade.HISTORY_SHOW_COMPACT, HistoryCommand)
-        super(AppFacade, self).registerCommand(AppFacade.HISTORY_DELETE_ITEM, HistoryCommand)
         super(AppFacade, self).registerCommand(AppFacade.DELETE_HISTORY_COMPACT, HistoryCommand)
         super(AppFacade, self).registerCommand(AppFacade.DELETE_HISTORY_DETAILED, HistoryCommand)
         super(AppFacade, self).registerCommand(AppFacade.UPLOAD_ADDED, UploadCommand)
         super(AppFacade, self).registerCommand(AppFacade.UPLOAD_UPDATED, UploadCommand)
         super(AppFacade, self).registerCommand(AppFacade.UPLOAD_DONE, UploadCommand)
+        super(AppFacade, self).registerCommand(AppFacade.UPLOAD_PAUSING, UploadCommand)
+        super(AppFacade, self).registerCommand(AppFacade.UPLOAD_PAUSED, UploadCommand)
         super(AppFacade, self).registerCommand(AppFacade.EXIT, ExitAppCommand)
