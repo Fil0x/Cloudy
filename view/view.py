@@ -134,9 +134,14 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         
     def onFileDialogOK(self, event):
         paths = self.f.get_filenames()
+        service = str(self.f.get_selected_service())
         
         self.f.close()
         self.f = None
+        
+        #TODO: Limit the uploaded files.
+        for p in paths:
+            self.proxy.add_file(service, p)
         
     def onFileDialogCancel(self, event):
         self.f.close()

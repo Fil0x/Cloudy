@@ -70,6 +70,9 @@ class FileChooser(QtGui.QDialog):
             
         return map(raw, paths)
             
+    def get_selected_service(self):
+        return self.serviceComboBox.currentText()
+            
     def showFiles(self, files):
         self.filesTable.setRowCount(0)
 
