@@ -12,6 +12,10 @@ class Signals(QtCore.QObject):
     upload_detailed_finish = QtCore.pyqtSignal(str)
     upload_detailed_pausing = QtCore.pyqtSignal(str)
     upload_detailed_paused = QtCore.pyqtSignal(str)
+    upload_detailed_starting = QtCore.pyqtSignal(str)
+    upload_detailed_resumed = QtCore.pyqtSignal(str)
+    upload_detailed_removing = QtCore.pyqtSignal(str)
+    upload_detailed_removed = QtCore.pyqtSignal(str)
     
 class Globals(object):
     def __init__(self):

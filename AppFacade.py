@@ -25,6 +25,10 @@ class AppFacade(puremvc.patterns.facade.Facade):
     UPLOAD_DONE = 'upload_done'
     UPLOAD_PAUSING = 'upload_pausing'
     UPLOAD_PAUSED = 'upload_paused'
+    UPLOAD_STARTING = 'upload_starting'
+    UPLOAD_RESUMED = 'upload_resumed'
+    UPLOAD_REMOVING = 'upload_removing'
+    UPLOAD_REMOVED = 'upload_removed'
     
     def __init__(self):
         self.initializeFacade()
@@ -52,4 +56,8 @@ class AppFacade(puremvc.patterns.facade.Facade):
         super(AppFacade, self).registerCommand(AppFacade.UPLOAD_DONE, UploadCommand)
         super(AppFacade, self).registerCommand(AppFacade.UPLOAD_PAUSING, UploadCommand)
         super(AppFacade, self).registerCommand(AppFacade.UPLOAD_PAUSED, UploadCommand)
+        super(AppFacade, self).registerCommand(AppFacade.UPLOAD_STARTING, UploadCommand)
+        super(AppFacade, self).registerCommand(AppFacade.UPLOAD_RESUMED, UploadCommand)
+        super(AppFacade, self).registerCommand(AppFacade.UPLOAD_REMOVING, UploadCommand)
+        super(AppFacade, self).registerCommand(AppFacade.UPLOAD_REMOVED, UploadCommand)
         super(AppFacade, self).registerCommand(AppFacade.EXIT, ExitAppCommand)

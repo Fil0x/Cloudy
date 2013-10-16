@@ -94,6 +94,9 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         self.g.signals.upload_detailed_finish.connect(self.onUploadComplete)
         self.g.signals.upload_detailed_pausing.connect(self.onUploadPausing)
         self.g.signals.upload_detailed_paused.connect(self.onUploadPaused)
+        self.g.signals.upload_detailed_resumed.connect(self.onUploadResumed)
+        self.g.signals.upload_detailed_removing.connect(self.onUploadRemoving)
+        self.g.signals.upload_detailed_removed.connect(self.onUploadRemoved)
 
     def onUploadStart(self, body):
         self.viewComponent.add_upload_item(body)
@@ -109,6 +112,15 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
     
     def onUploadPaused(self, id):
         self.viewComponent.update_item_status([id, 'Paused'])
+        
+    def onUploadResumed(self, id):
+        self.viewComponent.update_item_status([id, 'Running'])
+        
+    def onUploadRemoving(self, id):
+        self.viewComponent.update_item_status([id, 'Removing'])
+        
+    def onUploadRemoved(self, id):
+        self.viewComponent.delete_upload_item(id)
         
     def onHistoryAdd(self, body):
         self.viewComponent.add_history_item([body[2]['path'], body[2]['link'], body[0],
@@ -156,17 +168,23 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         self.f = None
 
     def onPlay(self):
-        print 'OnPlay'
+        delete = self.viewComponent.get_selected_ids(0)
+        
+        if not delete:
+            return
+            
+        self.proxy.resume_file(delete)
 
     def onRemove(self):
         index = self.viewComponent.get_current_tab()
-        delete = self.viewComponent.get_selected_ids(index)
+        #[[id, service],..]
+        delete = self.viewComponent.get_selected_ids(index) 
 
         if not delete:
             return
             
         if index == 0:
-            pass
+            self.proxy.delete_file(delete)
         elif index == 1:
             self.proxy.delete_history(delete)
 

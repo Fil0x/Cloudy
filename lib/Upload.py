@@ -144,6 +144,8 @@ class GoogleDriveUploader(object):
             try:
                 status, response = file.next_chunk()
                 if status:
+                    self.offset = file.resumable_progress
+                    self.upload_uri = file.resumable_uri
                     yield (status.progress(), self.path)
             except Exception:
                 #https://developers.google.com/drive/handle-errors
@@ -152,9 +154,9 @@ class GoogleDriveUploader(object):
                 self.upload_uri = file.resumable_uri
         #Error handle
         if response:
-            yield (1.0, self.path)
             self.title = response['title']
             self.id = response['id']
+            yield (1.0, self.path)
 #End GoogleDrive stuff
 
 class UploadQueue(object):
@@ -278,8 +280,8 @@ class UploadQueue(object):
 
     def _googledrive_save(self):
         def create_dict(item):
-            return {'upload_uri':item['uploader'].resumable_uri or 'None',
-                    'offset':item['uploader'].resumable_progress,
+            return {'upload_uri':item['uploader'].upload_uri or 'None',
+                    'offset':item['uploader'].offset,
                     'path':item['uploader'].path,
                     'destination':item['uploader'].remote,
                     'status':item['status'],

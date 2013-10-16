@@ -51,18 +51,17 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
             assert i in self.active_threads, 'ID:{} not found'.format(i)
             self.upload_queue.put(('stop', i))
 
-    def delete_file(self, id):
-        assert(id in self.active_threads)
+    def delete_file(self, data):
+        for i in data:
+            self.upload_queue.put(('delete', i[1], i[0]))
 
-        self.upload_queue.put(('delete', id))
-
-    def resume_file(self, service, id):
-        assert(service in local.services)
-
-        r = self.model.uq.get(service, id)
-        if 'error' in r:
-            return #notify controller that the path is invalid
-        self.add_queue.put(('resume', service, id, r))
+    def resume_file(self, data):
+        for i in data:
+            #Skip files with status Running
+            r = self.model.uq.get(i[1], i[0])
+            if 'error' in r:
+                return #notify controller that the path is invalid
+            self.add_queue.put(('resume', i[1], i[0], r))
 
     def get_history(self):
         r = self.model.uq.get_history()
@@ -114,7 +113,9 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
 
     def delete(self, service, id):
         self.model.uq.delete(service, id)
-
+        
+    def set_state(self, service, id, state):
+        self.model.uq.set_state(service, id, state)
 
 class HistoryThread(threading.Thread):
     def __init__(self, in_queue, proxy, globals, **kwargs):
@@ -177,18 +178,36 @@ class UploadSupervisorThread(threading.Thread):
                 l = [self.globals, filename, '0%', msg[1], 'Running', msg[3].remote, 'TODO', msg[2]]
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_ADDED, l)
                 self.logger.debug('Started!')
+            elif msg[0] in 'resume':
+                t = UploadThread(msg[3], msg[1], self.out_queue, msg[2], 
+                                 self.proxy, self.globals)
+                self.proxy.active_threads[msg[2]] = t
+                t.start()
+                # The row already exists, just update the status.
+                self.proxy.set_state(msg[1], msg[2], 'Running')
+                self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_RESUMED,
+                                                   [self.globals, msg[2]])
+                self.logger.debug('Resumed {}!'.format(msg[2]))
             elif msg[0] in 'stop':
                 self.proxy.active_threads[msg[1]].state = 1
                 #Emit Pausing...
-                #Memory leak, upload thread is not deleted
                 del self.proxy.active_threads[msg[1]]
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_PAUSING,
                                                    [self.globals, msg[1]])
             elif msg[0] in 'delete':
-                t = self.proxy.active_threads[msg[1]]
-                t.state = 2
-                self.proxy.delete(t.service, msg[1])
-                del self.proxy.active_threads[msg[1]]
+                #Running->Removing
+                if msg[2] in self.proxy.active_threads:
+                    t = self.proxy.active_threads[msg[2]]
+                    t.state = 2
+                    del self.proxy.active_threads[msg[2]]
+                    self.proxy.delete(msg[1], msg[2])
+                    self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_REMOVING,
+                                                       [self.globals, msg[2]])
+                #Paused->Removing
+                else:
+                    self.proxy.delete(msg[1], msg[2])
+                    self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_REMOVED,
+                                                       [self.globals, msg[2]])
 
 class AddTaskThread(threading.Thread):
 
@@ -218,13 +237,12 @@ class AddTaskThread(threading.Thread):
                 if 'error' in d:
                     pass #send message to controller, invalid path
                 d['uploader'].client = client
-
                 self.logger.debug('Putting the uploader in queue.')
                 self.out_queue.put(('add', msg[1], id, d['uploader']))
             elif msg[0] in 'resume':
                 self.logger.debug('Resuming...')
                 msg[3]['uploader'].client = client
-                self.out_queue.put(('add', msg[1], msg[2], msg[3]['uploader']))
+                self.out_queue.put(('resume', msg[1], msg[2], msg[3]['uploader']))
 
 class UploadThread(threading.Thread):
     def __init__(self, uploader, service, out_queue, id, proxy, globals, **kwargs):
@@ -260,6 +278,7 @@ class UploadThread(threading.Thread):
                                                
             if self._state == 1:
                 self.logger.debug('Paused:{}'.format(i))
+                self.proxy.set_state(self.service, self.id, 'Paused')
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_PAUSED,
                                                    [self.globals, self.id])
                 if self.service in 'Dropbox':
@@ -268,6 +287,8 @@ class UploadThread(threading.Thread):
                     return #send signal to UI
             elif self.state == 2:
                 self.logger.debug('Deleted:{}'.format(i))
+                self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_REMOVED,
+                                                   [self.globals, self.id])
                 return #delete the thread, dont update the ui even if
                        #a chunk is uploaded in the meantime.
                        
