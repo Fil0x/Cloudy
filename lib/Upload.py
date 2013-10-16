@@ -318,7 +318,7 @@ class UploadQueue(object):
         
     #end of History functions
     
-    #Exposed functions.
+    #Exposed functions.    
     def add(self, service, path):
         return getattr(self, '_{}_add'.format(service.lower()))(path)
 
@@ -360,6 +360,9 @@ class UploadQueue(object):
         for v in self.pending_uploads[service].values():
             v['uploader'].client = client
 
+    def get_status(self, service, id):
+        return self.pending_uploads[service][id]['status']
+            
     def set_state(self, service, id, status):
         self.pending_uploads[service][id]['status'] = status
     #end of exposed functions

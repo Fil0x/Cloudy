@@ -84,6 +84,9 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
                               progress, d['conflict'], 'Not ready', key])
 
         return data
+        
+    def get_status(self, service, id):
+        return self.model.uq.get_status(service, id)
 
     def start_uploads(self):
         self.logger.debug('Starting uploads...')

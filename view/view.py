@@ -1,5 +1,6 @@
 import os
 import sys
+import copy
 import datetime
 from operator import itemgetter
 if ".." not in sys.path:
@@ -168,12 +169,19 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         self.f = None
 
     def onPlay(self):
-        delete = self.viewComponent.get_selected_ids(0)
+        items = self.viewComponent.get_selected_ids(0)
         
-        if not delete:
+        if not items:
             return
             
-        self.proxy.resume_file(delete)
+        delete = copy.copy(items)
+        for d in items:
+            state = self.proxy.get_status(d[1], d[0])
+            if state != 'Paused':
+                delete.remove(d)
+        
+        if len(delete):
+            self.proxy.resume_file(delete)
 
     def onRemove(self):
         index = self.viewComponent.get_current_tab()
@@ -189,12 +197,18 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
             self.proxy.delete_history(delete)
 
     def onStop(self):
-        delete = self.viewComponent.get_selected_ids(0)
+        items = self.viewComponent.get_selected_ids(0)
         
-        if not delete:
+        if not items:
             return
             
-        self.proxy.stop_file(zip(*delete)[0])
+        delete = copy.copy(items)
+        for d in items:
+            state = self.proxy.get_status(d[1], d[0])
+            if state != 'Running':
+                delete.remove(d)
+        if len(delete):
+            self.proxy.stop_file(zip(*delete)[0])
 
     def listNotificationInterests(self):
         return [
