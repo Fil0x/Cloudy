@@ -35,13 +35,13 @@ class MyTableModel(QtCore.QAbstractTableModel):
     def sort(self, Ncol, order):
         if not self.data:
             return
-            
+
         self.emit(QtCore.SIGNAL("layoutAboutToBeChanged()"))
         self.data = sorted(self.data, key=operator.itemgetter(Ncol))
         if order == Qt.Qt.DescendingOrder:
             self.data.reverse()
         self.emit(QtCore.SIGNAL("layoutChanged()"))
-        
+
     def add_item(self, item):
         if len(self.data) == 1 and self.data[0][0] == '':
             self.beginRemoveRows(QtCore.QModelIndex(), 0, 0)
@@ -51,31 +51,31 @@ class MyTableModel(QtCore.QAbstractTableModel):
         self.beginInsertRows(QtCore.QModelIndex(), len(self.data), len(self.data))
         self.data.append(item)
         self.endInsertRows()
-        
+
     def update_row(self, id, data, col):
         if len(self.data) == 1 and self.data[0][0] == '':
             return
         i = zip(*self.data)[-1].index(id)
         self.data[i][col] = data
         self.dataChanged.emit(self.index(i, col), self.index(i, col))
-        
+
     def update_item(self, item):
         self.update_row(item[0], item[1], 1)
-        
+
     def update_status(self, item):
         self.update_row(item[0], item[1], 3)
-    
+
     def remove(self, id):
         i = zip(*self.data)[-1].index(id)
         self.beginRemoveRows(QtCore.QModelIndex(), i, i)
         self.data = self.data[0:i] + self.data[i+1:]
         self.endRemoveRows()
-        
+
     def remove_all(self):
         self.beginRemoveRows(QtCore.QModelIndex(), 0, len(self.data) - 1)
         del self.data[:]
         self.endRemoveRows()
-        
+
 class BaseDelegate(QtGui.QStyledItemDelegate):
 
     def __init__(self, device, font, color, images=None):
@@ -84,40 +84,46 @@ class BaseDelegate(QtGui.QStyledItemDelegate):
         self.font = font
         self.images = images
         self.brush = QtGui.QBrush(color)
-        
+
     def createEditor(self, parent, option, index):
         return None
         
-class UploadTableDelegate(BaseDelegate):
+    def center_text(self, container_rect, text):
+        center = container_rect.width() / 2
+        metrics = QtGui.QFontMetrics(self.font)
+        offset = metrics.boundingRect(text).width() / 2
         
+        return QtCore.QPoint(center - offset, 20)
+        
+
+class UploadTableDelegate(BaseDelegate):
+
     def paint(self, painter, option, index):
         painter.save()
         model = index.model()
-        d = model.data[index.row()][index.column()]
-        
-        if option.state & QtGui.QStyle.State_Selected:
-            painter.fillRect(option.rect, option.palette.highlight())  
-        elif index.row() % 2 == 1:
-            painter.fillRect(option.rect, self.brush)
-        
-        
-        painter.translate(option.rect.topLeft())
-        painter.setFont(self.font)
+        col = index.column()
+        d = model.data[index.row()][col]
         
         if option.state & QtGui.QStyle.State_Selected:
             painter.fillRect(option.rect, option.palette.highlight())
+        elif index.row() % 2 == 1:
+            painter.fillRect(option.rect, self.brush)
+
+        painter.translate(option.rect.topLeft())
+        painter.setFont(self.font)
         
         if len(d) >= 20:
             d = d[:20] + '...'
-        painter.drawText(QtCore.QPoint(40, 20), d)
-        '''
-        painter.setPen(self.date_color)
-        painter.drawText(QtCore.QPoint(40, 30), str(d[3]))
-        if option.state & QtGui.QStyle.State_MouseOver:
-            painter.drawImage(self.sharelink_pos, self.sharelink_img)
-        '''
-        painter.restore()
+        if col in [0, 5]:
+            painter.drawText(QtCore.QPoint(10, 20), d)
+        elif col in [1, 3, 4]:
+            painter.drawText(self.center_text(option.rect, d), d)
+        else:
+            painter.drawImage(QtCore.QPoint(15, 7), self.images[d])
+            painter.drawText(QtCore.QPoint(40, 20), d)
 
+        painter.restore()
+        
     def editorEvent(self, event, model, option, index):
         return False
 
@@ -127,25 +133,29 @@ class UploadTableDelegate(BaseDelegate):
         return QtCore.QSize(100, 40)
 
 class HistoryTableDelegate(BaseDelegate):
-        
+
     def paint(self, painter, option, index):
         painter.save()
         model = index.model()
-        d = model.data[index.row()][index.column()]
-        
+        col = index.column()
+        d = model.data[index.row()][col]
+
         if option.state & QtGui.QStyle.State_Selected:
-        #if option.state & QtGui.QStyle.State_MouseOver:
-            painter.fillRect(option.rect, option.palette.highlight())  
+            painter.fillRect(option.rect, option.palette.highlight())
         elif index.row() % 2 == 1:
             painter.fillRect(option.rect, self.brush)
-        
+
         painter.translate(option.rect.topLeft())
         painter.setFont(self.font)
-        
+
         if len(d) >= 20:
             d = d[:20] + '...'
-        painter.drawText(QtCore.QPoint(40, 20), d)
-        
+        if col in [0, 1, 3]:
+            painter.drawText(QtCore.QPoint(10, 20), d)
+        else:
+            painter.drawImage(QtCore.QPoint(15, 7), self.images[d])
+            painter.drawText(QtCore.QPoint(40, 20), d)
+
         painter.restore()
 
     def editorEvent(self, event, model, option, index):
@@ -158,9 +168,12 @@ class HistoryTableDelegate(BaseDelegate):
 
 class DetailedWindow(QtGui.QMainWindow):
     #http://www.jankoatwarpspeed.com/ultimate-guide-to-table-ui-patterns/
-    
+
     alt_color = '#E5FFFF'
     font = QtGui.QFont('Tahoma', 10)
+    db_path = r'images/dropbox-icon.png'
+    pithos_path = r'images/pithos-icon.png'
+    gd_path = r'images/googledrive-icon.png'
     addBtnPath = r'images/detailed-add.png'
     playBtnPath = r'images/detailed-play.png'
     stopBtnPath = r'images/detailed-stop.png'
@@ -175,20 +188,25 @@ class DetailedWindow(QtGui.QMainWindow):
         self.setWindowTitle(title)
         self.setVisible(False)
         self.setStyleSheet(self.windowStyle)
-        
+
         file_image = QtGui.QImage(self.file_icon_path)
-        
+
         self.history_header = ['Name', 'Destination', 'Service', 'Date']
-        self.uploads_header = ['Name', 'Progress', 'Service', 'Status', 
+        self.uploads_header = ['Name', 'Progress', 'Service', 'Status',
                                'Destination', 'Conflict']
-        
+
         c = QtGui.QColor(self.alt_color)
-        
+        dropbox_icon = QtGui.QImage(self.db_path)
+        pithos_icon = QtGui.QImage(self.pithos_path)
+        googledrive_icon = QtGui.QImage(self.gd_path)
+        images = {'Dropbox':dropbox_icon, 'Pithos':pithos_icon, 
+                  'GoogleDrive': googledrive_icon}
+
         self.upload_table = self._create_table(self.uploads_header)
-        self.upload_table.setItemDelegate(UploadTableDelegate(self, self.font, c))
-        
+        self.upload_table.setItemDelegate(UploadTableDelegate(self, self.font, c, images))
+
         self.history_table = self._create_table(self.history_header)
-        self.history_table.setItemDelegate(HistoryTableDelegate(self, self.font, c))
+        self.history_table.setItemDelegate(HistoryTableDelegate(self, self.font, c, images))
 
         self._createRibbon()
         self._createSideSpaces()
@@ -202,7 +220,7 @@ class DetailedWindow(QtGui.QMainWindow):
         self.tab.insertTab(2, QtGui.QLabel('SETTINGS'), 'Settings')
 
         self.setCentralWidget(self.tab)
-        
+
         sb = QtGui.QStatusBar(self)
         sb.addWidget(QtGui.QLabel('Ready'))
         self.setStatusBar(sb)
@@ -223,17 +241,17 @@ class DetailedWindow(QtGui.QMainWindow):
             self.playBtn.setDisabled(True)
             self.stopBtn.setDisabled(True)
             self.removeBtn.setDisabled(True)
-    
+
     def get_current_tab(self):
         return self.tab.currentIndex()
-    
+
     def show_add_file_warning(self):
         msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning,
                 "No Services added", 'You are not authenticated with any service.',
                 QtGui.QMessageBox.NoButton, self)
         msgBox.addButton("&Close", QtGui.QMessageBox.AcceptRole)
         msgBox.exec_()
-    
+
     def get_selected_ids(self, n):
         r = []
         if n == 0:
@@ -246,7 +264,7 @@ class DetailedWindow(QtGui.QMainWindow):
             m = self.history_table.model()
             sm = self.history_table.selectionModel()
             service_index = self.history_header.index('Service')
-            
+
         for i in sm.selectedRows():
             id = m.data[i.row()][index]
             service = m.data[i.row()][service_index]
@@ -256,39 +274,41 @@ class DetailedWindow(QtGui.QMainWindow):
 
     def show_settings(self):
         self.tab.setCurrentIndex(2)
-        
+
     def add_upload_item(self, item):
         # [filename, progress, service, status, dest, conflict]
         self.upload_table.model().add_item(item)
-        
+
     def update_upload_item(self, item):
         self.upload_table.model().update_item(item)
-    
+
     def update_item_status(self, item):
         self.upload_table.model().update_status(item)
-        
+
     def delete_upload_item(self, id):
         self.upload_table.model().remove(id)
-        
+
     def add_history_item(self, item):
         #[name, dest, service, date, id]
         self.history_table.model().add_item(item)
+
+    def clear_uploads(self):
+        #To get rid of the empty line.
+        model = self.upload_table.model()
+        if model.data[0][0] == '':
+            self.upload_table.model().remove_all()
         
     def update_all_history(self, items):
         self.history_table.model().remove_all()
         for i in items:
             self.add_history_item(i)
-            
+
     def delete_history_item(self, id):
         self.history_table.model().remove(id)
-        
+
     def closeEvent(self, event):
         self.setVisible(False)
         event.ignore()
-
-    def selection_changed(self, new, old):
-        for i in new.indexes():
-            self.upload_table.selectRow(i.row())
 
     def _createSideSpaces(self):
         '''
@@ -309,7 +329,7 @@ class DetailedWindow(QtGui.QMainWindow):
             dockWidget = QtGui.QDockWidget()
             #Hide the dock title bar
             dockWidget.setTitleBarWidget(QtGui.QWidget())
-            
+
             setattr(self, elem, QtGui.QPushButton())
             getattr(self, elem).setIcon(QtGui.QIcon(getattr(self, elem + 'Path')))
             getattr(self, elem).setIconSize(QtCore.QSize(30, 30))

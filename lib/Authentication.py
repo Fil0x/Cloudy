@@ -1,7 +1,8 @@
+import json
 import httplib2
 
 import local
-import errors
+import faults
 from DataManager import Manager
 from DataManager import LocalDataManager
 
@@ -11,6 +12,7 @@ from dropbox.client import DropboxOAuth2FlowNoRedirect
 from dropbox import rest
 from oauth2client.client import Credentials
 from apiclient.discovery import build
+from apiclient import errors
 
 class AuthManager(Manager):
     def __init__(self):
@@ -38,6 +40,7 @@ class AuthManager(Manager):
     def pithos_add_user(self, user, url, token):
         pass
         
+    #https://www.dropbox.com/developers/core/docs/error handling
     def _dropbox_auth(self):
         access_token = None
         self.dataManager.update()
@@ -50,11 +53,9 @@ class AuthManager(Manager):
         try:
             dropboxClient.account_info()
         except rest.ErrorResponse as e:
-            #The token is invalid.
-            raise errors.InvalidAuth('Dropbox token is invalid')
+            raise faults.InvalidAuth('Dropbox-Auth')
         except rest.RESTSocketError as e:
-            #No internet.
-            return None
+            raise faults.NetworkError('No internet-Auth')
 
         return dropboxClient
 
@@ -75,10 +76,15 @@ class AuthManager(Manager):
         drive_service = build('drive', 'v2', http=http)
 
         try:
-            file = drive_service.files().list()
-            file.execute()
+            drive_service.about().get().execute()
+        except errors.HttpError as e:
+            error = json.loads(e.content)
+            if error.get('code') == 401:
+                raise faults.InvalidAuth('GoogleDrive')
+            else:
+                raise
         except Exception as e:
-            raise e #dunno..
+            raise faults.NetworkError('No internet.')
 
         self.dataManager.set_googledrive_credentials(credentials)
         return drive_service

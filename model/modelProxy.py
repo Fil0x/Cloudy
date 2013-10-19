@@ -284,10 +284,7 @@ class UploadThread(threading.Thread):
                 self.proxy.set_state(self.service, self.id, 'Paused')
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_PAUSED,
                                                    [self.globals, self.id])
-                if self.service in 'Dropbox':
-                    return #break and check if progress == 100%
-                else:
-                    return #send signal to UI
+                return
             elif self.state == 2:
                 self.logger.debug('Deleted:{}'.format(i))
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_REMOVED,

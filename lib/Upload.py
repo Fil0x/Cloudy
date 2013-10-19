@@ -4,6 +4,7 @@ import httplib2
 from StringIO import StringIO
 
 import local
+import faults
 from DataManager import LocalDataManager
 from UploadManager import LocalUploadManager
 
@@ -80,6 +81,9 @@ class DropboxUploader(object):
                     if reply['offset'] > self.offset:
                         self.last_block = None
                         self.offset = reply['offset']
+                raise faults.InvalidAuth('Dropbox-Upload')
+            except rest.RESTSocketError as e:
+                raise faults.NetworkError('No internet-Upload')
 
     def finish(self, path, overwrite=False, parent_rev=None):
         """Commits the bytes uploaded by this ChunkedUploader to a file

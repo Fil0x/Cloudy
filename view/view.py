@@ -86,6 +86,7 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
             QtCore.QObject.connect(getattr(viewComponent, item[0] + 'Btn'), QtCore.SIGNAL('clicked()'),
                                    item[1], QtCore.Qt.QueuedConnection)
 
+        self.viewComponent.clear_uploads()
         self.viewComponent.update_all_history(self._format_history())
 
         self.g.signals.history_detailed.connect(self.onHistoryAdd)
