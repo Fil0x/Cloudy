@@ -1,4 +1,4 @@
-import os
+import os, sys
 
 from PyQt4 import QtGui
 from PyQt4 import QtCore
@@ -32,20 +32,22 @@ class MyLabel(QtGui.QLabel):
         
         m = e.mimeData()        
         self.droppedSignal.emit((self.service, m))
+        print 'here'
 
 class MyFrame(QtGui.QFrame):
     def __init__(self, parent=None):
         QtGui.QFrame.__init__(self, parent)
-
+        
     def paintEvent(self, event):
         painter = QtGui.QPainter(self)
-
+        
         painter.setRenderHint(QtGui.QPainter.Antialiasing);
         painter.setPen(QtCore.Qt.NoPen)
+        #painter.setBrush(QtGui.QColor(30,30,30, 190))
         painter.setBrush(QtGui.QColor(40,43,49, 190))
 
         painter.drawRoundedRect(0, 0, self.width(), self.height(), 5., 5.)
-        
+    
 class CompactWindow(QtGui.QWidget):
 
     dropbox = r'images/dropbox-{}.png'
@@ -80,6 +82,7 @@ class CompactWindow(QtGui.QWidget):
         self.move(pos_rect.topLeft())
 
         self.main_frame = MyFrame(self)
+        #self.main_frame.setStyleSheet('QFrame {border: 2px solid green;border-radius: 30px;padding: 2px;}')
 
         size = self.size()
         self.main_frame.resize(size.width(), size.height())
@@ -87,7 +90,7 @@ class CompactWindow(QtGui.QWidget):
         #main layout
         self.layout = getattr(QtGui, 'Q{}BoxLayout'.format(orientation))()
         for s in services:
-            self.layout.addWidget(self.create_item(s), QtCore.Qt.AlignCenter)
+            self.layout.addWidget(self.add_item(s), QtCore.Qt.AlignCenter)
 
         self.main_frame.setLayout(self.layout)
         if orientation == 'H':
@@ -96,48 +99,6 @@ class CompactWindow(QtGui.QWidget):
         else:
             self.main_frame.resize(87, len(services)*80)
             self.layout.setAlignment(QtCore.Qt.AlignHCenter)
-
-    def add_item(self, service):
-        start = self.main_frame.geometry()
-        self.layout.addWidget(self.create_item(service))
-            
-        if self.orientation == 'H':
-            end = start.adjusted(0, 0, 88, 0)
-            self.resize(self.width() + 88, self.height())
-        else:
-            end = start.adjusted(0, 0, 0, 80)
-            self.resize(self.width(), self.height() + 80)
-
-        self.animate(start, end)
-        
-    def remove_item(self, service):
-        start = self.main_frame.geometry()
-        self.layout.removeWidget(self.items[service])
-        self.items[service].close()
-        del self.items[service]
-            
-        if self.orientation == 'H':
-            end = start.adjusted(0, 0, -88, 0)
-            self.resize(self.width() - 88, self.height())
-        else:
-            end = start.adjusted(0, 0, 0, -80)
-            self.resize(self.width(), self.height() - 80)
-            
-        self.animate(start, end)
-
-    def create_item(self, service):
-        e = getattr(self, '{}_images'.format(service.lower()))
-        label = MyLabel(e[0], e[1], service)
-
-        self.items[service] = label
-        return label
-        
-    def animate(self, start, end, dur=600):
-        self.anim = QtCore.QPropertyAnimation(self.main_frame, 'geometry')
-        self.anim.setDuration(dur)
-        self.anim.setStartValue(start)
-        self.anim.setEndValue(end)
-        self.anim.start()
 
     def mousePressEvent(self, event):
         self.move_pos = event.pos()
@@ -148,3 +109,50 @@ class CompactWindow(QtGui.QWidget):
             new_pos = self.pos() + diff
 
             self.move(new_pos)
+
+    def add_item(self, service):
+        e = getattr(self, '{}_images'.format(service.lower()))
+        label = MyLabel(e[0], e[1], service)
+
+        self.items[service] = label
+        return label
+
+    def onClick(self):
+        r = self.geometry()
+        end = r.adjusted(0, 0, 0, 70)
+
+        self.anim = QtCore.QPropertyAnimation(self, 'geometry')
+        self.anim.setDuration(600)
+        self.anim.setStartValue(r)
+        self.anim.setEndValue(end)
+        self.anim.start()
+ 
+class SystemTrayIcon(QtGui.QSystemTrayIcon):
+
+    def __init__(self, icon, parent=None):
+        QtGui.QSystemTrayIcon.__init__(self, icon, parent)
+        menu = QtGui.QMenu(parent)
+        exitAction = menu.addAction("Exit")
+        exitAction.triggered.connect(lambda: QtGui.QApplication.instance().quit())
+        self.setContextMenu(menu)
+        self.activated.connect(self.onClick)
+        self.w = CompactWindow(['Dropbox', 'GoogleDrive'], 'H', (50, 50), 0)
+        self.w.setVisible(True)
+        
+    def onClick(self, event):
+        # p = self.popup_pos()
+        # if p:
+            # self.w.move(p)
+        pass
+ 
+def main():
+    app = QtGui.QApplication(sys.argv)
+
+    w = QtGui.QWidget()
+    trayIcon = SystemTrayIcon(QtGui.QIcon(r"images\popup-cancel.png"), w)
+
+    trayIcon.show()
+    sys.exit(app.exec_())
+
+if __name__ == '__main__':
+    main()

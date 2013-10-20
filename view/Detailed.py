@@ -87,14 +87,13 @@ class BaseDelegate(QtGui.QStyledItemDelegate):
 
     def createEditor(self, parent, option, index):
         return None
-        
+
     def center_text(self, container_rect, text):
         center = container_rect.width() / 2
         metrics = QtGui.QFontMetrics(self.font)
         offset = metrics.boundingRect(text).width() / 2
-        
+
         return QtCore.QPoint(center - offset, 20)
-        
 
 class UploadTableDelegate(BaseDelegate):
 
@@ -103,7 +102,7 @@ class UploadTableDelegate(BaseDelegate):
         model = index.model()
         col = index.column()
         d = model.data[index.row()][col]
-        
+
         if option.state & QtGui.QStyle.State_Selected:
             painter.fillRect(option.rect, option.palette.highlight())
         elif index.row() % 2 == 1:
@@ -111,7 +110,7 @@ class UploadTableDelegate(BaseDelegate):
 
         painter.translate(option.rect.topLeft())
         painter.setFont(self.font)
-        
+
         if len(d) >= 20:
             d = d[:20] + '...'
         if col in [0, 5]:
@@ -123,7 +122,7 @@ class UploadTableDelegate(BaseDelegate):
             painter.drawText(QtCore.QPoint(40, 20), d)
 
         painter.restore()
-        
+
     def editorEvent(self, event, model, option, index):
         return False
 
@@ -199,7 +198,7 @@ class DetailedWindow(QtGui.QMainWindow):
         dropbox_icon = QtGui.QImage(self.db_path)
         pithos_icon = QtGui.QImage(self.pithos_path)
         googledrive_icon = QtGui.QImage(self.gd_path)
-        images = {'Dropbox':dropbox_icon, 'Pithos':pithos_icon, 
+        images = {'Dropbox':dropbox_icon, 'Pithos':pithos_icon,
                   'GoogleDrive': googledrive_icon}
 
         self.upload_table = self._create_table(self.uploads_header)
@@ -297,7 +296,7 @@ class DetailedWindow(QtGui.QMainWindow):
         model = self.upload_table.model()
         if model.data[0][0] == '':
             self.upload_table.model().remove_all()
-        
+
     def update_all_history(self, items):
         self.history_table.model().remove_all()
         for i in items:
