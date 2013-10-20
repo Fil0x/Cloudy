@@ -59,7 +59,7 @@ class CompactWindow(QtGui.QWidget):
         self.items = {} #Key is a service.
         self.move_pos = None
         self.services = services
-        self.orientation = orientation #Expansion
+        self.orientation = orientation #Widget Expansion
 
         self.dropbox_images = []
         self.pithos_images = []
@@ -72,7 +72,8 @@ class CompactWindow(QtGui.QWidget):
         #End data
 
         self.setAutoFillBackground(False)
-        self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+        self.setWindowFlags(QtCore.Qt.FramelessWindowHint |
+                            QtCore.Qt.WindowStaysOnTopHint)
         self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
 
         d = QtGui.QApplication.desktop()
@@ -97,6 +98,13 @@ class CompactWindow(QtGui.QWidget):
             self.main_frame.resize(87, len(services)*80)
             self.layout.setAlignment(QtCore.Qt.AlignHCenter)
 
+    def get_window_info(self):
+        d = QtGui.QApplication.desktop()
+        pos = [self.pos().x(), self.pos().y()]
+        screen_id = d.screenNumber(self)
+        
+        return [pos, screen_id, self.orientation]
+            
     def add_item(self, service):
         start = self.main_frame.geometry()
         self.layout.addWidget(self.create_item(service))

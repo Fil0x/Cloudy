@@ -182,11 +182,18 @@ class DetailedWindow(QtGui.QMainWindow):
     tableBackgroundPath = r'images/detailed-background.jpg'
     windowStyle = r'QMainWindow {background-color: rgba(108, 149, 218, 100%)}'
 
-    def __init__(self, title):
+    def __init__(self, title, pos, size, maximized, screen_id):
         QtGui.QWidget.__init__(self)
         self.setWindowTitle(title)
         self.setVisible(False)
         self.setStyleSheet(self.windowStyle)
+
+        if not maximized:
+            d = QtGui.QApplication.desktop()
+            pos_rect = d.availableGeometry(screen_id).adjusted(pos[0], pos[1], 0, 0)
+            self.move(pos_rect.topLeft())
+        else:
+            self.showMaximized()
 
         file_image = QtGui.QImage(self.file_icon_path)
 
@@ -251,6 +258,14 @@ class DetailedWindow(QtGui.QMainWindow):
         msgBox.addButton("&Close", QtGui.QMessageBox.AcceptRole)
         msgBox.exec_()
 
+    def get_window_info(self):
+        d = QtGui.QApplication.desktop()
+        pos = [self.pos().x(), self.pos().y()]
+        size = [self.size().width(), self.size().height()]
+        screen_id = d.screenNumber(self)
+        
+        return [pos, size, self.isMaximized(), screen_id]
+        
     def get_selected_ids(self, n):
         r = []
         if n == 0:
@@ -349,7 +364,7 @@ class DetailedWindow(QtGui.QMainWindow):
         tm = MyTableModel(header, parent=self)
         tbl.setModel(tm)
 
-        tbl.setMinimumSize(704, 300)
+        tbl.setMinimumSize(700, 300)
         tbl.setShowGrid(False)
         tbl.setFont(self.font)
         tbl.hideColumn(len(header))

@@ -68,6 +68,9 @@ class CompactWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
                 p = raw(url.path()[1:])
                 if os.path.isfile(p):
                     self.proxy.add_file(data[0], str(p))
+                    
+    def get_window_info(self):
+        return self.viewComponent.get_window_info()
 
 class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMediator):
 
@@ -100,6 +103,9 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         self.g.signals.upload_detailed_removing.connect(self.onUploadRemoving)
         self.g.signals.upload_detailed_removed.connect(self.onUploadRemoved)
 
+    def get_window_info(self):
+        return self.viewComponent.get_window_info()
+        
     def onUploadStart(self, body):
         self.viewComponent.add_upload_item(body)
 
@@ -226,7 +232,6 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
             self.viewComponent.show_settings()
             if not self.viewComponent.isVisible():
                 self.viewComponent.setVisible(True)
-
 
 class HistoryWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMediator):
 

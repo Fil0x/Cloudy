@@ -32,13 +32,13 @@ class ApplicationManager(Manager):
         config = ConfigObj(self.config_path)
 
         config['Detailed'] = {}
-        config['Detailed']['pos'] = [-1, -1]
-        config['Detailed']['size'] = [-1, -1]
+        config['Detailed']['pos'] = [30, 30]
+        config['Detailed']['size'] = [700, 300]
         config['Detailed']['maximized'] = False
         config['Detailed']['screen_id'] = 0
 
         config['Compact'] = {}
-        config['Compact']['pos'] = [-1, -1]
+        config['Compact']['pos'] = [30, 30]
         config['Compact']['screen_id'] = 0
         config['Compact']['orientation'] = 'V' #or 'H'
 
@@ -69,7 +69,8 @@ class ApplicationManager(Manager):
 
     def get_pos(self, window):
         ''' window = Detailed, Compact '''
-        return self.config[window]['pos']
+        pos = map(int, self.config[window]['pos'])
+        return pos
 
     def set_pos(self, window, value):
         ''' window=Detailed,Compact , value=List'''
@@ -80,7 +81,8 @@ class ApplicationManager(Manager):
         self.config.write()
 
     def get_size(self):
-        return self.config['Detailed']['size']
+        size = map(int, self.config['Detailed']['size'])
+        return size
 
     def set_size(self, value):
         assert(isinstance(value, list))
@@ -90,7 +92,7 @@ class ApplicationManager(Manager):
         self.config.write()
 
     def get_screen_id(self, window):
-        return self.config[window]['screen_id']
+        return self.config[window]('screen_id')
 
     def set_screen_id(self, window, value):
         assert(isinstance(value, int))
@@ -100,7 +102,7 @@ class ApplicationManager(Manager):
         self.config.write()
 
     def get_maximized(self):
-        return self.config['Detailed']['maximized']
+        return self.config['Detailed'].as_bool('maximized')
 
     def set_maximized(self, value):
         assert(isinstance(value, bool))

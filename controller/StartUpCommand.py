@@ -22,10 +22,16 @@ class StartUpCommand(puremvc.patterns.command.SimpleCommand, puremvc.interfaces.
         self.facade.registerProxy(model.modelProxy.ModelProxy())
         
         self.facade.registerMediator(SysTrayMediator(notification.getBody()))
-        self.facade.registerMediator(DetailedWindowMediator(DetailedWindow(version.__version__)))
         self.facade.registerMediator(HistoryWindowMediator(HistoryWindow()))
         
-        #TODO: change pos and screen id
         p = ApplicationManager()
-        w = CompactWindow(p.get_services(), p.get_orientation(), (50,50), 0)
+        #Compact Window
+        w = CompactWindow(p.get_services(), p.get_orientation(), 
+                          p.get_pos('Compact'), 0)
         self.facade.registerMediator(CompactWindowMediator(w))
+        #Detailed Window
+        d = DetailedWindow(version.__version__, p.get_pos('Detailed'),
+                           p.get_size(), p.get_maximized(), 0)
+        self.facade.registerMediator(DetailedWindowMediator(d))
+        
+        

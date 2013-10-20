@@ -62,28 +62,31 @@ class DropboxUploader(object):
         Args:
             - ``chunk_size``: The number of bytes to put in each chunk. [default 4 MB]
         """
-        while self.offset < self.target_length:
-            next_chunk_size = min(chunk_size, self.target_length - self.offset)
-            if self.last_block == None:
-                self.last_block = self.file_obj.read(next_chunk_size)
+        try:
+            while self.offset < self.target_length:
+                next_chunk_size = min(chunk_size, self.target_length - self.offset)
+                if self.last_block == None:
+                    self.last_block = self.file_obj.read(next_chunk_size)
 
-            try:
-                (self.offset, self.upload_id) = self.client.upload_chunk(StringIO(self.last_block), next_chunk_size, self.offset, self.upload_id)
-                self.last_block = None
                 try:
-                    yield (float(self.offset)/self.target_length, self.path)
-                except ZeroDivisionError:
-                    #The file was empty, it's 100% by default.
-                    yield (1.0, self.path)
-            except rest.ErrorResponse, e:
-                reply = e.body
-                if "offset" in reply and reply['offset'] != 0:
-                    if reply['offset'] > self.offset:
-                        self.last_block = None
-                        self.offset = reply['offset']
-                raise faults.InvalidAuth('Dropbox-Upload')
-            except rest.RESTSocketError as e:
-                raise faults.NetworkError('No internet-Upload')
+                    (self.offset, self.upload_id) = self.client.upload_chunk(StringIO(self.last_block), next_chunk_size, self.offset, self.upload_id)
+                    self.last_block = None
+                    try:
+                        yield (float(self.offset)/self.target_length, self.path)
+                    except ZeroDivisionError:
+                        #The file was empty, it's 100% by default.
+                        yield (1.0, self.path)
+                except rest.ErrorResponse, e:
+                    reply = e.body
+                    if "offset" in reply and reply['offset'] != 0:
+                        if reply['offset'] > self.offset:
+                            self.last_block = None
+                            self.offset = reply['offset']
+                    raise faults.InvalidAuth('Dropbox-Upload')
+                except rest.RESTSocketError as e:
+                    raise faults.NetworkError('No internet-Upload')
+        finally:
+            self.file_obj.close()
 
     def finish(self, path, overwrite=False, parent_rev=None):
         """Commits the bytes uploaded by this ChunkedUploader to a file
@@ -302,27 +305,27 @@ class UploadQueue(object):
     def _remove_invalids(self, s):
         self.pending_uploads[s] = {k:v for k,v in self.pending_uploads[s].items() if 'error' not in v}
     #end of Upload functions
-    
+
     #History functions - exposed
     def add_history(self, service, id, **kwargs):
         ''' name=remote_filename, date=date, path=remote path, link=share_link '''
         upload_manager = LocalUploadManager()
-        
+
         upload_manager.add_history(service, id, **kwargs)
 
     def get_history(self, service=None, id=None):
         upload_manager = LocalUploadManager()
-        
+
         return upload_manager.get_history(service, id)
-        
+
     def delete_history(self, service, id=None):
         upload_manager = LocalUploadManager()
-        
+
         upload_manager.delete_history(service, id)
-        
+
     #end of History functions
-    
-    #Exposed functions.    
+
+    #Exposed functions.
     def add(self, service, path):
         return getattr(self, '_{}_add'.format(service.lower()))(path)
 
@@ -366,7 +369,7 @@ class UploadQueue(object):
 
     def get_status(self, service, id):
         return self.pending_uploads[service][id]['status']
-            
+
     def set_state(self, service, id, status):
         self.pending_uploads[service][id]['status'] = status
     #end of exposed functions
