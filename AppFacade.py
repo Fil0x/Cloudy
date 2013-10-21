@@ -1,4 +1,5 @@
 import puremvc.patterns.facade
+from controller.ErrorCommand import ErrorCommand
 from controller.UploadCommand import UploadCommand
 from controller.StartUpCommand import StartUpCommand
 from controller.ExitAppCommand import ExitAppCommand
@@ -11,7 +12,7 @@ class AppFacade(puremvc.patterns.facade.Facade):
 
     SHOW_DETAILED = 'show_detailed'
     DELETE_HISTORY_DETAILED = 'delete_history_detailed'
-    
+
     SHOW_SETTINGS = 'show_settings'
     SHOW_COMPACT = 'show_compact'
     DELETE_HISTORY_COMPACT = 'delete_history_compact'
@@ -29,7 +30,13 @@ class AppFacade(puremvc.patterns.facade.Facade):
     UPLOAD_RESUMED = 'upload_resumed'
     UPLOAD_REMOVING = 'upload_removing'
     UPLOAD_REMOVED = 'upload_removed'
-    
+
+    NETWORK_ERROR = 'network_error'
+    OUT_OF_STORAGE = 'out_of_storage'
+    SERVICE_OFFLINE = 'service_offline'
+    INVALID_CREDENTIALS = 'invalid_credentials'
+    FILE_NOT_FOUND = 'file_not_found'
+
     def __init__(self):
         self.initializeFacade()
 
@@ -60,4 +67,9 @@ class AppFacade(puremvc.patterns.facade.Facade):
         super(AppFacade, self).registerCommand(AppFacade.UPLOAD_RESUMED, UploadCommand)
         super(AppFacade, self).registerCommand(AppFacade.UPLOAD_REMOVING, UploadCommand)
         super(AppFacade, self).registerCommand(AppFacade.UPLOAD_REMOVED, UploadCommand)
+        super(AppFacade, self).registerCommand(AppFacade.NETWORK_ERROR, ErrorCommand)
+        super(AppFacade, self).registerCommand(AppFacade.OUT_OF_STORAGE, ErrorCommand)
+        super(AppFacade, self).registerCommand(AppFacade.SERVICE_OFFLINE, ErrorCommand)
+        super(AppFacade, self).registerCommand(AppFacade.INVALID_CREDENTIALS, ErrorCommand)
+        super(AppFacade, self).registerCommand(AppFacade.FILE_NOT_FOUND, ErrorCommand)
         super(AppFacade, self).registerCommand(AppFacade.EXIT, ExitAppCommand)

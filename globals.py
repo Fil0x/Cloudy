@@ -17,6 +17,12 @@ class Signals(QtCore.QObject):
     upload_detailed_removing = QtCore.pyqtSignal(str)
     upload_detailed_removed = QtCore.pyqtSignal(str)
     
+    network_error = QtCore.pyqtSignal(str)
+    out_of_storage = QtCore.pyqtSignal(str)
+    service_offline = QtCore.pyqtSignal(str)
+    invalid_credentials = QtCore.pyqtSignal(str)
+    file_not_found = QtCore.pyqtSignal(str)
+    
 class Globals(object):
     def __init__(self):
         self.signals = Signals()

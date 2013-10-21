@@ -102,6 +102,7 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         self.g.signals.upload_detailed_resumed.connect(self.onUploadResumed)
         self.g.signals.upload_detailed_removing.connect(self.onUploadRemoving)
         self.g.signals.upload_detailed_removed.connect(self.onUploadRemoved)
+        self.g.signals.file_not_found.connect(self.onFileNotFound)
 
     def get_window_info(self):
         return self.viewComponent.get_window_info()
@@ -136,6 +137,9 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
 
     def onHistoryDelete(self, body):
         self.viewComponent.delete_history_item(body)
+                                             
+    def onFileNotFound(self, id):
+        self.viewComponent.update_item_status([id, 'File not found'])
                                              
     def _format_history(self):
         l = []

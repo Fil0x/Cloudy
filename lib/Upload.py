@@ -49,10 +49,7 @@ class DropboxUploader(object):
         self.remote = remote
 
         self.last_block = None
-        self.file_obj = open(path, 'rb')
         self.target_length = os.path.getsize(path)
-
-        self.file_obj.seek(self.offset)
 
     def upload_chunked(self, chunk_size=128*1024):
         """Uploads data from this ChunkedUploader's file_obj in chunks, until
@@ -63,30 +60,34 @@ class DropboxUploader(object):
             - ``chunk_size``: The number of bytes to put in each chunk. [default 4 MB]
         """
         try:
-            while self.offset < self.target_length:
-                next_chunk_size = min(chunk_size, self.target_length - self.offset)
-                if self.last_block == None:
-                    self.last_block = self.file_obj.read(next_chunk_size)
+            with open(self.path, 'rb') as file_obj:
+                file_obj.seek(self.offset)
+                while self.offset < self.target_length:
+                    next_chunk_size = min(chunk_size, self.target_length - self.offset)
+                    if self.last_block == None:
+                        self.last_block = file_obj.read(next_chunk_size)
 
-                try:
-                    (self.offset, self.upload_id) = self.client.upload_chunk(StringIO(self.last_block), next_chunk_size, self.offset, self.upload_id)
-                    self.last_block = None
                     try:
-                        yield (float(self.offset)/self.target_length, self.path)
-                    except ZeroDivisionError:
-                        #The file was empty, it's 100% by default.
-                        yield (1.0, self.path)
-                except rest.ErrorResponse, e:
-                    reply = e.body
-                    if "offset" in reply and reply['offset'] != 0:
-                        if reply['offset'] > self.offset:
-                            self.last_block = None
-                            self.offset = reply['offset']
-                    raise faults.InvalidAuth('Dropbox-Upload')
-                except rest.RESTSocketError as e:
-                    raise faults.NetworkError('No internet-Upload')
-        finally:
-            self.file_obj.close()
+                        (self.offset, self.upload_id) = self.client.upload_chunk(StringIO(self.last_block), next_chunk_size, self.offset, self.upload_id)
+                        self.last_block = None
+                        try:
+                            yield (float(self.offset)/self.target_length, self.path)
+                        except ZeroDivisionError:
+                            #The file was empty, it's 100% by default.
+                            yield (1.0, self.path)
+                    except rest.ErrorResponse, e:
+                        reply = e.body
+                        if "offset" in reply and reply['offset'] != 0:
+                            if reply['offset'] > self.offset:
+                                self.last_block = None
+                                self.offset = reply['offset']
+                        yield (4, None)
+                        return
+                    except rest.RESTSocketError as e:
+                        yield (3, None)
+                        return
+        except IOError as e:
+            yield (2, None)
 
     def finish(self, path, overwrite=False, parent_rev=None):
         """Commits the bytes uploaded by this ChunkedUploader to a file
@@ -137,33 +138,36 @@ class GoogleDriveUploader(object):
         self.target_length = os.path.getsize(path)
         self.upload_uri = upload_uri
         self.client = client
-        #These variables will be filled after the file has been uploaded.
+        #The variables below will be filled after the file has been uploaded.
         self.sharelink = None
         self.title = None
 
     def upload_chunked(self, chunk_size=256*1024):
-        media_body = MediaFileUpload(self.path, chunksize=chunk_size, resumable=True)
-        file = self.client.files().insert(body=self.body, media_body=media_body)
-        file.resumable_progress = self.offset
-        file.resumable_uri = self.upload_uri
-        response = None
-        while response is None:
-            try:
-                status, response = file.next_chunk()
-                if status:
+        try:
+            media_body = MediaFileUpload(self.path, chunksize=chunk_size, resumable=True)
+            file = self.client.files().insert(body=self.body, media_body=media_body)
+            file.resumable_progress = self.offset
+            file.resumable_uri = self.upload_uri
+            response = None
+            while response is None:
+                try:
+                    status, response = file.next_chunk()
+                    if status:
+                        self.offset = file.resumable_progress
+                        self.upload_uri = file.resumable_uri
+                        yield (status.progress(), self.path)
+                except Exception:
+                    #https://developers.google.com/drive/handle-errors
+                    print 'Something happened'
                     self.offset = file.resumable_progress
                     self.upload_uri = file.resumable_uri
-                    yield (status.progress(), self.path)
-            except Exception:
-                #https://developers.google.com/drive/handle-errors
-                print 'Something happened'
-                self.offset = file.resumable_progress
-                self.upload_uri = file.resumable_uri
-        #Error handle
-        if response:
-            self.title = response['title']
-            self.id = response['id']
-            yield (1.0, self.path)
+            #Error handle
+            if response:
+                self.title = response['title']
+                self.id = response['id']
+                yield (1.0, self.path)
+        except IOError as e:
+            raise faults.NonExistentFile('{}-GoogleDrive'.format(e.filename))
 #End GoogleDrive stuff
 
 class UploadQueue(object):
