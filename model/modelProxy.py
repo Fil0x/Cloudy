@@ -156,7 +156,6 @@ class HistoryThread(threading.Thread):
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.DELETE_HISTORY_COMPACT,
                                                    [self.globals])
 
-
 class UploadSupervisorThread(threading.Thread):
     def __init__(self, in_queue, out_queue, proxy, globals, **kwargs):
         threading.Thread.__init__(self, **kwargs)
@@ -279,11 +278,12 @@ class UploadThread(threading.Thread):
     def run(self):
         self.logger.debug('Starting:{}'.format(self.id))
         for i in self.worker.upload_chunked():
-            if i[0] == 2: 
+            if i[0] == 2:
+                self.proxy.set_state(self.service, self.id, 'Error-File not found')
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.FILE_NOT_FOUND,
                                            [self.globals, self.id])
                 self.error = True
-                return              
+                return
             else:
                 self.logger.debug('Uploaded:{}'.format(i))
                 progress = str(round(i[0], 3)*100) + '%'
@@ -307,15 +307,12 @@ class UploadThread(threading.Thread):
         if self.service in 'Dropbox':
             response = self.worker.finish('{}{}'.format(self.worker.remote, os.path.basename(self.worker.path)))
             path = response['path']
-            #Get the share link
             url = self.worker.client.share(path)['url']
             d['name'] = os.path.basename(self.worker.path)
             date = str(datetime.datetime.now())
             d['date'] = date[:date.index('.')]
             d['path'] = path
             d['link'] = url
-            self.logger.debug('Putting in queue.')
-            self.out_queue.put(('add', self.service, self.id, d))
         elif self.service in 'GoogleDrive':
             b={'withLink':True, 'role':'reader', 'type':'anyone'}
             shareurl = 'https://docs.google.com/file/d/{}/edit?usp=sharing'
@@ -325,6 +322,7 @@ class UploadThread(threading.Thread):
             d['date'] = date[:date.index('.')]
             d['path'] = self.worker.title
             d['link'] = shareurl.format(self.worker.id)
-            self.logger.debug('Putting in queue.')
-            self.out_queue.put(('add', self.service, self.id, d))
+
+        self.logger.debug('Putting in queue {}.'.format(self.id))
+        self.out_queue.put(('add', self.service, self.id, d))
         return

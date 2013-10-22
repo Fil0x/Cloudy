@@ -139,7 +139,7 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         self.viewComponent.delete_history_item(body)
                                              
     def onFileNotFound(self, id):
-        self.viewComponent.update_item_status([id, 'File not found'])
+        self.viewComponent.update_item_status([id, 'Error-File not found'])
                                              
     def _format_history(self):
         l = []

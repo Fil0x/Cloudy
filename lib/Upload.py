@@ -167,7 +167,7 @@ class GoogleDriveUploader(object):
                 self.id = response['id']
                 yield (1.0, self.path)
         except IOError as e:
-            raise faults.NonExistentFile('{}-GoogleDrive'.format(e.filename))
+            yield (2, None)
 #End GoogleDrive stuff
 
 class UploadQueue(object):
@@ -201,7 +201,7 @@ class UploadQueue(object):
                 with open(v['path'], 'r'):
                     pass
             except IOError:
-                self.pending_uploads['Dropbox'][k] = {'error':'Invalid path', 'path':v['path']}
+                self.pending_uploads['Dropbox'][k] = {'error':'File not found', 'path':v['path']}
                 continue
 
             offset = int(v['offset'])
@@ -222,7 +222,7 @@ class UploadQueue(object):
                 with open(v['path'],'r'):
                     pass
             except IOError:
-                self.pending_uploads['GoogleDrive'][k] = {'status':'Invalid path {}'.format(k), 'path':v['path']}
+                self.pending_uploads['GoogleDrive'][k] = {'error':'File not found', 'path':v['path']}
                 continue
 
             offset = int(v['offset'])
@@ -247,7 +247,7 @@ class UploadQueue(object):
         try:
             uploader = DropboxUploader(path, dm.get_service_root('Dropbox'))
         except IOError:
-            self.pending_uploads['Dropbox'][id] = {'error':'Invalid path',
+            self.pending_uploads['Dropbox'][id] = {'error':'File not found',
                                                    'path':path}
         else:
             self.pending_uploads['Dropbox'][id] = {'uploader':uploader,
@@ -281,7 +281,7 @@ class UploadQueue(object):
                 pass
             uploader = GoogleDriveUploader(path, dm.get_service_root('GoogleDrive'))
         except IOError:
-            self.pending_uploads['GoogleDrive'][id] = {'error':'Invalid path',
+            self.pending_uploads['GoogleDrive'][id] = {'error':'File not found',
                                                        'path':path}
         else:
             self.pending_uploads['GoogleDrive'][id] = {'uploader':uploader,
