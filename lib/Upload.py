@@ -81,10 +81,10 @@ class DropboxUploader(object):
                             if reply['offset'] > self.offset:
                                 self.last_block = None
                                 self.offset = reply['offset']
-                        yield (4, None)
+                        yield (12, None)
                         return
                     except rest.RESTSocketError as e:
-                        yield (3, None)
+                        yield (22, None)
                         return
         except IOError as e:
             yield (2, None)

@@ -26,9 +26,9 @@ class StartUpCommand(puremvc.patterns.command.SimpleCommand, puremvc.interfaces.
         
         p = ApplicationManager()
         #Compact Window
-        w = CompactWindow(p.get_services(), p.get_orientation(), 
+        c = CompactWindow(p.get_services(), p.get_orientation(), 
                           p.get_pos('Compact'), 0)
-        self.facade.registerMediator(CompactWindowMediator(w))
+        self.facade.registerMediator(CompactWindowMediator(c))
         #Detailed Window
         d = DetailedWindow(version.__version__, p.get_pos('Detailed'),
                            p.get_size(), p.get_maximized(), 0)

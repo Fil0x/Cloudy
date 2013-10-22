@@ -176,10 +176,11 @@ class UploadSupervisorThread(threading.Thread):
                                  self.proxy, self.globals)
                 self.proxy.active_threads[msg[2]] = t
                 t.start()
-                # [filename, progress, service, status, dest, conflict]
-                filename = os.path.basename(msg[3].path)
-                l = [self.globals, filename, '0%', msg[1], 'Running', msg[3].remote, 'TODO', msg[2]]
-                self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_ADDED, l)
+                if msg[1] == 'Dropbox':
+                    l = [self.globals,  msg[2], '{}{}'.format(local.Dropbox_APPFOLDER, msg[3].remote)]
+                else:
+                    l = [self.globals,  msg[2], msg[3].remote]
+                self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_STARTED, l)
                 self.logger.debug('Started!')
             elif msg[0] in 'resume':
                 t = UploadThread(msg[3], msg[1], self.out_queue, msg[2],
@@ -193,7 +194,6 @@ class UploadSupervisorThread(threading.Thread):
                 self.logger.debug('Resumed {}!'.format(msg[2]))
             elif msg[0] in 'stop':
                 self.proxy.active_threads[msg[1]].state = 1
-                #Emit Pausing...
                 del self.proxy.active_threads[msg[1]]
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_PAUSING,
                                                    [self.globals, msg[1]])
@@ -234,18 +234,26 @@ class AddTaskThread(threading.Thread):
             #Block here until we have an item to add.
             msg = self.in_queue.get()
             self.logger.debug('Authenticating with {}'.format(msg[1]))
-            #is it cached?
-            client = self.proxy.authenticate(msg[1])
-            self.logger.debug('Authentication done')
-            #Errorrrrsssss
             if msg[0] in 'add':
                 id, d = self.proxy.add(msg[1], msg[2])
+                filename = os.path.basename(msg[2])
                 if 'error' in d:
-                    pass #send message to controller, invalid path
-                d['uploader'].client = client
-                self.logger.debug('Putting the uploader in queue.')
-                self.out_queue.put(('add', msg[1], id, d['uploader']))
+                    #send message to UI
+                    return
+                else:
+                    # [filename, progress, service, status, dest, conflict, (id)]
+                    l = [self.globals, filename, '0%', msg[1], 'Starting', '', 'TODO', id]
+                    self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_STARTING, l)
+                    #is it cached?
+                    client = self.proxy.authenticate(msg[1])
+                    self.logger.debug('Authentication done')
+                    #Errorrrrsssss
+                    d['uploader'].client = client
+                    self.logger.debug('Putting the uploader in queue.')
+                    self.out_queue.put(('add', msg[1], id, d['uploader']))
             elif msg[0] in 'resume':
+                self.logger.debug('Authentication done')
+                client = self.proxy.authenticate(msg[1])
                 self.logger.debug('Resuming...')
                 msg[3]['uploader'].client = client
                 self.out_queue.put(('resume', msg[1], msg[2], msg[3]['uploader']))

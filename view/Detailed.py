@@ -64,7 +64,10 @@ class MyTableModel(QtCore.QAbstractTableModel):
 
     def update_status(self, item):
         self.update_row(item[0], item[1], 3)
-
+        
+    def update_remote(self, item):
+        self.update_row(item[0], item[1], 4)
+          
     def remove(self, id):
         i = zip(*self.data)[-1].index(id)
         self.beginRemoveRows(QtCore.QModelIndex(), i, i)
@@ -112,7 +115,7 @@ class UploadTableDelegate(BaseDelegate):
         painter.setFont(self.font)
 
         if len(d) >= 25:
-            d = d[:20] + '...'
+            d = d[:25] + '...'
             
         if col in [0, 5]:
             painter.drawText(QtCore.QPoint(10, 20), d)
@@ -124,7 +127,14 @@ class UploadTableDelegate(BaseDelegate):
                 painter.drawText(pos, error)
             else:
                 painter.drawText(self.center_text(option.rect, d), d)
-        elif col in [1, 4]:
+        elif col == 4:
+            if d == '':
+                pos = self.center_text(option.rect, d)
+                painter.drawImage(QtCore.QPoint(pos.x()-25, 7), self.images['Loading'])
+                painter.drawText(pos, d)
+            else:
+                painter.drawText(self.center_text(option.rect, d), d)
+        elif col == 1:
             painter.drawText(self.center_text(option.rect, d), d)
         else:
             pos = self.center_text(option.rect, d)
@@ -157,8 +167,8 @@ class HistoryTableDelegate(BaseDelegate):
         painter.translate(option.rect.topLeft())
         painter.setFont(self.font)
 
-        if len(d) >= 20:
-            d = d[:20] + '...'
+        if len(d) >= 25:
+            d = d[:25] + '...'
         if col in [0, 1, 3]:
             painter.drawText(QtCore.QPoint(10, 20), d)
         else:
@@ -184,6 +194,7 @@ class DetailedWindow(QtGui.QMainWindow):
     pithos_path = r'images/pithos-icon.png'
     gd_path = r'images/googledrive-icon.png'
     error_path = r'images/detailed-x.png'
+    loading_path = r'images/detailed-loading.png'
     addBtnPath = r'images/detailed-add.png'
     playBtnPath = r'images/detailed-play.png'
     stopBtnPath = r'images/detailed-stop.png'
@@ -217,8 +228,10 @@ class DetailedWindow(QtGui.QMainWindow):
         pithos_icon = QtGui.QImage(self.pithos_path)
         googledrive_icon = QtGui.QImage(self.gd_path)
         error_icon = QtGui.QImage(self.error_path)
+        loading_icon = QtGui.QImage(self.loading_path)
         images = {'Dropbox':dropbox_icon, 'Pithos':pithos_icon,
-                  'GoogleDrive': googledrive_icon, 'Error':error_icon}
+                  'GoogleDrive': googledrive_icon, 'Error':error_icon,
+                  'Loading':loading_icon}
 
         self.upload_table = self._create_table(self.uploads_header)
         self.upload_table.setItemDelegate(UploadTableDelegate(self, self.font, c, images))
@@ -310,6 +323,9 @@ class DetailedWindow(QtGui.QMainWindow):
 
     def update_item_status(self, item):
         self.upload_table.model().update_status(item)
+      
+    def update_remote_path(self, item):
+        self.upload_table.model().update_remote(item)
 
     def delete_upload_item(self, id):
         self.upload_table.model().remove(id)

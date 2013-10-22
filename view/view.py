@@ -94,6 +94,7 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
 
         self.g.signals.history_detailed.connect(self.onHistoryAdd)
         self.g.signals.history_detailed_delete.connect(self.onHistoryDelete)
+        self.g.signals.upload_detailed_starting.connect(self.onUploadStarting)
         self.g.signals.upload_detailed_start.connect(self.onUploadStart)
         self.g.signals.upload_detailed_update.connect(self.onUploadUpdate)
         self.g.signals.upload_detailed_finish.connect(self.onUploadComplete)
@@ -107,8 +108,12 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
     def get_window_info(self):
         return self.viewComponent.get_window_info()
         
-    def onUploadStart(self, body):
+    def onUploadStarting(self, body):
         self.viewComponent.add_upload_item(body)
+        
+    def onUploadStart(self, body):
+        self.viewComponent.update_remote_path(body)
+        self.viewComponent.update_item_status([body[0], 'Running'])
 
     def onUploadUpdate(self, body):
         self.viewComponent.update_upload_item(body)
@@ -275,7 +280,6 @@ class HistoryWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
 
     def onShow(self):
         if not self.viewComponent.isVisible():
-            #TODO: limit the items that are passed to max_count.
             self.viewComponent.update_all(self._format_history())
             self.viewComponent.setVisible(True)
             self.initialized = True

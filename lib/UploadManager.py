@@ -5,6 +5,7 @@ if ".." not in sys.path:
 import os
 
 import logger
+from lib.util import raw
 from DataManager import Manager
 
 from configobj import ConfigObj
@@ -28,8 +29,8 @@ class LocalUploadManager(Manager):
     def __init__(self, historyName='history.ini', uploadName='upload.ini'):
         self.logger = logger.logger_factory(self.__class__.__name__)
 
-        self.historyPath = os.path.join(self.basepath, historyName)
-        self.uploadPath = os.path.join(self.basepath, uploadName)
+        self.historyPath = os.path.join(self.basepath, raw(historyName))
+        self.uploadPath = os.path.join(self.basepath, raw(uploadName))
 
         for path, attr in [(self.historyPath, 'history'),
                           (self.uploadPath, 'upload')]:

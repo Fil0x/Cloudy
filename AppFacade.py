@@ -21,12 +21,12 @@ class AppFacade(puremvc.patterns.facade.Facade):
     HISTORY_UPDATE_COMPACT = 'compact_update_history'
     HISTORY_UPDATE_DETAILED = 'detailed_update_history'
 
-    UPLOAD_ADDED = 'upload_added'
+    UPLOAD_STARTING = 'upload_starting'
+    UPLOAD_STARTED = 'upload_started'
     UPLOAD_UPDATED = 'upload_updated'
     UPLOAD_DONE = 'upload_done'
     UPLOAD_PAUSING = 'upload_pausing'
     UPLOAD_PAUSED = 'upload_paused'
-    UPLOAD_STARTING = 'upload_starting'
     UPLOAD_RESUMED = 'upload_resumed'
     UPLOAD_REMOVING = 'upload_removing'
     UPLOAD_REMOVED = 'upload_removed'
@@ -58,7 +58,7 @@ class AppFacade(puremvc.patterns.facade.Facade):
         super(AppFacade, self).registerCommand(AppFacade.HISTORY_SHOW_COMPACT, HistoryCommand)
         super(AppFacade, self).registerCommand(AppFacade.DELETE_HISTORY_COMPACT, HistoryCommand)
         super(AppFacade, self).registerCommand(AppFacade.DELETE_HISTORY_DETAILED, HistoryCommand)
-        super(AppFacade, self).registerCommand(AppFacade.UPLOAD_ADDED, UploadCommand)
+        super(AppFacade, self).registerCommand(AppFacade.UPLOAD_STARTED, UploadCommand)
         super(AppFacade, self).registerCommand(AppFacade.UPLOAD_UPDATED, UploadCommand)
         super(AppFacade, self).registerCommand(AppFacade.UPLOAD_DONE, UploadCommand)
         super(AppFacade, self).registerCommand(AppFacade.UPLOAD_PAUSING, UploadCommand)

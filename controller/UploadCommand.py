@@ -6,7 +6,7 @@ class UploadCommand(puremvc.patterns.command.SimpleCommand, puremvc.interfaces.I
     def execute(self, notification):
         note_name = notification.getName()
         note_body = notification.getBody()
-        if note_name == AppFacade.AppFacade.UPLOAD_ADDED:
+        if note_name == AppFacade.AppFacade.UPLOAD_STARTED:
             note_body[0].signals.upload_detailed_start.emit(note_body[1:])
         elif note_name == AppFacade.AppFacade.UPLOAD_UPDATED:
             note_body[0].signals.upload_detailed_update.emit(note_body[1:])
@@ -17,7 +17,7 @@ class UploadCommand(puremvc.patterns.command.SimpleCommand, puremvc.interfaces.I
         elif note_name == AppFacade.AppFacade.UPLOAD_PAUSED:
             note_body[0].signals.upload_detailed_paused.emit(note_body[1])
         elif note_name == AppFacade.AppFacade.UPLOAD_STARTING:
-            note_body[0].signals.upload_detailed_starting.emit(note_body[1])
+            note_body[0].signals.upload_detailed_starting.emit(note_body[1:])
         elif note_name == AppFacade.AppFacade.UPLOAD_RESUMED:
             note_body[0].signals.upload_detailed_resumed.emit(note_body[1])
         elif note_name == AppFacade.AppFacade.UPLOAD_REMOVING:
