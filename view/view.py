@@ -100,6 +100,7 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         self.g.signals.upload_detailed_finish.connect(self.onUploadComplete)
         self.g.signals.upload_detailed_pausing.connect(self.onUploadPausing)
         self.g.signals.upload_detailed_paused.connect(self.onUploadPaused)
+        self.g.signals.upload_detailed_resuming.connect(self.onUploadResuming)
         self.g.signals.upload_detailed_resumed.connect(self.onUploadResumed)
         self.g.signals.upload_detailed_removing.connect(self.onUploadRemoving)
         self.g.signals.upload_detailed_removed.connect(self.onUploadRemoved)
@@ -126,6 +127,9 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
     
     def onUploadPaused(self, id):
         self.viewComponent.update_item_status([id, 'Paused'])
+        
+    def onUploadResuming(self, id):
+        self.viewComponent.update_item_status([id, 'Resuming'])
         
     def onUploadResumed(self, id):
         self.viewComponent.update_item_status([id, 'Running'])
@@ -202,13 +206,20 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
     def onRemove(self):
         index = self.viewComponent.get_current_tab()
         #[[id, service],..]
-        delete = self.viewComponent.get_selected_ids(index) 
+        items = self.viewComponent.get_selected_ids(index) 
 
-        if not delete:
+        if not items:
             return
             
+        delete = copy.copy(items)
         if index == 0:
-            self.proxy.delete_file(delete)
+            for d in items:
+                state = self.proxy.get_status(d[1], d[0])
+                if state not in ['Paused', 'Running']:
+                    delete.remove(d)
+            
+            if len(delete):
+                self.proxy.delete_file(delete)                   
         elif index == 1:
             self.proxy.delete_history(delete)
 
@@ -223,8 +234,9 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
             state = self.proxy.get_status(d[1], d[0])
             if state != 'Running':
                 delete.remove(d)
+
         if len(delete):
-            self.proxy.stop_file(zip(*delete)[0])
+            self.proxy.stop_file(delete)
 
     def listNotificationInterests(self):
         return [

@@ -27,6 +27,7 @@ class AppFacade(puremvc.patterns.facade.Facade):
     UPLOAD_DONE = 'upload_done'
     UPLOAD_PAUSING = 'upload_pausing'
     UPLOAD_PAUSED = 'upload_paused'
+    UPLOAD_RESUMING = 'upload_resuming'
     UPLOAD_RESUMED = 'upload_resumed'
     UPLOAD_REMOVING = 'upload_removing'
     UPLOAD_REMOVED = 'upload_removed'
@@ -64,6 +65,7 @@ class AppFacade(puremvc.patterns.facade.Facade):
         super(AppFacade, self).registerCommand(AppFacade.UPLOAD_PAUSING, UploadCommand)
         super(AppFacade, self).registerCommand(AppFacade.UPLOAD_PAUSED, UploadCommand)
         super(AppFacade, self).registerCommand(AppFacade.UPLOAD_STARTING, UploadCommand)
+        super(AppFacade, self).registerCommand(AppFacade.UPLOAD_RESUMING, UploadCommand)
         super(AppFacade, self).registerCommand(AppFacade.UPLOAD_RESUMED, UploadCommand)
         super(AppFacade, self).registerCommand(AppFacade.UPLOAD_REMOVING, UploadCommand)
         super(AppFacade, self).registerCommand(AppFacade.UPLOAD_REMOVED, UploadCommand)

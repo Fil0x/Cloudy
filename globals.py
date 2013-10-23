@@ -13,6 +13,7 @@ class Signals(QtCore.QObject):
     upload_detailed_pausing = QtCore.pyqtSignal(str)
     upload_detailed_paused = QtCore.pyqtSignal(str)
     upload_detailed_starting = QtCore.pyqtSignal(list)
+    upload_detailed_resuming = QtCore.pyqtSignal(str)
     upload_detailed_resumed = QtCore.pyqtSignal(str)
     upload_detailed_removing = QtCore.pyqtSignal(str)
     upload_detailed_removed = QtCore.pyqtSignal(str)

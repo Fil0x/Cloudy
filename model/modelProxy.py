@@ -49,8 +49,8 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
 
     def stop_file(self, data):
         for i in data:
-            assert i in self.active_threads, 'ID:{} not found'.format(i)
-            self.upload_queue.put(('stop', i))
+            assert i[0] in self.active_threads, 'ID:{} not found'.format(i)
+            self.upload_queue.put(('stop', i[1], i[0]))
 
     def delete_file(self, data):
         for i in data:
@@ -180,8 +180,9 @@ class UploadSupervisorThread(threading.Thread):
                     l = [self.globals,  msg[2], '{}{}'.format(local.Dropbox_APPFOLDER, msg[3].remote)]
                 else:
                     l = [self.globals,  msg[2], msg[3].remote]
+                self.proxy.set_state(msg[1], msg[2], 'Running')
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_STARTED, l)
-                self.logger.debug('Started!')
+                self.logger.debug('Started {}.'.format(msg[2]))
             elif msg[0] in 'resume':
                 t = UploadThread(msg[3], msg[1], self.out_queue, msg[2],
                                  self.proxy, self.globals)
@@ -191,24 +192,28 @@ class UploadSupervisorThread(threading.Thread):
                 self.proxy.set_state(msg[1], msg[2], 'Running')
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_RESUMED,
                                                    [self.globals, msg[2]])
-                self.logger.debug('Resumed {}!'.format(msg[2]))
+                self.logger.debug('Resumed {}.'.format(msg[2]))
             elif msg[0] in 'stop':
-                self.proxy.active_threads[msg[1]].state = 1
-                del self.proxy.active_threads[msg[1]]
+                self.proxy.active_threads[msg[2]].state = 1
+                del self.proxy.active_threads[msg[2]]
+                self.proxy.set_state(msg[1], msg[2], 'Pausing')
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_PAUSING,
-                                                   [self.globals, msg[1]])
+                                                   [self.globals, msg[2]])
+                self.logger.debug('Pausing {}.'.format(msg[2]))
             elif msg[0] in 'delete':
                 if msg[2] in self.proxy.active_threads:
                     t = self.proxy.active_threads[msg[2]]
                     if not t.error: #Running->Removing
                         t.state = 2
+                        self.proxy.set_state(msg[1], msg[2], 'Removing')
+                        self.logger.debug('Setting internal state to removing!')
                         self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_REMOVING,
                                                            [self.globals, msg[2]])
                     else: #Error->Removing
                         self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_REMOVED,
                                                            [self.globals, msg[2]])
-                    del self.proxy.active_threads[msg[2]]
-                    self.proxy.delete(msg[1], msg[2])
+                        del self.proxy.active_threads[msg[2]]
+                        self.proxy.delete(msg[1], msg[2])
                 #Paused->Removing
                 else:
                     self.proxy.delete(msg[1], msg[2])
@@ -253,8 +258,11 @@ class AddTaskThread(threading.Thread):
                     self.out_queue.put(('add', msg[1], id, d['uploader']))
             elif msg[0] in 'resume':
                 self.logger.debug('Authentication done')
+                self.proxy.set_state(msg[1], msg[2], 'Resuming')
+                self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_RESUMING, 
+                                                   [self.globals, msg[2]])
                 client = self.proxy.authenticate(msg[1])
-                self.logger.debug('Resuming...')
+                self.logger.debug('Resuming {}'.format(msg[2]))
                 msg[3]['uploader'].client = client
                 self.out_queue.put(('resume', msg[1], msg[2], msg[3]['uploader']))
 
@@ -280,7 +288,7 @@ class UploadThread(threading.Thread):
     def state(self, value):
         assert(value in range(3))
 
-        self.logger.debug('Changing state to {}'.format(value))
+        self.logger.debug('{}:Changing state to {}'.format(self.id, value))
         self._state = value
 
     def run(self):
@@ -308,6 +316,8 @@ class UploadThread(threading.Thread):
                     self.logger.debug('Deleted:{}'.format(i))
                     self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_REMOVED,
                                                        [self.globals, self.id])
+                    del self.proxy.active_threads[self.id]
+                    self.proxy.delete(self.service, self.id)
                     return
 
         #If I reach this point, the upload is complete and I have to save it to the history.

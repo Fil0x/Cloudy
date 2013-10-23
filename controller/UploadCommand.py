@@ -18,6 +18,8 @@ class UploadCommand(puremvc.patterns.command.SimpleCommand, puremvc.interfaces.I
             note_body[0].signals.upload_detailed_paused.emit(note_body[1])
         elif note_name == AppFacade.AppFacade.UPLOAD_STARTING:
             note_body[0].signals.upload_detailed_starting.emit(note_body[1:])
+        elif note_name == AppFacade.AppFacade.UPLOAD_RESUMING:
+            note_body[0].signals.upload_detailed_resuming.emit(note_body[1])
         elif note_name == AppFacade.AppFacade.UPLOAD_RESUMED:
             note_body[0].signals.upload_detailed_resumed.emit(note_body[1])
         elif note_name == AppFacade.AppFacade.UPLOAD_REMOVING:

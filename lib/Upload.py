@@ -251,7 +251,7 @@ class UploadQueue(object):
                                                    'path':path}
         else:
             self.pending_uploads['Dropbox'][id] = {'uploader':uploader,
-                                                   'status':'Running',
+                                                   'status':'Starting',
                                                    'conflict':'KeepBoth'}
         return (id, self.pending_uploads['Dropbox'][id])
 
@@ -285,7 +285,7 @@ class UploadQueue(object):
                                                        'path':path}
         else:
             self.pending_uploads['GoogleDrive'][id] = {'uploader':uploader,
-                                                       'status':'Running',
+                                                       'status':'Starting',
                                                        'conflict':'KeepBoth'}
         return (id, self.pending_uploads['GoogleDrive'][id])
 
