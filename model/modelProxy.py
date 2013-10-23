@@ -59,7 +59,7 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
     def resume_file(self, data):
         for i in data:
             #Skip files with status Running
-            r = self.model.uq.get(i[1], i[0])
+            r = self.get(i[1], i[0])
             if 'error' in r:
                 return #notify controller that the path is invalid
             self.add_queue.put(('resume', i[1], i[0], r))
@@ -72,18 +72,6 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
     def delete_history(self, data):
         for i in data:
             self.history_queue.put(('remove', i[1], i[0]))
-
-    def detailed_view_data(self):
-        #TODO: change it
-        data = []
-        for service, items in self.model.uq.pending_uploads.iteritems():
-            for key, d in items.iteritems():
-                if len(d):
-                    name = os.path.basename(d['uploader'].path)
-                    progress = round(float(d['uploader'].offset)/d['uploader'].target_length, 2)
-                    data.append([name, service, d['uploader'].remote, d['status'],
-                              progress, d['conflict'], 'Not ready', key])
-
         return data
 
     def get_status(self, service, id):
@@ -91,21 +79,32 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
 
     def start_uploads(self):
         self.logger.debug('Starting uploads...')
-        r = self.model.uq.get_running()
+        r = self.model.uq.get_all_uploads()
 
         for s, v in r.iteritems():
             for id, data in v.iteritems():
-                self.logger.debug('Item added: {}/{}'.format(s, id))
-                self.add_queue.put(('resume', s, id, data))
-
+                if 'error' in data or data['status'] == 'Error-2': #File not found                   
+                    continue
+                elif 'Error' in data['status']:
+                    continue
+                elif data['status'] == 'Starting':
+                    self.logger.debug('Item added(R): {}/{}'.format(s, id))
+                    self.add_queue.put(('add_from_file', s, id, data))
+                elif data['status'] == 'Paused':
+                    self.logger.debug('Item added(P): {}/{}'.format(s, id))
+                    self.add_queue.put(('add_paused', s, id, data))
+                    
     def stop_uploads(self):
         self.logger.debug('Stopping ALL uploads...')
         for k, v in self.active_threads.iteritems():
-            self.logger.debug('Stopping: {}...'.format(k))
+            self.logger.debug('Stopping: {}'.format(k))
             v.state = 1
 
     #End of exposed functions
 
+    def get(self, service, id):
+        return self.model.uq.get(service, id)
+    
     def add(self, service, path):
         return self.model.uq.add(service, path)
 
@@ -150,7 +149,7 @@ class HistoryThread(threading.Thread):
                                             [self.globals, msg[2]])
             elif msg[0] in 'remove':
                 self.proxy.model.uq.delete_history(msg[1], [msg[2]])
-                self.logger.debug('removed item')
+                self.logger.debug('removed item:{}'.format(msg[2]))
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.DELETE_HISTORY_DETAILED,
                                                    [self.globals, msg[2]])
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.DELETE_HISTORY_COMPACT,
@@ -177,7 +176,7 @@ class UploadSupervisorThread(threading.Thread):
                 self.proxy.active_threads[msg[2]] = t
                 t.start()
                 if msg[1] == 'Dropbox':
-                    l = [self.globals,  msg[2], '{}{}'.format(local.Dropbox_APPFOLDER, msg[3].remote)]
+                    l = [self.globals,  msg[2], '{}{}'.format(local.Dropbox_APPFOLDER, msg[3].remote)[0:-1]]
                 else:
                     l = [self.globals,  msg[2], msg[3].remote]
                 self.proxy.set_state(msg[1], msg[2], 'Running')
@@ -242,20 +241,34 @@ class AddTaskThread(threading.Thread):
             if msg[0] in 'add':
                 id, d = self.proxy.add(msg[1], msg[2])
                 filename = os.path.basename(msg[2])
-                if 'error' in d:
-                    #send message to UI
-                    return
-                else:
-                    # [filename, progress, service, status, dest, conflict, (id)]
-                    l = [self.globals, filename, '0%', msg[1], 'Starting', '', 'TODO', id]
-                    self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_STARTING, l)
-                    #is it cached?
-                    client = self.proxy.authenticate(msg[1])
-                    self.logger.debug('Authentication done')
-                    #Errorrrrsssss
-                    d['uploader'].client = client
-                    self.logger.debug('Putting the uploader in queue.')
-                    self.out_queue.put(('add', msg[1], id, d['uploader']))
+                # [filename, progress, service, status, dest, conflict, (id)]
+                l = [self.globals, filename, '0%', msg[1], 'Starting', '', 'TODO', id]
+                self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_STARTING, l)
+                #is it cached?
+                client = self.proxy.authenticate(msg[1])
+                self.logger.debug('Authentication done')
+                #Errorrrrsssss
+                d['uploader'].client = client
+                self.logger.debug('Putting the uploader in queue.')
+                self.out_queue.put(('add', msg[1], id, d['uploader']))
+            elif msg[0] in 'add_from_file':
+                self.logger.debug('Loading from file {}.'.format(msg[2]))
+                # [filename, progress, service, status, dest, conflict, (id)]
+                filename = os.path.basename(msg[3]['uploader'].path)
+                try:
+                    float_progess = float(msg[3]['uploader'].offset)/msg[3]['uploader'].target_length
+                    progress = str(round(float_progess, 3)*100) + '%'
+                except ZeroDivisionError:
+                    progress = '0%'
+                l = [self.globals, filename, progress, msg[1], 'Starting', '', 'TODO', msg[2]]
+                self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_STARTING, l)
+                #is it cached?
+                client = self.proxy.authenticate(msg[1])
+                self.logger.debug('Authentication done')
+                #Errorrrrsssss
+                msg[3]['uploader'].client = client
+                self.logger.debug('Putting the uploader in queue.')
+                self.out_queue.put(('add', msg[1], msg[2], msg[3]['uploader']))
             elif msg[0] in 'resume':
                 self.logger.debug('Authentication done')
                 self.proxy.set_state(msg[1], msg[2], 'Resuming')
@@ -265,6 +278,20 @@ class AddTaskThread(threading.Thread):
                 self.logger.debug('Resuming {}'.format(msg[2]))
                 msg[3]['uploader'].client = client
                 self.out_queue.put(('resume', msg[1], msg[2], msg[3]['uploader']))
+            elif msg[0] in 'add_paused':
+                self.logger.debug('Authentication skipped')
+                filename = os.path.basename(msg[3]['uploader'].path)
+                try:
+                    float_progess = float(msg[3]['uploader'].offset)/msg[3]['uploader'].target_length
+                    progress = str(round(float_progess, 3)*100) + '%'
+                except ZeroDivisionError:
+                    progress = '0%'
+                if msg[1] == 'Dropbox':
+                    remote_path = '{}{}'.format(local.Dropbox_APPFOLDER, msg[3]['uploader'].remote)[0:-1]
+                else:
+                    remote_path = msg[3]['uploader'].remote
+                l = [self.globals, filename, progress, msg[1], 'Paused', remote_path, 'TODO', msg[2]]
+                self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_STARTING, l)
 
 class UploadThread(threading.Thread):
     def __init__(self, uploader, service, out_queue, id, proxy, globals, **kwargs):
@@ -295,7 +322,7 @@ class UploadThread(threading.Thread):
         self.logger.debug('Starting:{}'.format(self.id))
         for i in self.worker.upload_chunked():
             if i[0] == 2:
-                self.proxy.set_state(self.service, self.id, 'Error-File not found')
+                self.proxy.set_state(self.service, self.id, 'Error-2')
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.FILE_NOT_FOUND,
                                            [self.globals, self.id])
                 self.error = True

@@ -19,7 +19,8 @@ import puremvc.patterns.command
 
 class StartUpCommand(puremvc.patterns.command.SimpleCommand, puremvc.interfaces.ICommand):
     def execute(self, notification):
-        self.facade.registerProxy(model.modelProxy.ModelProxy())
+        proxy = model.modelProxy.ModelProxy()
+        self.facade.registerProxy(proxy)
         
         self.facade.registerMediator(SysTrayMediator(notification.getBody()))
         self.facade.registerMediator(HistoryWindowMediator(HistoryWindow()))
@@ -34,4 +35,5 @@ class StartUpCommand(puremvc.patterns.command.SimpleCommand, puremvc.interfaces.
                            p.get_size(), p.get_maximized(), 0)
         self.facade.registerMediator(DetailedWindowMediator(d))
         
+        proxy.start_uploads()
         

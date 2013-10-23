@@ -13,30 +13,30 @@ class AppFacade(puremvc.patterns.facade.Facade):
     SHOW_DETAILED = 'show_detailed'
     DELETE_HISTORY_DETAILED = 'delete_history_detailed'
 
-    SHOW_SETTINGS = 'show_settings'
     SHOW_COMPACT = 'show_compact'
+    SHOW_SETTINGS = 'show_settings'
     DELETE_HISTORY_COMPACT = 'delete_history_compact'
 
     HISTORY_SHOW_COMPACT = 'compact_show_history'
     HISTORY_UPDATE_COMPACT = 'compact_update_history'
     HISTORY_UPDATE_DETAILED = 'detailed_update_history'
 
-    UPLOAD_STARTING = 'upload_starting'
+    UPLOAD_DONE = 'upload_done'
+    UPLOAD_PAUSED = 'upload_paused'
     UPLOAD_STARTED = 'upload_started'
     UPLOAD_UPDATED = 'upload_updated'
-    UPLOAD_DONE = 'upload_done'
     UPLOAD_PAUSING = 'upload_pausing'
-    UPLOAD_PAUSED = 'upload_paused'
-    UPLOAD_RESUMING = 'upload_resuming'
     UPLOAD_RESUMED = 'upload_resumed'
-    UPLOAD_REMOVING = 'upload_removing'
     UPLOAD_REMOVED = 'upload_removed'
+    UPLOAD_STARTING = 'upload_starting'
+    UPLOAD_RESUMING = 'upload_resuming'
+    UPLOAD_REMOVING = 'upload_removing'
 
     NETWORK_ERROR = 'network_error'
     OUT_OF_STORAGE = 'out_of_storage'
     SERVICE_OFFLINE = 'service_offline'
-    INVALID_CREDENTIALS = 'invalid_credentials'
     FILE_NOT_FOUND = 'file_not_found'
+    INVALID_CREDENTIALS = 'invalid_credentials'
 
     def __init__(self):
         self.initializeFacade()

@@ -232,10 +232,17 @@ class UploadQueue(object):
             self.pending_uploads['GoogleDrive'][k] = {'uploader':gdUploader,
                                                       'status':v['status'],
                                                       'conflict':v['conflict']}
-
     #End of initialization funtions
 
     #Upload functions
+    def _normalize_state(self, state):
+        if state in ['Starting', 'Running', 'Resuming']:
+            return 'Starting'
+        elif state in ['Paused', 'Pausing']:
+            return 'Paused'
+        elif 'Error' in state:
+            return state
+    
     def _dropbox_add(self, path):
         '''
         path: localpath to the file.
@@ -257,11 +264,12 @@ class UploadQueue(object):
 
     def _dropbox_save(self):
         def create_dict(item):
+            state = self._normalize_state(item['status'])
             return {'upload_id': item['uploader'].upload_id or 'None',
                     'offset': str(item['uploader'].offset),
                     'path': item['uploader'].path,
                     'destination':item['uploader'].remote,
-                    'status':item['status'],
+                    'status':state,
                     'conflict':item['conflict']}
 
         uploadManager = LocalUploadManager()
@@ -269,6 +277,8 @@ class UploadQueue(object):
         self._remove_invalids('Dropbox')
 
         for k, v in self.pending_uploads['Dropbox'].iteritems():
+            if v['status'] == 'Removing':
+                continue #Dont save the uploads with Removing status.
             d = create_dict(v)
             uploadManager.add_upload('Dropbox', k, **d)
 
@@ -291,11 +301,12 @@ class UploadQueue(object):
 
     def _googledrive_save(self):
         def create_dict(item):
+            state = self._normalize_state(item['status'])
             return {'upload_uri':item['uploader'].upload_uri or 'None',
                     'offset':item['uploader'].offset,
                     'path':item['uploader'].path,
                     'destination':item['uploader'].remote,
-                    'status':item['status'],
+                    'status':state,
                     'conflict':item['conflict']}
 
         uploadManager = LocalUploadManager()
@@ -303,6 +314,8 @@ class UploadQueue(object):
         self._remove_invalids('GoogleDrive')
 
         for k, v in self.pending_uploads['GoogleDrive'].iteritems():
+            if v['status'] == 'Removing':
+                continue #Dont save the uploads with Removing status.
             d = create_dict(v)
             uploadManager.add_upload('GoogleDrive', k, **d)
 
@@ -339,22 +352,8 @@ class UploadQueue(object):
         except KeyError:
             raise KeyError('No such key.')
 
-    def get_running(self, service=''):
-        r = {}
-        if service:
-            assert(service in local.services)
-            r[service] = {}
-            for k, v in self.pending_uploads[service].iteritems():
-                if 'error' not in v and v['status'] == 'Running':
-                    r[service][k] = v
-        else:
-            for s, v in self.pending_uploads.iteritems():
-                r[s] = {}
-                for id, data in v.iteritems():
-                    if 'error' not in data and data['status'] == 'Running':
-                        r[s][id] = data
-
-        return r
+    def get_all_uploads(self):
+        return self.pending_uploads
 
     def get(self, service, id):
         assert(id in self.pending_uploads[service])
