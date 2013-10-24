@@ -8,7 +8,6 @@ from lib.util import raw
 from configobj import ConfigObj
 
 
-#Decorator to check file existence
 def checkFile(f):
     def wrapper(*args):
         try:
@@ -34,9 +33,6 @@ class LocalDataManager(Manager):
         except IOError as e:
             self._create_config_file()
 
-        self.config = ConfigObj(self.configPath)
-
-    def update(self):
         self.config = ConfigObj(self.configPath)
 
     def _create_config_file(self):

@@ -169,12 +169,15 @@ class HistoryTableDelegate(BaseDelegate):
 
         if len(d) >= 25:
             d = d[:25] + '...'
-        if col in [0, 1, 3]:
+        if col in [0, 3]:
             painter.drawText(QtCore.QPoint(10, 20), d)
+        elif col == 1:
+            painter.drawText(self.center_text(option.rect, d), d)
         else:
-            painter.drawImage(QtCore.QPoint(15, 7), self.images[d])
-            painter.drawText(QtCore.QPoint(40, 20), d)
-
+            pos = self.center_text(option.rect, d)
+            painter.drawImage(QtCore.QPoint(pos.x()-25, 7), self.images[d])
+            painter.drawText(pos, d)
+            
         painter.restore()
 
     def editorEvent(self, event, model, option, index):
@@ -203,6 +206,7 @@ class DetailedWindow(QtGui.QMainWindow):
     settingsBtnPath = r'images/detailed-configure.png'
     tableBackgroundPath = r'images/detailed-background.jpg'
     windowStyle = r'QMainWindow {background-color: rgba(108, 149, 218, 100%)}'
+    no_services_error = r'You are not authenticated with any service.'
 
     def __init__(self, title, pos, size, maximized, screen_id):
         QtGui.QWidget.__init__(self)
@@ -278,8 +282,7 @@ class DetailedWindow(QtGui.QMainWindow):
 
     def show_add_file_warning(self):
         msgBox = QtGui.QMessageBox(QtGui.QMessageBox.Warning,
-                "No Services added", 'You are not authenticated with any service.',
-                QtGui.QMessageBox.NoButton, self)
+                "No Services added", self.no_services_error, QtGui.QMessageBox.NoButton, self)
         msgBox.addButton("&Close", QtGui.QMessageBox.AcceptRole)
         msgBox.exec_()
 

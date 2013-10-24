@@ -215,7 +215,7 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         if index == 0:
             for d in items:
                 state = self.proxy.get_status(d[1], d[0])
-                if state not in ['Paused', 'Running']:
+                if state not in ['Paused', 'Running'] and 'Error' not in state:
                     delete.remove(d)
             
             if len(delete):

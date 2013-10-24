@@ -66,7 +66,7 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
 
     def get_history(self):
         r = self.model.uq.get_history()
-        self.logger.debug('got item')
+        self.logger.debug('History retrieved.')
         return r
 
     def delete_history(self, data):
@@ -83,8 +83,9 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
 
         for s, v in r.iteritems():
             for id, data in v.iteritems():
-                if 'error' in data or data['status'] == 'Error-2': #File not found                   
-                    continue
+                if 'error' in data or data['status'] == 'Error-2': #File not found, case 2 not needed?
+                    self.logger.debug('Item added(E): {}/{}'.format(s, id))
+                    self.add_queue.put(('error_2', s, id, data))
                 elif 'Error' in data['status']:
                     continue
                 elif data['status'] == 'Starting':
@@ -93,7 +94,8 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
                 elif data['status'] == 'Paused':
                     self.logger.debug('Item added(P): {}/{}'.format(s, id))
                     self.add_queue.put(('add_paused', s, id, data))
-                    
+        self.logger.debug('Interrupted uploads started.')
+
     def stop_uploads(self):
         self.logger.debug('Stopping ALL uploads...')
         for k, v in self.active_threads.iteritems():
@@ -104,7 +106,7 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
 
     def get(self, service, id):
         return self.model.uq.get(service, id)
-    
+
     def add(self, service, path):
         return self.model.uq.add(service, path)
 
@@ -272,14 +274,14 @@ class AddTaskThread(threading.Thread):
             elif msg[0] in 'resume':
                 self.logger.debug('Authentication done')
                 self.proxy.set_state(msg[1], msg[2], 'Resuming')
-                self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_RESUMING, 
+                self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_RESUMING,
                                                    [self.globals, msg[2]])
                 client = self.proxy.authenticate(msg[1])
                 self.logger.debug('Resuming {}'.format(msg[2]))
                 msg[3]['uploader'].client = client
                 self.out_queue.put(('resume', msg[1], msg[2], msg[3]['uploader']))
             elif msg[0] in 'add_paused':
-                self.logger.debug('Authentication skipped')
+                self.logger.debug('Authentication skipped {}.'.format(msg[2]))
                 filename = os.path.basename(msg[3]['uploader'].path)
                 try:
                     float_progess = float(msg[3]['uploader'].offset)/msg[3]['uploader'].target_length
@@ -291,6 +293,11 @@ class AddTaskThread(threading.Thread):
                 else:
                     remote_path = msg[3]['uploader'].remote
                 l = [self.globals, filename, progress, msg[1], 'Paused', remote_path, 'TODO', msg[2]]
+                self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_STARTING, l)
+            elif msg[0] in 'error_2':
+                self.logger.debug('Authentication skipped {}.'.format(msg[2]))
+                filename = os.path.basename(msg[3]['path'])
+                l = [self.globals, filename, '0%', msg[1], 'Error-File not found', '', 'TODO', msg[2]]
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_STARTING, l)
 
 class UploadThread(threading.Thread):
@@ -352,7 +359,7 @@ class UploadThread(threading.Thread):
         if self.service in 'Dropbox':
             response = self.worker.finish('{}{}'.format(self.worker.remote, os.path.basename(self.worker.path)))
             path = response['path']
-            url = self.worker.client.share(path)['url']
+            url = self.worker.client.share(path, short_url=local.Dropbox_SHORTURL)['url']
             d['name'] = os.path.basename(self.worker.path)
             date = str(datetime.datetime.now())
             d['date'] = date[:date.index('.')]
@@ -370,4 +377,3 @@ class UploadThread(threading.Thread):
 
         self.logger.debug('Putting in queue {}.'.format(self.id))
         self.out_queue.put(('add', self.service, self.id, d))
-        return

@@ -201,7 +201,8 @@ class UploadQueue(object):
                 with open(v['path'], 'r'):
                     pass
             except IOError:
-                self.pending_uploads['Dropbox'][k] = {'error':'File not found', 'path':v['path']}
+                self.pending_uploads['Dropbox'][k] = {'error':'File not found', 'path':v['path'],
+                                                      'status':'Error-2'}
                 continue
 
             offset = int(v['offset'])
@@ -222,7 +223,8 @@ class UploadQueue(object):
                 with open(v['path'],'r'):
                     pass
             except IOError:
-                self.pending_uploads['GoogleDrive'][k] = {'error':'File not found', 'path':v['path']}
+                self.pending_uploads['GoogleDrive'][k] = {'error':'File not found', 'path':v['path'],
+                                                          'status':'Error-2'}
                 continue
 
             offset = int(v['offset'])
