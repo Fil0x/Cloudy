@@ -192,7 +192,6 @@ class UploadQueue(object):
 
     #initialization functions
     def _dropbox_load(self):
-        #Function called on initialization
         uploadManager = LocalUploadManager()
         uploadsFromFile = uploadManager.get_uploads('Dropbox')
 
@@ -201,10 +200,17 @@ class UploadQueue(object):
                 with open(v['path'], 'r'):
                     pass
             except IOError:
-                self.pending_uploads['Dropbox'][k] = {'error':'File not found', 'path':v['path'],
-                                                      'status':'Error-2'}
+                self.pending_uploads['Dropbox'][k] = {'error':'File not found',
+                                                      'status':'Error-2',
+                                                      'path':v['path']}
                 continue
 
+            if 'offset' not in v:
+                self.pending_uploads['Dropbox'][k] = {'error':'File not found',
+                                                          'status':'Error-2',
+                                                          'path':v['path']}
+                continue
+                
             offset = int(v['offset'])
             upload_id = None if v['upload_id'] == 'None' else v['upload_id']
             dbUploader = DropboxUploader(v['path'], v['destination'], offset, upload_id)
@@ -223,8 +229,15 @@ class UploadQueue(object):
                 with open(v['path'],'r'):
                     pass
             except IOError:
-                self.pending_uploads['GoogleDrive'][k] = {'error':'File not found', 'path':v['path'],
-                                                          'status':'Error-2'}
+                self.pending_uploads['GoogleDrive'][k] = {'error':'File not found',
+                                                          'status':'Error-2',
+                                                          'path':v['path']}
+                continue
+                
+            if 'offset' not in v:
+                self.pending_uploads['GoogleDrive'][k] = {'error':'File not found',
+                                                          'status':'Error-2',
+                                                          'path':v['path']}
                 continue
 
             offset = int(v['offset'])
@@ -244,7 +257,7 @@ class UploadQueue(object):
             return 'Paused'
         elif 'Error' in state:
             return state
-    
+
     def _dropbox_add(self, path):
         '''
         path: localpath to the file.
@@ -257,6 +270,7 @@ class UploadQueue(object):
             uploader = DropboxUploader(path, dm.get_service_root('Dropbox'))
         except IOError:
             self.pending_uploads['Dropbox'][id] = {'error':'File not found',
+                                                   'status':'Error-2',
                                                    'path':path}
         else:
             self.pending_uploads['Dropbox'][id] = {'uploader':uploader,
@@ -276,13 +290,23 @@ class UploadQueue(object):
 
         uploadManager = LocalUploadManager()
         uploadManager.delete_upload('Dropbox')
-        self._remove_invalids('Dropbox')
 
         for k, v in self.pending_uploads['Dropbox'].iteritems():
             if v['status'] == 'Removing':
                 continue #Dont save the uploads with Removing status.
-            d = create_dict(v)
-            uploadManager.add_upload('Dropbox', k, **d)
+            elif v['status'] == 'Error-2':
+                ''' If the status is error-2 this can mean two things:
+                    1)the upload raised this error in this app session,
+                    2)the erroneous upload wasn't removed by the user 
+                     and it has lived at least one app session.
+                '''
+                if 'error' not in v: #1
+                    uploadManager.add_upload('Dropbox', k, **{'path':v['uploader'].path})
+                else: #2
+                    uploadManager.add_upload('Dropbox', k, **{'path':v['path']})
+            else:
+                d = create_dict(v)
+                uploadManager.add_upload('Dropbox', k, **d)
 
     def _googledrive_add(self, path):
         id = self._new_id()
@@ -294,6 +318,7 @@ class UploadQueue(object):
             uploader = GoogleDriveUploader(path, dm.get_service_root('GoogleDrive'))
         except IOError:
             self.pending_uploads['GoogleDrive'][id] = {'error':'File not found',
+                                                       'status':'Error-2',
                                                        'path':path}
         else:
             self.pending_uploads['GoogleDrive'][id] = {'uploader':uploader,
@@ -313,16 +338,23 @@ class UploadQueue(object):
 
         uploadManager = LocalUploadManager()
         uploadManager.delete_upload('GoogleDrive')
-        self._remove_invalids('GoogleDrive')
 
         for k, v in self.pending_uploads['GoogleDrive'].iteritems():
             if v['status'] == 'Removing':
                 continue #Dont save the uploads with Removing status.
-            d = create_dict(v)
-            uploadManager.add_upload('GoogleDrive', k, **d)
-
-    def _remove_invalids(self, s):
-        self.pending_uploads[s] = {k:v for k,v in self.pending_uploads[s].items() if 'error' not in v}
+            elif v['status'] == 'Error-2':
+                ''' If the status is error-2 this can mean two things:
+                    1)the upload raised this error in this app session,
+                    2)the erroneous upload wasn't removed by the user 
+                     and it has lived at least one app session.
+                '''
+                if 'error' not in v: #1
+                    uploadManager.add_upload('GoogleDrive', k, **{'path':v['uploader'].path})
+                else: #2
+                    uploadManager.add_upload('GoogleDrive', k, **{'path':v['path']})
+            else:
+                d = create_dict(v)
+                uploadManager.add_upload('GoogleDrive', k, **d)
     #end of Upload functions
 
     #History functions - exposed
