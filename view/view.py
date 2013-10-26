@@ -68,7 +68,7 @@ class CompactWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
                 p = raw(url.path()[1:])
                 if os.path.isfile(p):
                     self.proxy.add_file(data[0], str(p))
-                    
+
     def get_window_info(self):
         return self.viewComponent.get_window_info()
 
@@ -108,10 +108,10 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
 
     def get_window_info(self):
         return self.viewComponent.get_window_info()
-        
+
     def onUploadStarting(self, body):
         self.viewComponent.add_upload_item(body)
-        
+
     def onUploadStart(self, body):
         self.viewComponent.update_remote_path(body)
         self.viewComponent.update_item_status([body[0], 'Running'])
@@ -124,32 +124,32 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
 
     def onUploadPausing(self, id):
         self.viewComponent.update_item_status([id, 'Pausing'])
-    
+
     def onUploadPaused(self, id):
         self.viewComponent.update_item_status([id, 'Paused'])
-        
+
     def onUploadResuming(self, id):
         self.viewComponent.update_item_status([id, 'Resuming'])
-        
+
     def onUploadResumed(self, id):
         self.viewComponent.update_item_status([id, 'Running'])
-        
+
     def onUploadRemoving(self, id):
         self.viewComponent.update_item_status([id, 'Removing'])
-        
+
     def onUploadRemoved(self, id):
         self.viewComponent.delete_upload_item(id)
-        
+
     def onHistoryAdd(self, body):
         self.viewComponent.add_history_item([body[2]['path'], body[2]['link'], body[0],
                                              body[2]['date'], body[1]])
 
     def onHistoryDelete(self, body):
         self.viewComponent.delete_history_item(body)
-                                             
+
     def onFileNotFound(self, id):
         self.viewComponent.update_item_status([id, 'Error-File not found'])
-                                             
+
     def _format_history(self):
         l = []
         r = self.proxy.get_history()
@@ -163,7 +163,7 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         if not p.get_services():
             self.viewComponent.show_add_file_warning()
             return
-        
+
         if not self.f:
             self.f = FileChooser(p.get_services(), self.viewComponent)
             self.f.okButton.clicked.connect(self.onFileDialogOK)
@@ -172,63 +172,75 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
             self.f.show()
         else:
             self.f.activateWindow()
-        
+
     def onFileDialogOK(self, event):
         paths = self.f.get_filenames()
         service = str(self.f.get_selected_service())
-        
+
         self.f.close()
         self.f = None
-        
+
         #TODO: Limit the uploaded files.
         for p in paths:
             self.proxy.add_file(service, p)
-        
+
     def onFileDialogCancel(self, event):
         self.f.close()
         self.f = None
 
     def onPlay(self):
         items = self.viewComponent.get_selected_ids(0)
-        
+
         if not items:
             return
-            
+
         delete = copy.copy(items)
         for d in items:
             state = self.proxy.get_status(d[1], d[0])
-            if state != 'Paused':
+            if state == 'Error-2':
+                data = self.proxy.get(d[1], d[0])
+                if 'error' in data:
+                    path = data['path']
+                else:
+                    path = data['uploader'].path
+
+                try:
+                    with open(path, 'rb'):
+                        continue
+                except IOError:
+                    delete.remove(d)
+            elif state != 'Paused':
                 delete.remove(d)
-        
+
         if len(delete):
             self.proxy.resume_file(delete)
 
     def onRemove(self):
         index = self.viewComponent.get_current_tab()
         #[[id, service],..]
-        items = self.viewComponent.get_selected_ids(index) 
+        items = self.viewComponent.get_selected_ids(index)
 
         if not items:
             return
-            
+
         delete = copy.copy(items)
         if index == 0:
             for d in items:
                 state = self.proxy.get_status(d[1], d[0])
                 if state not in ['Paused', 'Running'] and 'Error' not in state:
                     delete.remove(d)
-            
+
             if len(delete):
-                self.proxy.delete_file(delete)                   
+                self.proxy.delete_file(delete)
         elif index == 1:
             self.proxy.delete_history(delete)
 
     def onStop(self):
         items = self.viewComponent.get_selected_ids(0)
-        
+
         if not items:
             return
-            
+
         delete = copy.copy(items)
         for d in items:
             state = self.proxy.get_status(d[1], d[0])
@@ -277,11 +289,11 @@ class HistoryWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
 
     def handleNotification(self, notification):
         pass
-            
+
     def onDelete(self):
         if self.viewComponent.isVisible():
             self.viewComponent.update_all(self._format_history())
-                
+
     def _format_history(self):
         l = []
         r = self.proxy.get_history()

@@ -6,7 +6,6 @@ import faults
 from DataManager import Manager
 from DataManager import LocalDataManager
 
-#from pithos.tools.lib.client import Pithos_Client, Fault - Deprecated(?)
 from dropbox.client import DropboxClient
 from dropbox.client import DropboxOAuth2FlowNoRedirect
 from dropbox import rest
@@ -28,10 +27,6 @@ class AuthManager(Manager):
 
     #exposed functions
     def authenticate(self, service):
-        '''Use this function to get a service client.
-           params:
-           service: one of the following 'Dropbox', 'Pithos', 'GoogleDrive'.
-        '''
         assert(service in self.services)
 
         return self.service_auth[service]()

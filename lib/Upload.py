@@ -1,5 +1,6 @@
 ﻿import re
 import os
+import sys
 import httplib2
 from StringIO import StringIO
 
@@ -156,9 +157,9 @@ class GoogleDriveUploader(object):
                         self.offset = file.resumable_progress
                         self.upload_uri = file.resumable_uri
                         yield (status.progress(), self.path)
-                except Exception:
+                except Exception as e:
                     #https://developers.google.com/drive/handle-errors
-                    print 'Something happened'
+                    print e.message
                     self.offset = file.resumable_progress
                     self.upload_uri = file.resumable_uri
             #Error handle
@@ -250,6 +251,13 @@ class UploadQueue(object):
     #End of initialization funtions
 
     #Upload functions
+    def add_from_error(self, service, id, path):
+        uploader = getattr(sys.modules[__name__], '{}Uploader'.format(service))(path)
+        self.pending_uploads[service][id] = {'uploader':uploader,
+                                             'status':'Starting',
+                                             'conflict':'KeepBoth'}
+        return self.pending_uploads[service][id]
+    
     def _normalize_state(self, state):
         if state in ['Starting', 'Running', 'Resuming']:
             return 'Starting'

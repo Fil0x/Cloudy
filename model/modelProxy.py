@@ -60,9 +60,17 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
         for i in data:
             #Skip files with status Running
             r = self.get(i[1], i[0])
-            if 'error' in r:
-                return #notify controller that the path is invalid
-            self.add_queue.put(('resume', i[1], i[0], r))
+            if r['status'] == 'Error-2':
+                if 'error' in r:
+                    path = r['path']
+                else:
+                    path = r['uploader'].path
+                    self.facade.sendNotification(AppFacade.AppFacade.UPLOAD_UPDATED,
+                                                       [self.g, i[0], '0%'])
+                data = self.model.uq.add_from_error(i[1], i[0], path)
+                self.add_queue.put(('resume', i[1], i[0], data))
+            else:
+                self.add_queue.put(('resume', i[1], i[0], r))
 
     def get_history(self):
         r = self.model.uq.get_history()
@@ -106,7 +114,7 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
 
     def get(self, service, id):
         return self.model.uq.get(service, id)
-
+        
     def add(self, service, path):
         return self.model.uq.add(service, path)
 
@@ -331,7 +339,7 @@ class UploadThread(threading.Thread):
             if i[0] == 2:
                 self.proxy.set_state(self.service, self.id, 'Error-2')
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.FILE_NOT_FOUND,
-                                           [self.globals, self.id])
+                                                   [self.globals, self.id])
                 self.error = True
                 return
             else:
