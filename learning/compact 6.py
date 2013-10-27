@@ -76,8 +76,8 @@ class MyFrame(QtGui.QFrame):
         painter.setPen(QtCore.Qt.NoPen)
         painter.setBrush(QtGui.QColor(40,43,49, 190))
 
-        painter.drawRoundedRect(0, 0, self.width(), self.height(), 15., 15.)
-        
+        painter.drawRoundedRect(0, 0, self.width(), self.height(), 5., 5.)
+
 class CompactWindow(QtGui.QWidget):
 
     dropbox = r'images/dropbox-{}.png'
@@ -213,3 +213,11 @@ class CompactWindow(QtGui.QWidget):
 
             self.move(new_pos)
 
+if __name__ == '__main__':
+    import sys
+
+    app = QtGui.QApplication(sys.argv)
+    window = CompactWindow(['Dropbox', 'GoogleDrive', 'Pithos'], 'V', (100, 100), 0)
+    window.show()
+
+    sys.exit(app.exec_())
