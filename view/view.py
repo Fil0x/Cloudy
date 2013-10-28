@@ -72,6 +72,24 @@ class CompactWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
     def get_window_info(self):
         return self.viewComponent.get_window_info()
 
+    def listNotificationInterests(self):
+        return [
+            AppFacade.AppFacade.COMPACT_SET_STATE
+        ]
+
+    def handleNotification(self, notification):
+        note_name = notification.getName()
+        body = notification.getBody()
+        if note_name == AppFacade.AppFacade.COMPACT_SET_STATE:
+            self.viewComponent.set_service_states(body)
+
+def update_compact(f):
+    def wrapper(*args):
+        f(*args)
+        args[0].proxy.facade.sendNotification(AppFacade.AppFacade.COMPACT_SET_STATE,
+                                              args[0].viewComponent.get_states())
+    return wrapper
+
 class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMediator):
 
     NAME = 'DetailedWindowMediator'
@@ -109,9 +127,11 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
     def get_window_info(self):
         return self.viewComponent.get_window_info()
 
+    @update_compact
     def onUploadStarting(self, body):
         self.viewComponent.add_upload_item(body)
 
+    @update_compact
     def onUploadStart(self, body):
         self.viewComponent.update_remote_path(body)
         self.viewComponent.update_item_status([body[0], 'Running'])
@@ -119,24 +139,31 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
     def onUploadUpdate(self, body):
         self.viewComponent.update_upload_item(body)
 
+    @update_compact
     def onUploadComplete(self, id):
         self.viewComponent.delete_upload_item(id)
 
+    @update_compact
     def onUploadPausing(self, id):
         self.viewComponent.update_item_status([id, 'Pausing'])
 
+    @update_compact
     def onUploadPaused(self, id):
         self.viewComponent.update_item_status([id, 'Paused'])
 
+    @update_compact
     def onUploadResuming(self, id):
         self.viewComponent.update_item_status([id, 'Resuming'])
 
+    @update_compact
     def onUploadResumed(self, id):
         self.viewComponent.update_item_status([id, 'Running'])
 
+    @update_compact
     def onUploadRemoving(self, id):
         self.viewComponent.update_item_status([id, 'Removing'])
 
+    @update_compact
     def onUploadRemoved(self, id):
         self.viewComponent.delete_upload_item(id)
 
@@ -147,6 +174,7 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
     def onHistoryDelete(self, body):
         self.viewComponent.delete_history_item(body)
 
+    @update_compact
     def onFileNotFound(self, id):
         self.viewComponent.update_item_status([id, 'Error-File not found'])
 

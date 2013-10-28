@@ -1,3 +1,4 @@
+import re
 import operator
 
 from PyQt4 import Qt
@@ -42,6 +43,28 @@ class MyTableModel(QtCore.QAbstractTableModel):
             self.data.reverse()
         self.emit(QtCore.SIGNAL("layoutChanged()"))
 
+    def get_states(self, service=None):
+        if not self.data:
+            return
+
+        r = []
+        if not service:
+            services = list(set(zip(*self.data)[2]))
+        else:
+            services = [service]
+        for s in services:
+            service_filter = lambda x: x[2] == s
+            filtered_data = filter(service_filter, self.data)
+            states = zip(*filtered_data)[3]
+            if filter(lambda x:re.match('Error-*', x), states):
+                r.append([s, 'Error'])
+            elif len(filter(lambda x:x == 'Paused', states)) == len(states):
+                r.append([s, 'Idle'])
+            else:
+                r.append([s, 'Active'])
+
+        return r
+
     def add_item(self, item):
         if len(self.data) == 1 and self.data[0][0] == '':
             self.beginRemoveRows(QtCore.QModelIndex(), 0, 0)
@@ -64,10 +87,10 @@ class MyTableModel(QtCore.QAbstractTableModel):
 
     def update_status(self, item):
         self.update_row(item[0], item[1], 3)
-        
+
     def update_remote(self, item):
         self.update_row(item[0], item[1], 4)
-          
+
     def remove(self, id):
         i = zip(*self.data)[-1].index(id)
         self.beginRemoveRows(QtCore.QModelIndex(), i, i)
@@ -116,7 +139,7 @@ class UploadTableDelegate(BaseDelegate):
 
         if len(d) >= 25:
             d = d[:25] + '...'
-            
+
         if col in [0, 5]:
             painter.drawText(QtCore.QPoint(10, 20), d)
         elif col == 3:
@@ -177,7 +200,7 @@ class HistoryTableDelegate(BaseDelegate):
             pos = self.center_text(option.rect, d)
             painter.drawImage(QtCore.QPoint(pos.x()-25, 7), self.images[d])
             painter.drawText(pos, d)
-            
+
         painter.restore()
 
     def editorEvent(self, event, model, option, index):
@@ -291,9 +314,9 @@ class DetailedWindow(QtGui.QMainWindow):
         pos = [self.pos().x(), self.pos().y()]
         size = [self.size().width(), self.size().height()]
         screen_id = d.screenNumber(self)
-        
+
         return [pos, size, self.isMaximized(), screen_id]
-        
+
     def get_selected_ids(self, n):
         r = []
         if n == 0:
@@ -314,6 +337,9 @@ class DetailedWindow(QtGui.QMainWindow):
 
         return r
 
+    def get_states(self, service=None):
+        return self.upload_table.model().get_states(service)
+
     def show_settings(self):
         self.tab.setCurrentIndex(2)
 
@@ -326,7 +352,7 @@ class DetailedWindow(QtGui.QMainWindow):
 
     def update_item_status(self, item):
         self.upload_table.model().update_status(item)
-      
+
     def update_remote_path(self, item):
         self.upload_table.model().update_remote(item)
 

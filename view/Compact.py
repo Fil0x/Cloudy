@@ -15,10 +15,10 @@ class MyLabel(QtGui.QLabel):
         self.setMouseTracking(True)
         self.setAcceptDrops(True)
         self.setPixmap(self.normal)
-        
+
         self.roundness = 20.
         self.gradient_radius = 40
-        self.active_color = QtGui.QColor(74, 209, 59, 255)        
+        self.active_color = QtGui.QColor(74, 209, 59, 255)
         self.error_color = QtGui.QColor(255, 0, 0, 255)
 
         self.service = service
@@ -29,7 +29,7 @@ class MyLabel(QtGui.QLabel):
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
         painter.setPen(QtCore.Qt.NoPen)
         center = QtCore.QPointF(event.rect().center())
-        
+
         gradient = QtGui.QRadialGradient(center, self.gradient_radius)
         if self.state == 'Active':
             gradient.setColorAt(0.0, self.active_color)
@@ -39,7 +39,7 @@ class MyLabel(QtGui.QLabel):
             gradient.setColorAt(0.0, QtCore.Qt.transparent)
         gradient.setColorAt(1.0, QtCore.Qt.transparent)
         painter.setBrush(gradient)
-        
+
         painter.drawRoundedRect(0, 0, self.width(), self.height(), self.roundness, self.roundness)
 
         QtGui.QLabel.paintEvent(self, event)
@@ -47,6 +47,7 @@ class MyLabel(QtGui.QLabel):
     def set_state(self, state):
         #One of Idle, Active, Error
         self.state = state
+        self.repaint()
 
     def dragEnterEvent(self, event):
         event.accept()
@@ -74,10 +75,10 @@ class MyFrame(QtGui.QFrame):
 
         painter.setRenderHint(QtGui.QPainter.Antialiasing);
         painter.setPen(QtCore.Qt.NoPen)
-        painter.setBrush(QtGui.QColor(40,43,49, 190))
+        painter.setBrush(QtGui.QColor(40,43,49, 205))
 
         painter.drawRoundedRect(0, 0, self.width(), self.height(), 15., 15.)
-        
+
 class CompactWindow(QtGui.QWidget):
 
     dropbox = r'images/dropbox-{}.png'
@@ -160,6 +161,19 @@ class CompactWindow(QtGui.QWidget):
         screen_id = d.screenNumber(self)
 
         return [pos, screen_id, self.orientation]
+
+    def set_service_states(self, new_states):
+        if not new_states:
+            for s in self.services:
+                self.items[s].set_state('Idle')
+            return
+        used_services = set(self.services)
+        update_services = set(zip(*new_states)[0])
+        for service in used_services.difference(update_services):
+            self.items[service].set_state('Idle')
+
+        for service, state in new_states:
+            self.items[service].set_state(state)
 
     def add_item(self, service):
         start = self.main_frame.geometry()
