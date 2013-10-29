@@ -17,6 +17,7 @@ from simpleflake import simpleflake
 from apiclient.discovery import build
 from apiclient.http import MediaFileUpload
 from oauth2client.client import Credentials
+from oauth2client.client import AccessTokenRefreshError
 
 #Dropbox stuff
 def format_path(path):
@@ -82,7 +83,8 @@ class DropboxUploader(object):
                             if reply['offset'] > self.offset:
                                 self.last_block = None
                                 self.offset = reply['offset']
-                        yield (12, None)
+                        if e.status == 404:
+                            yield (12, None)
                         return
                     except rest.RESTSocketError as e:
                         yield (22, None)
@@ -157,11 +159,11 @@ class GoogleDriveUploader(object):
                         self.offset = file.resumable_progress
                         self.upload_uri = file.resumable_uri
                         yield (status.progress(), self.path)
-                except Exception as e:
+                except AccessTokenRefreshError:
                     #https://developers.google.com/drive/handle-errors
-                    print e.message
                     self.offset = file.resumable_progress
                     self.upload_uri = file.resumable_uri
+                    yield (12, None)
             #Error handle
             if response:
                 self.title = response['title']

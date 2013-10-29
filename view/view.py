@@ -123,6 +123,7 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         self.g.signals.upload_detailed_removing.connect(self.onUploadRemoving)
         self.g.signals.upload_detailed_removed.connect(self.onUploadRemoved)
         self.g.signals.file_not_found.connect(self.onFileNotFound)
+        self.g.signals.invalid_credentials.connect(self.onInvalidCredentials)
 
     def get_window_info(self):
         return self.viewComponent.get_window_info()
@@ -177,6 +178,10 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
     @update_compact
     def onFileNotFound(self, id):
         self.viewComponent.update_item_status([id, 'Error-File not found'])
+        
+    @update_compact
+    def onInvalidCredentials(self, id):
+        self.viewComponent.update_item_status([id, 'Error-Invalid Credentials'])
 
     def _format_history(self):
         l = []
@@ -237,6 +242,8 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
                         continue
                 except IOError:
                     delete.remove(d)
+            elif state == 'Error-12':
+                delete.remove(d) #TODO
             elif state != 'Paused':
                 delete.remove(d)
 

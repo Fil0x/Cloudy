@@ -42,16 +42,10 @@ class LocalDataManager(Manager):
         config['Pithos']['ROOT'] = '/pithos'
 
         config['Dropbox'] = {}
-        config['Dropbox']['APP_KEY'] = local.Dropbox_APPKEY
-        config['Dropbox']['APP_SECRET'] = local.Dropbox_APPSECRET
         config['Dropbox']['ROOT'] = '/'
 
         config['GoogleDrive'] = {}
-        config['GoogleDrive']['APP_KEY'] = local.GoogleDrive_APPKEY
-        config['GoogleDrive']['APP_SECRET'] = local.GoogleDrive_APPSECRET
-        config['GoogleDrive']['SCOPES'] = 'https://www.googleapis.com/auth/drive'
         config['GoogleDrive']['ROOT'] = '/Apps/CSLab_Cloudy'
-        config['GoogleDrive']['REDIRECT_URI'] = 'urn:ietf:wg:oauth:2.0:oob'
 
         config.write()
 
@@ -90,14 +84,6 @@ class LocalDataManager(Manager):
 
     #Dropbox information
     @checkFile
-    def get_dropbox_auth_info(self):
-        '''Returns the necessary information to request a new dropbox token.
-           Order: APP_KEY, APP_SECRET
-        '''
-        return (self.config['Dropbox']['APP_KEY'],
-               self.config['Dropbox']['APP_SECRET'])
-
-    @checkFile
     def get_dropbox_token(self):
         try:
             return self.config['Dropbox']['access_token']
@@ -122,17 +108,7 @@ class LocalDataManager(Manager):
 
         self.config.write()
 
-    #Google Drive information - Supports one user only.
-    @checkFile
-    def get_googledrive_auth_info(self):
-        '''Returns the necessary information to request a new googledrive token.
-           Order: APP_KEY, APP_SECRET, SCOPES, REDIRECT_URI
-        '''
-        return (self.config['GoogleDrive']['APP_KEY'],
-               self.config['GoogleDrive']['APP_SECRET'],
-               self.config['GoogleDrive']['SCOPES'],
-               self.config['GoogleDrive']['REDIRECT_URI'])
-
+    #Google Drive information
     @checkFile
     def set_googledrive_credentials(self, credentials):
         self.config['GoogleDrive']['Credentials'] = credentials.to_json()

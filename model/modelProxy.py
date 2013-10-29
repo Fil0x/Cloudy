@@ -92,10 +92,11 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
         for s, v in r.iteritems():
             for id, data in v.iteritems():
                 if 'error' in data or data['status'] == 'Error-2': #File not found, case 2 not needed?
-                    self.logger.debug('Item added(E): {}/{}'.format(s, id))
+                    self.logger.debug('Item added(2): {}/{}'.format(s, id))
                     self.add_queue.put(('error_2', s, id, data))
-                elif 'Error' in data['status']:
-                    continue
+                elif data['status'] == 'Error-12':
+                    self.logger.debug('Item added(12): {}/{}'.format(s, id))
+                    self.add_queue.put(('error_12', s, id, data))
                 elif data['status'] == 'Starting':
                     self.logger.debug('Item added(R): {}/{}'.format(s, id))
                     self.add_queue.put(('add_from_file', s, id, data))
@@ -254,13 +255,18 @@ class AddTaskThread(threading.Thread):
                 # [filename, progress, service, status, dest, conflict, (id)]
                 l = [self.globals, filename, '0%', msg[1], 'Starting', '', 'TODO', id]
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_STARTING, l)
-                #is it cached?
-                client = self.proxy.authenticate(msg[1])
-                self.logger.debug('Authentication done')
-                #Errorrrrsssss
-                d['uploader'].client = client
-                self.logger.debug('Putting the uploader in queue.')
-                self.out_queue.put(('add', msg[1], id, d['uploader']))
+                try:
+                    client = self.proxy.authenticate(msg[1])
+                except (faults.InvalidAuth, KeyError):
+                    self.logger.debug('Authentication skipped')
+                    self.proxy.set_state(msg[1], id, 'Error-12')
+                    self.proxy.facade.sendNotification(AppFacade.AppFacade.INVALID_CREDENTIALS,
+                                                       [self.globals, id])
+                else:
+                    self.logger.debug('Authentication done')
+                    d['uploader'].client = client
+                    self.logger.debug('Putting the uploader in queue.')
+                    self.out_queue.put(('add', msg[1], id, d['uploader']))
             elif msg[0] in 'add_from_file':
                 self.logger.debug('Loading from file {}.'.format(msg[2]))
                 # [filename, progress, service, status, dest, conflict, (id)]
@@ -272,22 +278,34 @@ class AddTaskThread(threading.Thread):
                     progress = '0%'
                 l = [self.globals, filename, progress, msg[1], 'Starting', '', 'TODO', msg[2]]
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_STARTING, l)
-                #is it cached?
-                client = self.proxy.authenticate(msg[1])
-                self.logger.debug('Authentication done')
-                #Errorrrrsssss
-                msg[3]['uploader'].client = client
-                self.logger.debug('Putting the uploader in queue.')
-                self.out_queue.put(('add', msg[1], msg[2], msg[3]['uploader']))
+                try:
+                    client = self.proxy.authenticate(msg[1])
+                except (faults.InvalidAuth, KeyError):
+                    self.logger.debug('Authentication skipped')
+                    self.proxy.set_state(msg[1], id, 'Error-12')
+                    self.proxy.facade.sendNotification(AppFacade.AppFacade.INVALID_CREDENTIALS,
+                                                       [self.globals, id])
+                else:
+                    self.logger.debug('Authentication done')
+                    msg[3]['uploader'].client = client
+                    self.logger.debug('Putting the uploader in queue.')
+                    self.out_queue.put(('add', msg[1], msg[2], msg[3]['uploader']))
             elif msg[0] in 'resume':
                 self.logger.debug('Authentication done')
                 self.proxy.set_state(msg[1], msg[2], 'Resuming')
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_RESUMING,
                                                    [self.globals, msg[2]])
-                client = self.proxy.authenticate(msg[1])
-                self.logger.debug('Resuming {}'.format(msg[2]))
-                msg[3]['uploader'].client = client
-                self.out_queue.put(('resume', msg[1], msg[2], msg[3]['uploader']))
+                try:
+                    client = self.proxy.authenticate(msg[1])
+                except (faults.InvalidAuth, KeyError):
+                    self.logger.debug('Authentication skipped')
+                    self.proxy.set_state(msg[1], id, 'Error-12')
+                    self.proxy.facade.sendNotification(AppFacade.AppFacade.INVALID_CREDENTIALS,
+                                                       [self.globals, id])
+                else:
+                    self.logger.debug('Resuming {}'.format(msg[2]))
+                    msg[3]['uploader'].client = client
+                    self.out_queue.put(('resume', msg[1], msg[2], msg[3]['uploader']))
             elif msg[0] in 'add_paused':
                 self.logger.debug('Authentication skipped {}.'.format(msg[2]))
                 filename = os.path.basename(msg[3]['uploader'].path)
@@ -306,6 +324,16 @@ class AddTaskThread(threading.Thread):
                 self.logger.debug('Authentication skipped {}.'.format(msg[2]))
                 filename = os.path.basename(msg[3]['path'])
                 l = [self.globals, filename, '0%', msg[1], 'Error-File not found', '', 'TODO', msg[2]]
+                self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_STARTING, l)
+            elif msg[0] in 'error_12':
+                self.logger.debug('Authentication skipped {}.'.format(msg[2]))
+                filename = os.path.basename(msg[3]['uploader'].path)
+                try:
+                    float_progess = float(msg[3]['uploader'].offset)/msg[3]['uploader'].target_length
+                    progress = str(round(float_progess, 3)*100) + '%'
+                except ZeroDivisionError:
+                    progress = '0%'
+                l = [self.globals, filename, progress, msg[1], 'Error-Invalid Credentials', '', 'TODO', msg[2]]
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_STARTING, l)
 
 class UploadThread(threading.Thread):
@@ -339,6 +367,12 @@ class UploadThread(threading.Thread):
             if i[0] == 2:
                 self.proxy.set_state(self.service, self.id, 'Error-2')
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.FILE_NOT_FOUND,
+                                                   [self.globals, self.id])
+                self.error = True
+                return
+            elif i[0] == 12:
+                self.proxy.set_state(self.service, self.id, 'Error-12')
+                self.proxy.facade.sendNotification(AppFacade.AppFacade.INVALID_CREDENTIALS,
                                                    [self.globals, self.id])
                 self.error = True
                 return

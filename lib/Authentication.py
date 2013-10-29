@@ -6,12 +6,14 @@ import faults
 from DataManager import Manager
 from DataManager import LocalDataManager
 
+from dropbox import rest
 from dropbox.client import DropboxClient
 from dropbox.client import DropboxOAuth2FlowNoRedirect
-from dropbox import rest
-from oauth2client.client import Credentials
-from apiclient.discovery import build
 from apiclient import errors
+from apiclient.discovery import build
+from oauth2client.client import Credentials
+from oauth2client.client import OAuth2WebServerFlow
+from oauth2client.client import AccessTokenRefreshError
 
 class AuthManager(Manager):
     def __init__(self):
@@ -57,7 +59,8 @@ class AuthManager(Manager):
         try:
             dropboxClient.account_info()
         except rest.ErrorResponse as e:
-            raise faults.InvalidAuth('Dropbox-Auth')
+            if e.status == 401:
+                raise faults.InvalidAuth('Dropbox-Auth')
         except rest.RESTSocketError as e:
             raise faults.NetworkError('No internet-Auth')
 
@@ -83,22 +86,23 @@ class AuthManager(Manager):
         try:
             drive_service.about().get().execute()
         except errors.HttpError as e:
-            error = json.loads(e.content)
-            if error.get('code') == 401:
-                raise faults.InvalidAuth('GoogleDrive')
-            else:
-                raise
-        except Exception as e:
-            raise faults.NetworkError('No internet.')
+            raise
+        except AccessTokenRefreshError:
+            raise faults.InvalidAuth('GoogleDrive')
+            #raise faults.NetworkError('No internet.')
 
         dataManager.set_googledrive_credentials(credentials)
         return drive_service
 
     def _googledrive_add_user(self, credentials):
         dataManager = LocalDataManager()
-        dataManager.update_googledrive_credentials(credentials)
+        dataManager.set_googledrive_credentials(credentials)
         return self._googledrive_auth()
 
     def get_dropbox_flow(self):
         return DropboxOAuth2FlowNoRedirect(local.Dropbox_APPKEY,
                                            local.Dropbox_APPSECRET)
+                                           
+    def get_googledrive_flow(self):
+        return OAuth2WebServerFlow(local.GoogleDrive_APPKEY, local.GoogleDrive_APPSECRET,
+                                   local.GoogleDrive_OAUTHSCOPE, local.GoogleDrive_REDIRECTURI)

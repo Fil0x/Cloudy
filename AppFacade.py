@@ -38,6 +38,7 @@ class AppFacade(puremvc.patterns.facade.Facade):
     OUT_OF_STORAGE = 'out_of_storage'
     SERVICE_OFFLINE = 'service_offline'
     FILE_NOT_FOUND = 'file_not_found'
+    UPLOAD_EXPIRED = 'upload_expired'
     INVALID_CREDENTIALS = 'invalid_credentials'
 
     def __init__(self):

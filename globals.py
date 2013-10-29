@@ -22,6 +22,7 @@ class Signals(QtCore.QObject):
     out_of_storage = QtCore.pyqtSignal(str)
     service_offline = QtCore.pyqtSignal(str)
     invalid_credentials = QtCore.pyqtSignal(str)
+    upload_expired = QtCore.pyqtSignal(str)
     file_not_found = QtCore.pyqtSignal(str)
 
 class Globals(object):
