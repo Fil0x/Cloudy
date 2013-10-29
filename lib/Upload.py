@@ -213,7 +213,7 @@ class UploadQueue(object):
                                                           'status':'Error-2',
                                                           'path':v['path']}
                 continue
-                
+
             offset = int(v['offset'])
             upload_id = None if v['upload_id'] == 'None' else v['upload_id']
             dbUploader = DropboxUploader(v['path'], v['destination'], offset, upload_id)
@@ -236,7 +236,7 @@ class UploadQueue(object):
                                                           'status':'Error-2',
                                                           'path':v['path']}
                 continue
-                
+
             if 'offset' not in v:
                 self.pending_uploads['GoogleDrive'][k] = {'error':'File not found',
                                                           'status':'Error-2',
@@ -259,7 +259,7 @@ class UploadQueue(object):
                                              'status':'Starting',
                                              'conflict':'KeepBoth'}
         return self.pending_uploads[service][id]
-    
+
     def _normalize_state(self, state):
         if state in ['Starting', 'Running', 'Resuming']:
             return 'Starting'
@@ -307,7 +307,7 @@ class UploadQueue(object):
             elif v['status'] == 'Error-2':
                 ''' If the status is error-2 this can mean two things:
                     1)the upload raised this error in this app session,
-                    2)the erroneous upload wasn't removed by the user 
+                    2)the erroneous upload wasn't removed by the user
                      and it has lived at least one app session.
                 '''
                 if 'error' not in v: #1
@@ -355,7 +355,7 @@ class UploadQueue(object):
             elif v['status'] == 'Error-2':
                 ''' If the status is error-2 this can mean two things:
                     1)the upload raised this error in this app session,
-                    2)the erroneous upload wasn't removed by the user 
+                    2)the erroneous upload wasn't removed by the user
                      and it has lived at least one app session.
                 '''
                 if 'error' not in v: #1

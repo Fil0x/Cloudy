@@ -1,6 +1,8 @@
 import re
 import operator
 
+from Settings import Settings
+
 from PyQt4 import Qt
 from PyQt4 import QtGui
 from PyQt4 import QtCore
@@ -266,6 +268,8 @@ class DetailedWindow(QtGui.QMainWindow):
         self.history_table = self._create_table(self.history_header)
         self.history_table.setItemDelegate(HistoryTableDelegate(self, self.font, c, images))
 
+        self.settings_page = Settings()
+        
         self._createRibbon()
         self._createSideSpaces()
 
@@ -275,7 +279,7 @@ class DetailedWindow(QtGui.QMainWindow):
         self.tab.setTabShape(QtGui.QTabWidget.Triangular)
         self.tab.insertTab(0, self.upload_table, 'Active')
         self.tab.insertTab(1, self.history_table, 'History')
-        self.tab.insertTab(2, QtGui.QLabel('SETTINGS'), 'Settings')
+        self.tab.insertTab(2, self.settings_page, 'Settings')
 
         self.setCentralWidget(self.tab)
 

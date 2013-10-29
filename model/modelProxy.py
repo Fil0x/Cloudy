@@ -115,7 +115,7 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
 
     def get(self, service, id):
         return self.model.uq.get(service, id)
-        
+
     def add(self, service, path):
         return self.model.uq.add(service, path)
 
@@ -282,16 +282,15 @@ class AddTaskThread(threading.Thread):
                     client = self.proxy.authenticate(msg[1])
                 except (faults.InvalidAuth, KeyError):
                     self.logger.debug('Authentication skipped')
-                    self.proxy.set_state(msg[1], id, 'Error-12')
+                    self.proxy.set_state(msg[1], msg[2], 'Error-12')
                     self.proxy.facade.sendNotification(AppFacade.AppFacade.INVALID_CREDENTIALS,
-                                                       [self.globals, id])
+                                                       [self.globals, msg[2]])
                 else:
                     self.logger.debug('Authentication done')
                     msg[3]['uploader'].client = client
                     self.logger.debug('Putting the uploader in queue.')
                     self.out_queue.put(('add', msg[1], msg[2], msg[3]['uploader']))
             elif msg[0] in 'resume':
-                self.logger.debug('Authentication done')
                 self.proxy.set_state(msg[1], msg[2], 'Resuming')
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_RESUMING,
                                                    [self.globals, msg[2]])
@@ -299,10 +298,11 @@ class AddTaskThread(threading.Thread):
                     client = self.proxy.authenticate(msg[1])
                 except (faults.InvalidAuth, KeyError):
                     self.logger.debug('Authentication skipped')
-                    self.proxy.set_state(msg[1], id, 'Error-12')
+                    self.proxy.set_state(msg[1], msg[2], 'Error-12')
                     self.proxy.facade.sendNotification(AppFacade.AppFacade.INVALID_CREDENTIALS,
-                                                       [self.globals, id])
+                                                       [self.globals, msg[2]])
                 else:
+                    self.logger.debug('Authentication done')
                     self.logger.debug('Resuming {}'.format(msg[2]))
                     msg[3]['uploader'].client = client
                     self.out_queue.put(('resume', msg[1], msg[2], msg[3]['uploader']))

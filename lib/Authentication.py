@@ -102,7 +102,7 @@ class AuthManager(Manager):
     def get_dropbox_flow(self):
         return DropboxOAuth2FlowNoRedirect(local.Dropbox_APPKEY,
                                            local.Dropbox_APPSECRET)
-                                           
+
     def get_googledrive_flow(self):
         return OAuth2WebServerFlow(local.GoogleDrive_APPKEY, local.GoogleDrive_APPSECRET,
                                    local.GoogleDrive_OAUTHSCOPE, local.GoogleDrive_REDIRECTURI)

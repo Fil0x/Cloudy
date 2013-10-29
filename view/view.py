@@ -178,7 +178,7 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
     @update_compact
     def onFileNotFound(self, id):
         self.viewComponent.update_item_status([id, 'Error-File not found'])
-        
+
     @update_compact
     def onInvalidCredentials(self, id):
         self.viewComponent.update_item_status([id, 'Error-Invalid Credentials'])
@@ -227,7 +227,7 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         if not items:
             return
 
-        delete = copy.copy(items)
+        play = copy.copy(items)
         for d in items:
             state = self.proxy.get_status(d[1], d[0])
             if state == 'Error-2':
@@ -241,14 +241,14 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
                     with open(path, 'rb'):
                         continue
                 except IOError:
-                    delete.remove(d)
+                    play.remove(d)
             elif state == 'Error-12':
-                delete.remove(d) #TODO
+                pass
             elif state != 'Paused':
-                delete.remove(d)
+                play.remove(d)
 
-        if len(delete):
-            self.proxy.resume_file(delete)
+        if len(play):
+            self.proxy.resume_file(play)
 
     def onRemove(self):
         index = self.viewComponent.get_current_tab()
@@ -276,14 +276,14 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         if not items:
             return
 
-        delete = copy.copy(items)
+        stop = copy.copy(items)
         for d in items:
             state = self.proxy.get_status(d[1], d[0])
             if state != 'Running':
-                delete.remove(d)
+                stop.remove(d)
 
-        if len(delete):
-            self.proxy.stop_file(delete)
+        if len(stop):
+            self.proxy.stop_file(stop)
 
     def listNotificationInterests(self):
         return [

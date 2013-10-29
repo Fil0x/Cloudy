@@ -54,7 +54,7 @@ class LocalDataManager(Manager):
     @checkFile
     def get_service_root(self, service):
         return self.config[service]['ROOT']
-        
+
     @checkFile
     def get_pithos_credentials(self):
         try:

@@ -20,4 +20,4 @@ class ErrorCommand(puremvc.patterns.command.SimpleCommand, puremvc.interfaces.IC
             print note_name
         elif note_name == AppFacade.AppFacade.NETWORK_ERROR:        #22
             print note_name
-        
+

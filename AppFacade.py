@@ -18,7 +18,7 @@ class AppFacade(puremvc.patterns.facade.Facade):
     DELETE_HISTORY_COMPACT = 'delete_history_compact'
 
     COMPACT_SET_STATE = 'compact_set_state'
-    
+
     HISTORY_SHOW_COMPACT = 'compact_show_history'
     HISTORY_UPDATE_COMPACT = 'compact_update_history'
     HISTORY_UPDATE_DETAILED = 'detailed_update_history'
