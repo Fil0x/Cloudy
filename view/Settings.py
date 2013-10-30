@@ -1,3 +1,5 @@
+import sys
+
 import local
 
 from PyQt4 import Qt
@@ -38,10 +40,13 @@ class AccountsPage(QtGui.QWidget):
 
         self.services = local.services
         self.used_services = used_services
-        self.items = {} #The key is the service.
+        self.notauth_panels = {} #The key is the service.
+        self.auth_panels = {} #The key is the service.
 
         mainLayout = QtGui.QVBoxLayout()
         for s in self.services:
+            self.notauth_panels[s] = NotAuthorizedPanel(s)
+            self.auth_panels[s] = getattr(sys.modules[__name__], '{}AuthorizedPanel'.format(s))()
             setattr(self, '{}Group'.format(s.lower()), QtGui.QGroupBox(s))
             getattr(self, '{}Group'.format(s.lower())).setLayout(self._createServiceContent(s, True))
             mainLayout.addWidget(getattr(self, '{}Group'.format(s.lower())))
@@ -51,7 +56,7 @@ class AccountsPage(QtGui.QWidget):
         self.setLayout(mainLayout)
 
     def showEvent(self, event):
-        for v in self.items.itervalues():
+        for v in self.notauth_panels.itervalues():
             v.code_edit.setEnabled(False)
             v.verify_button.setEnabled(False)
         
@@ -83,13 +88,19 @@ class AccountsPage(QtGui.QWidget):
             layout = QtGui.QVBoxLayout()
         else:
             layout = getattr(self, '{}Group'.format(service.lower())).layout()
-
+        layout.addWidget(self.notauth_panels[service])
+        layout.addWidget(self.auth_panels[service])
+            
+        # if service in self.used_services:
+            # layout.addWidget(self.auth_panels[service])
+        # else:
+            # layout.addWidget(self.notauth_panels[service])
         if service in self.used_services:
-            layout.addWidget(QtGui.QLabel('Lol authenticated.'))
+            self.notauth_panels[service].setVisible(False)
+            self.auth_panels[service].setVisible(True)
         else:
-            panel = NotAuthorizedPanel(service)
-            self.items[service] = panel
-            layout.addWidget(panel)
+            self.auth_panels[service].setVisible(False)
+            self.notauth_panels[service].setVisible(True)
 
         return layout
 
@@ -135,6 +146,63 @@ class NotAuthorizedPanel(QtGui.QWidget):
         self.verify_button.setEnabled(False)
         self.verifySignal.emit(self.service, self.code_edit.text())
 
+class DropboxAuthorizedPanel(QtGui.QWidget):
+    removeSignal = QtCore.pyqtSignal(str) 
+
+    def __init__(self, parent=None):
+        QtGui.QWidget.__init__(self, parent)
+        
+        layout = QtGui.QGridLayout()
+        
+        self.remove_button = QtGui.QPushButton('Remove')
+        self.remove_button.clicked.connect(self.onRemoveClick)
+        
+        layout.addWidget(QtGui.QLabel('Lol authenticated.'), 0, 0)
+        layout.addWidget(self.remove_button, 0, 2)
+        
+        self.setLayout(layout)
+        
+    def onRemoveClick(self, event):
+        self.removeSignal.emit('Dropbox')
+        
+class PithosAuthorizedPanel(QtGui.QWidget):
+    removeSignal = QtCore.pyqtSignal(str) 
+
+    def __init__(self, parent=None):
+        QtGui.QWidget.__init__(self, parent)
+        
+        layout = QtGui.QGridLayout()
+        
+        self.remove_button = QtGui.QPushButton('Remove')
+        self.remove_button.clicked.connect(self.onRemoveClick)
+        
+        layout.addWidget(QtGui.QLabel('Lol authenticated.'), 0, 0)
+        layout.addWidget(self.remove_button, 0, 2)
+        
+        self.setLayout(layout)
+        
+    def onRemoveClick(self, event):
+        self.removeSignal.emit('Pithos')
+        
+class GoogleDriveAuthorizedPanel(QtGui.QWidget):
+    removeSignal = QtCore.pyqtSignal(str) 
+
+    def __init__(self, parent=None):
+        QtGui.QWidget.__init__(self, parent)
+        
+        layout = QtGui.QGridLayout()
+        
+        self.remove_button = QtGui.QPushButton('Remove')
+        self.remove_button.clicked.connect(self.onRemoveClick)
+        
+        layout.addWidget(QtGui.QLabel('Lol authenticated.'), 0, 0)
+        layout.addWidget(self.remove_button, 0, 2)
+        
+        self.setLayout(layout)
+        
+    def onRemoveClick(self, event):
+        self.removeSignal.emit('GoogleDrive')
+        
 class Settings(QtGui.QWidget):
     def __init__(self, used_services, parent=None):
         super(Settings, self).__init__(parent)
@@ -164,7 +232,13 @@ class Settings(QtGui.QWidget):
         mainLayout.addLayout(horizontalLayout)
 
         self.setLayout(mainLayout)
-
+    
+    def show_settings(self):
+        self.contentsWidget.setCurrentRow(0)
+        
+    def show_accounts(self):
+        self.contentsWidget.setCurrentRow(1)
+        
     def add_service(self, service):
         self.accounts_page.add_service(service)
       

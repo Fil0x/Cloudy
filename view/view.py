@@ -50,14 +50,17 @@ class SettingsMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IM
         self.service_flows = {}
         self.verify_threads = {}
 
-        for s in self.get_not_used_services():
-            self.viewComponent.accounts_page.items[s].authorizeSignal.connect(self.onAuthorizeClicked)
-            self.viewComponent.accounts_page.items[s].verifySignal.connect(self.onVerifyClicked)
+        for s in local.services:
+            self.viewComponent.accounts_page.notauth_panels[s].authorizeSignal.connect(self.onAuthorizeClicked)
+            self.viewComponent.accounts_page.notauth_panels[s].verifySignal.connect(self.onVerifyClicked)
+            self.viewComponent.accounts_page.auth_panels[s].removeSignal.connect(self.onRemoveClicked)
 
-    def get_not_used_services(self):
-        used_services = ApplicationManager().get_services()
-        return set(local.services).difference(set(used_services))
-
+    def onRemoveClicked(self, service):
+        service = str(service)
+        self.proxy.delete_service_credentials(service)
+        self.viewComponent.remove_service(service)
+        self.proxy.facade.sendNotification(AppFacade.AppFacade.SERVICE_REMOVED, service)
+            
     def onVerifyClicked(self, service, auth_code):
         v = VerifyThread(self.service_flows[str(service)], str(auth_code), service)
         QtCore.QObject.connect(v, QtCore.SIGNAL('done'), self.onVerifyFinished, QtCore.Qt.QueuedConnection)
@@ -89,8 +92,8 @@ class SysTrayMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMe
     def __init__(self, viewComponent):
         super(SysTrayMediator, self).__init__(SysTrayMediator.NAME, viewComponent)
 
-        actions = ['exitAction', 'openAction', 'settingsAction']
-        methods = [self.onExit, self.onOpen, self.onSettings]
+        actions = ['exitAction', 'openAction', 'settingsAction', 'accountsAction']
+        methods = [self.onExit, self.onOpen, self.onSettings, self.onAddAccount]
         for item in zip(actions, methods):
             QtCore.QObject.connect(getattr(viewComponent, item[0]), QtCore.SIGNAL('triggered()'),
                                item[1], QtCore.Qt.QueuedConnection)
@@ -106,6 +109,9 @@ class SysTrayMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMe
 
     def onSettings(self):
         self.facade.sendNotification(AppFacade.AppFacade.SHOW_SETTINGS)
+        
+    def onAddAccount(self):
+        self.facade.sendNotification(AppFacade.AppFacade.SERVICE_ADD)
 
     def onExit(self):
         self.facade.sendNotification(AppFacade.AppFacade.EXIT)
@@ -137,6 +143,7 @@ class CompactWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
     def listNotificationInterests(self):
         return [
             AppFacade.AppFacade.COMPACT_SET_STATE,
+            AppFacade.AppFacade.SERVICE_REMOVED,
             AppFacade.AppFacade.SERVICE_ADDED
         ]
 
@@ -147,6 +154,8 @@ class CompactWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
             self.viewComponent.set_service_states(body)
         elif note_name == AppFacade.AppFacade.SERVICE_ADDED:
             self.viewComponent.add_item(body)
+        elif note_name == AppFacade.AppFacade.SERVICE_REMOVED:
+            self.viewComponent.remove_item(body)
 
 def update_compact(f):
     def wrapper(*args):
@@ -353,7 +362,8 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
     def listNotificationInterests(self):
         return [
             AppFacade.AppFacade.SHOW_DETAILED,
-            AppFacade.AppFacade.SHOW_SETTINGS
+            AppFacade.AppFacade.SHOW_SETTINGS,
+            AppFacade.AppFacade.SERVICE_ADD
         ]
 
     def handleNotification(self, notification):
@@ -363,6 +373,10 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
             self.viewComponent.setVisible(True)
         elif note_name == AppFacade.AppFacade.SHOW_SETTINGS:
             self.viewComponent.show_settings()
+            if not self.viewComponent.isVisible():
+                self.viewComponent.setVisible(True)
+        elif note_name == AppFacade.AppFacade.SERVICE_ADD:
+            self.viewComponent.show_accounts()
             if not self.viewComponent.isVisible():
                 self.viewComponent.setVisible(True)
 

@@ -34,6 +34,7 @@ class AppFacade(puremvc.patterns.facade.Facade):
     UPLOAD_RESUMING = 'upload_resuming'
     UPLOAD_REMOVING = 'upload_removing'
     
+    SERVICE_ADD = 'service_add'
     SERVICE_ADDED = 'service_added'
     SERVICE_REMOVED = 'service_removed'
     

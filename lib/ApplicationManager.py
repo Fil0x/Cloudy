@@ -40,7 +40,7 @@ class ApplicationManager(Manager):
         config['Compact'] = {}
         config['Compact']['pos'] = [30, 30]
         config['Compact']['screen_id'] = 0
-        config['Compact']['orientation'] = 'V' #or 'H'
+        config['Compact']['orientation'] = 'H' #or 'V'
 
         config['Settings'] = {}
 

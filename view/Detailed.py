@@ -346,6 +346,11 @@ class DetailedWindow(QtGui.QMainWindow):
 
     def show_settings(self):
         self.tab.setCurrentIndex(2)
+        self.settings_page.show_settings()
+        
+    def show_accounts(self):
+        self.tab.setCurrentIndex(2)
+        self.settings_page.show_accounts()
 
     def add_upload_item(self, item):
         # [filename, progress, service, status, dest, conflict]

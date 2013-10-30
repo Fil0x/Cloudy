@@ -50,6 +50,13 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
         
         p = ApplicationManager()
         p.add_service(service)
+        
+    def delete_service_credentials(self, service):
+        dm = LocalDataManager()
+        dm.flush_credentials(service)
+        
+        p = ApplicationManager()
+        p.remove_service(service)
     
     def add_file(self, service, path):
         assert(service in local.services)

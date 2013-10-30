@@ -201,7 +201,7 @@ class CompactWindow(QtGui.QWidget):
             end = start.adjusted(0, 0, 0, -80)
             self.resize(self.width(), self.height() - 80)
 
-        self.animate(start, end)
+        self.animate(start, end, dur=200)
 
     def create_item(self, service):
         e = getattr(self, '{}_images'.format(service.lower()))
@@ -210,7 +210,7 @@ class CompactWindow(QtGui.QWidget):
         self.items[service] = label
         return label
 
-    def animate(self, start, end, dur=600):
+    def animate(self, start, end, dur=400):
         self.anim = QtCore.QPropertyAnimation(self.main_frame, 'geometry')
         self.anim.setDuration(dur)
         self.anim.setStartValue(start)
