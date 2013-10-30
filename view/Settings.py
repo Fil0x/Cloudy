@@ -59,15 +59,16 @@ class AccountsPage(QtGui.QWidget):
         for v in self.notauth_panels.itervalues():
             v.code_edit.setEnabled(False)
             v.verify_button.setEnabled(False)
+            v.code_edit.clear()
         
     def add_service(self, service):
         self.used_services.append(service)
-        self._clearLayout(service)
+        #self._clearLayout(service)
         self._createServiceContent(service)
         
     def remove_service(self, service):
         self.used_services.remove(service)
-        self._clearLayout(service)
+        #self._clearLayout(service)
         self._createServiceContent(service)
         
     #http://tinyurl.com/mcj4zpk
@@ -131,6 +132,12 @@ class NotAuthorizedPanel(QtGui.QWidget):
         layout.addWidget(self.verify_button)
 
         self.setLayout(layout)
+        self.setVisible(False)
+        
+    def showEvent(self, event):
+        self.code_edit.setEnabled(False)
+        self.verify_button.setEnabled(False)
+        self.code_edit.clear()
 
     def onTextChanged(self, text):
         if len(text):
@@ -158,9 +165,10 @@ class DropboxAuthorizedPanel(QtGui.QWidget):
         self.remove_button.clicked.connect(self.onRemoveClick)
         
         layout.addWidget(QtGui.QLabel('Lol authenticated.'), 0, 0)
-        layout.addWidget(self.remove_button, 0, 2)
+        layout.addWidget(self.remove_button, 0, 1)
         
         self.setLayout(layout)
+        self.setVisible(False)
         
     def onRemoveClick(self, event):
         self.removeSignal.emit('Dropbox')
@@ -180,6 +188,7 @@ class PithosAuthorizedPanel(QtGui.QWidget):
         layout.addWidget(self.remove_button, 0, 2)
         
         self.setLayout(layout)
+        self.setVisible(False)
         
     def onRemoveClick(self, event):
         self.removeSignal.emit('Pithos')
@@ -199,6 +208,7 @@ class GoogleDriveAuthorizedPanel(QtGui.QWidget):
         layout.addWidget(self.remove_button, 0, 2)
         
         self.setLayout(layout)
+        self.setVisible(False)
         
     def onRemoveClick(self, event):
         self.removeSignal.emit('GoogleDrive')

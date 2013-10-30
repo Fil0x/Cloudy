@@ -91,7 +91,7 @@ class CompactWindow(QtGui.QWidget):
         #Data
         self.items = {} #Key is a service.
         self.move_pos = None
-        self.services = services
+        self.used_services = services
         self.orientation = orientation
         self.mask = ord('H')^ord('V')
 
@@ -119,27 +119,27 @@ class CompactWindow(QtGui.QWidget):
         self.main_frame.resize(size.width(), size.height())
 
         #main layout
-        self.layout = getattr(QtGui, 'Q{}BoxLayout'.format(orientation))()
-        for s in services:
-            self.layout.addWidget(self.create_item(s))
+        layout = getattr(QtGui, 'Q{}BoxLayout'.format(orientation))()
+        for s in self.used_services:
+            layout.addWidget(self.create_item(s))
 
-        self.main_frame.setLayout(self.layout)
-        self.layout.setAlignment(QtCore.Qt.AlignCenter)
+        layout.setAlignment(QtCore.Qt.AlignCenter)
+        self.main_frame.setLayout(layout)
 
         self.resize_frame()
 
     def resize_frame(self):
         if self.orientation == 'H':
-            self.main_frame.resize(len(self.services)*80, 87)
-            self.resize(len(self.services)*80, 87)
+            self.main_frame.resize(len(self.used_services)*80, 87)
+            self.resize(len(self.used_services)*80, 87)
         else:
-            self.main_frame.resize(87, len(self.services)*80)
-            self.resize(87, len(self.services)*80)
+            self.main_frame.resize(87, len(self.used_services)*80)
+            self.resize(87, len(self.used_services)*80)
 
     def mouseDoubleClickEvent(self, event):
         #Remove the old layout by reparenting it.
         curr_layout = self.main_frame.layout()
-        for s in self.services:
+        for s in self.used_services:
             curr_layout.removeWidget(self.items[s])
         QtGui.QWidget().setLayout(self.main_frame.layout())
 
@@ -147,7 +147,7 @@ class CompactWindow(QtGui.QWidget):
         new_layout = QtGui.QHBoxLayout() if self.orientation == 'V' else \
                      QtGui.QVBoxLayout()
 
-        for s in self.services:
+        for s in self.used_services:
             new_layout.addWidget(self.items[s])
         new_layout.setAlignment(QtCore.Qt.AlignCenter)
         self.main_frame.setLayout(new_layout)
@@ -164,10 +164,10 @@ class CompactWindow(QtGui.QWidget):
 
     def set_service_states(self, new_states):
         if not new_states:
-            for s in self.services:
+            for s in self.used_services:
                 self.items[s].set_state('Idle')
             return
-        used_services = set(self.services)
+        used_services = set(self.used_services)
         update_services = set(zip(*new_states)[0])
         for service in used_services.difference(update_services):
             self.items[service].set_state('Idle')
@@ -177,7 +177,8 @@ class CompactWindow(QtGui.QWidget):
 
     def add_item(self, service):
         start = self.main_frame.geometry()
-        self.layout.addWidget(self.create_item(service))
+        self.used_services.append(service)
+        self.main_frame.layout().addWidget(self.create_item(service))
 
         if self.orientation == 'H':
             end = start.adjusted(0, 0, 80, 0)
@@ -190,8 +191,10 @@ class CompactWindow(QtGui.QWidget):
 
     def remove_item(self, service):
         start = self.main_frame.geometry()
-        self.layout.removeWidget(self.items[service])
+        self.main_frame.layout().removeWidget(self.items[service])
         self.items[service].close()
+
+        self.used_services.remove(service)
         del self.items[service]
 
         if self.orientation == 'H':
