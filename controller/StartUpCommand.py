@@ -4,9 +4,11 @@ if ".." not in sys.path:
 
 import version
 import model.modelProxy
+from view.Settings import Settings
 from view.view import SysTrayMediator
 from view.History import HistoryWindow
 from view.Compact import CompactWindow
+from view.view import SettingsMediator
 from view.Detailed import DetailedWindow
 from view.view import CompactWindowMediator
 from view.view import HistoryWindowMediator
@@ -27,12 +29,15 @@ class StartUpCommand(puremvc.patterns.command.SimpleCommand, puremvc.interfaces.
         
         p = ApplicationManager()
         
+        s = Settings(p.get_services())
+        self.facade.registerMediator(SettingsMediator(s))
+        
         c = CompactWindow(p.get_services(), p.get_orientation(), 
                           p.get_pos('Compact'), 0)
         self.facade.registerMediator(CompactWindowMediator(c))
         
         d = DetailedWindow(version.__version__, p.get_pos('Detailed'),
-                           p.get_size(), p.get_maximized(), 0)
+                           p.get_size(), p.get_maximized(), 0, s)
         self.facade.registerMediator(DetailedWindowMediator(d))
         
         proxy.start_uploads()

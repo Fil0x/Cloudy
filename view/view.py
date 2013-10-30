@@ -2,22 +2,84 @@ import os
 import sys
 import copy
 import datetime
+import webbrowser
 from operator import itemgetter
 if ".." not in sys.path:
     sys.path.append("..")
 
+import local
 import logger
 import globals
 import AppFacade
 import model.modelProxy
 from FileChooser import FileChooser
 from lib.util import raw
+from lib.Authentication import AuthManager
 from lib.ApplicationManager import ApplicationManager
 
 from PyQt4 import QtGui
 from PyQt4 import QtCore
 import puremvc.interfaces
 import puremvc.patterns.mediator
+
+#http://tinyurl.com/3pwv5u4
+class VerifyThread(QtCore.QThread):
+    def __init__(self, flow, auth_code, service):
+        QtCore.QThread.__init__(self)
+
+        self.flow = flow
+        self.service = service
+        self.auth_code = auth_code
+
+    def run(self):
+        try:
+            r = self.flow.finish(self.auth_code)
+        except Exception as e:
+            self.emit(QtCore.SIGNAL('done'), 'Error', [self.service, 'Why!'])
+        else:
+            self.emit(QtCore.SIGNAL('done'), 'Success', [self.service, r])
+
+class SettingsMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMediator):
+
+    NAME = 'SettingsMediator'
+
+    def __init__(self, viewComponent):
+        super(SettingsMediator, self).__init__(SettingsMediator.NAME, viewComponent)
+        self.proxy = self.facade.retrieveProxy(model.modelProxy.ModelProxy.NAME)
+
+        self.service_flows = {}
+        self.verify_threads = {}
+
+        for s in self.get_not_used_services():
+            self.viewComponent.accounts_page.items[s].authorizeSignal.connect(self.onAuthorizeClicked)
+            self.viewComponent.accounts_page.items[s].verifySignal.connect(self.onVerifyClicked)
+
+    def get_not_used_services(self):
+        used_services = ApplicationManager().get_services()
+        return set(local.services).difference(set(used_services))
+
+    def onVerifyClicked(self, service, auth_code):
+        v = VerifyThread(self.service_flows[str(service)], str(auth_code), service)
+        QtCore.QObject.connect(v, QtCore.SIGNAL('done'), self.onVerifyFinished, QtCore.Qt.QueuedConnection)
+        self.verify_threads[str(service)] = v
+        v.start()
+
+        #del self.service_flows[str(service)]
+
+    def onVerifyFinished(self, result, details):
+        del self.verify_threads[str(details[0])]
+        if result == 'Success':
+            service = str(details[0])
+            self.proxy.add_service_credentials(service, details[1])
+            self.viewComponent.add_service(service)
+            self.proxy.facade.sendNotification(AppFacade.AppFacade.SERVICE_ADDED, service)
+        else:
+            print result, details
+
+    def onAuthorizeClicked(self, service):
+        flow = getattr(AuthManager(), 'get_{}_flow'.format(str(service).lower()))()
+        webbrowser.open(flow.start())
+        self.service_flows[str(service)] = flow
 
 
 class SysTrayMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMediator):
@@ -74,7 +136,8 @@ class CompactWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
 
     def listNotificationInterests(self):
         return [
-            AppFacade.AppFacade.COMPACT_SET_STATE
+            AppFacade.AppFacade.COMPACT_SET_STATE,
+            AppFacade.AppFacade.SERVICE_ADDED
         ]
 
     def handleNotification(self, notification):
@@ -82,6 +145,8 @@ class CompactWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
         body = notification.getBody()
         if note_name == AppFacade.AppFacade.COMPACT_SET_STATE:
             self.viewComponent.set_service_states(body)
+        elif note_name == AppFacade.AppFacade.SERVICE_ADDED:
+            self.viewComponent.add_item(body)
 
 def update_compact(f):
     def wrapper(*args):

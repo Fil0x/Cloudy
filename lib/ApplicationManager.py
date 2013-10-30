@@ -51,7 +51,7 @@ class ApplicationManager(Manager):
         self.config = ConfigObj(self.config_path)
 
     def get_services(self):
-        return self.config['Services']
+        return self.config.as_list('Services')
 
     def add_service(self, value):
         assert value not in self.config['Services'], 'Service must be unique'

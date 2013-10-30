@@ -233,7 +233,7 @@ class DetailedWindow(QtGui.QMainWindow):
     windowStyle = r'QMainWindow {background-color: rgba(108, 149, 218, 100%)}'
     no_services_error = r'You are not authenticated with any service.'
 
-    def __init__(self, title, pos, size, maximized, screen_id):
+    def __init__(self, title, pos, size, maximized, screen_id, settings_page):
         QtGui.QWidget.__init__(self)
         self.setWindowTitle(title)
         self.setVisible(False)
@@ -268,7 +268,7 @@ class DetailedWindow(QtGui.QMainWindow):
         self.history_table = self._create_table(self.history_header)
         self.history_table.setItemDelegate(HistoryTableDelegate(self, self.font, c, images))
 
-        self.settings_page = Settings()
+        self.settings_page = settings_page
         
         self._createRibbon()
         self._createSideSpaces()

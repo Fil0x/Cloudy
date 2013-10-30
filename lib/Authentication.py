@@ -15,6 +15,16 @@ from oauth2client.client import Credentials
 from oauth2client.client import OAuth2WebServerFlow
 from oauth2client.client import AccessTokenRefreshError
 
+class GoogleDriveFlowWrapper(object):
+    def __init__(self, flow):
+        self.flow = flow
+        
+    def start(self):
+        return self.flow.step1_get_authorize_url()
+        
+    def finish(self, code):
+        return self.flow.step2_exchange(code)
+
 class AuthManager(Manager):
     def __init__(self):
         self.auth_functions = [self._dropbox_auth,
@@ -52,7 +62,7 @@ class AuthManager(Manager):
         dataManager = LocalDataManager()
 
         #A KeyError will be raised if there is no token.
-        access_token = dataManager.get_dropbox_token()
+        access_token = dataManager.get_credentials('Dropbox')
 
         dropboxClient = DropboxClient(access_token)
 
@@ -68,7 +78,7 @@ class AuthManager(Manager):
 
     def _dropbox_add_user(self, key):
         dataManager = LocalDataManager()
-        dataManager.add_dropbox_token(key)
+        dataManager.set_credentials('Dropbox', key)
         return self._dropbox_auth()
 
     #http://tinyurl.com/kdv3ttb
@@ -91,12 +101,12 @@ class AuthManager(Manager):
             raise faults.InvalidAuth('GoogleDrive')
             #raise faults.NetworkError('No internet.')
 
-        dataManager.set_googledrive_credentials(credentials)
+        dataManager.set_credentials('GoogleDrive', credentials.to_json())
         return drive_service
 
     def _googledrive_add_user(self, credentials):
         dataManager = LocalDataManager()
-        dataManager.set_googledrive_credentials(credentials)
+        dataManager.set_credentials('GoogleDrive', credentials)
         return self._googledrive_auth()
 
     def get_dropbox_flow(self):
@@ -104,5 +114,7 @@ class AuthManager(Manager):
                                            local.Dropbox_APPSECRET)
 
     def get_googledrive_flow(self):
-        return OAuth2WebServerFlow(local.GoogleDrive_APPKEY, local.GoogleDrive_APPSECRET,
+        flow = OAuth2WebServerFlow(local.GoogleDrive_APPKEY, local.GoogleDrive_APPSECRET,
                                    local.GoogleDrive_OAUTHSCOPE, local.GoogleDrive_REDIRECTURI)
+        return GoogleDriveFlowWrapper(flow)
+                                   

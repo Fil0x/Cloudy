@@ -14,6 +14,8 @@ import AppFacade
 import lib.Upload
 from lib import faults
 from model import Model
+from lib.DataManager import LocalDataManager
+from lib.ApplicationManager import ApplicationManager
 
 import puremvc.patterns.proxy
 
@@ -42,6 +44,13 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
         self.ht.start()
 
     #Exposed functions
+    def add_service_credentials(self, service, credentials):
+        dm = LocalDataManager()
+        dm.set_credentials(service, credentials)
+        
+        p = ApplicationManager()
+        p.add_service(service)
+    
     def add_file(self, service, path):
         assert(service in local.services)
 

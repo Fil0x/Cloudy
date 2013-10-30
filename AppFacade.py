@@ -33,7 +33,10 @@ class AppFacade(puremvc.patterns.facade.Facade):
     UPLOAD_STARTING = 'upload_starting'
     UPLOAD_RESUMING = 'upload_resuming'
     UPLOAD_REMOVING = 'upload_removing'
-
+    
+    SERVICE_ADDED = 'service_added'
+    SERVICE_REMOVED = 'service_removed'
+    
     NETWORK_ERROR = 'network_error'
     OUT_OF_STORAGE = 'out_of_storage'
     SERVICE_OFFLINE = 'service_offline'

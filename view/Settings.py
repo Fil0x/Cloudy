@@ -50,6 +50,21 @@ class AccountsPage(QtGui.QWidget):
 
         self.setLayout(mainLayout)
 
+    def showEvent(self, event):
+        for v in self.items.itervalues():
+            v.code_edit.setEnabled(False)
+            v.verify_button.setEnabled(False)
+        
+    def add_service(self, service):
+        self.used_services.append(service)
+        self._clearLayout(service)
+        self._createServiceContent(service)
+        
+    def remove_service(self, service):
+        self.used_services.remove(service)
+        self._clearLayout(service)
+        self._createServiceContent(service)
+        
     #http://tinyurl.com/mcj4zpk
     def _clearLayout(self, service):
         layout = getattr(self, '{}Group'.format(service.lower())).layout()
@@ -70,9 +85,7 @@ class AccountsPage(QtGui.QWidget):
             layout = getattr(self, '{}Group'.format(service.lower())).layout()
 
         if service in self.used_services:
-            # s = QtGui.QCheckBox("Update system")
-            # layout.addWidget(s)
-            pass
+            layout.addWidget(QtGui.QLabel('Lol authenticated.'))
         else:
             panel = NotAuthorizedPanel(service)
             self.items[service] = panel
@@ -80,41 +93,51 @@ class AccountsPage(QtGui.QWidget):
 
         return layout
 
-        
 class NotAuthorizedPanel(QtGui.QWidget):
-    clickedSignal = QtCore.pyqtSignal(str)
+    verifySignal = QtCore.pyqtSignal(str, str)
+    authorizeSignal = QtCore.pyqtSignal(str)
 
     def __init__(self, service, parent=None):
         QtGui.QWidget.__init__(self, parent)
-        
+
         self.service = service
-        
+
         layout = QtGui.QHBoxLayout()
-        
+
         self.code_edit = QtGui.QLineEdit()
+        self.code_edit.setEnabled(False)
+        self.code_edit.textChanged.connect(self.onTextChanged)
+
         self.authorize_button = QtGui.QPushButton('Authorize')
         self.authorize_button.clicked.connect(self.onAuthorizeClicked)
+
         self.verify_button = QtGui.QPushButton('Verify')
         self.verify_button.setEnabled(False)
         self.verify_button.clicked.connect(self.onVerifyClicked)
-        
+
         layout.addWidget(self.code_edit)
         layout.addWidget(self.authorize_button)
         layout.addWidget(self.verify_button)
-        
-        self.setLayout(layout)
-       
-    def onAuthorizeClicked(self, event): 
-        self.verify_button.setEnabled(True)
-        
-    def onVerifyClicked(self, event):
-        self.clickedSignal.emit(self.service)
-   
-class Settings(QtGui.QWidget):
-    def __init__(self, parent=None):
-        super(Settings, self).__init__(parent)
 
-        self.used_services = []
+        self.setLayout(layout)
+
+    def onTextChanged(self, text):
+        if len(text):
+            self.verify_button.setEnabled(True)
+        else:
+            self.verify_button.setEnabled(False)
+
+    def onAuthorizeClicked(self, event):
+        self.code_edit.setEnabled(True)
+        self.authorizeSignal.emit(self.service)
+
+    def onVerifyClicked(self, event):
+        self.verify_button.setEnabled(False)
+        self.verifySignal.emit(self.service, self.code_edit.text())
+
+class Settings(QtGui.QWidget):
+    def __init__(self, used_services, parent=None):
+        super(Settings, self).__init__(parent)
 
         self.contentsWidget = QtGui.QListWidget()
         self.contentsWidget.setViewMode(QtGui.QListView.IconMode)
@@ -124,7 +147,7 @@ class Settings(QtGui.QWidget):
         self.contentsWidget.setSpacing(12)
 
         self.general_page = GeneralPage()
-        self.accounts_page = AccountsPage(self.used_services)
+        self.accounts_page = AccountsPage(used_services)
 
         self.pagesWidget = QtGui.QStackedWidget()
         self.pagesWidget.addWidget(self.general_page)
@@ -142,6 +165,12 @@ class Settings(QtGui.QWidget):
 
         self.setLayout(mainLayout)
 
+    def add_service(self, service):
+        self.accounts_page.add_service(service)
+      
+    def remove_service(self, service):
+        self.accounts_page.remove_service(service)
+        
     def changePage(self, current, previous):
         if not current:
             current = previous

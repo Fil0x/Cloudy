@@ -35,6 +35,39 @@ class LocalDataManager(Manager):
 
         self.config = ConfigObj(self.configPath)
 
+    #Exposed functions
+    @checkFile
+    def get_service_root(self, service):
+        return self.config[service]['ROOT']
+        
+    def set_service_root(self, service, root):
+        self.config[service]['ROOT'] = root
+        self.config.write()
+        
+    @checkFile
+    def get_credentials(self, service):
+        try:
+            return self.config[service]['credentials']
+        except KeyError:
+            raise KeyError('{}: credentials are empty'.format(service))
+
+    def set_credentials(self, service, credentials):
+        if service == 'Dropbox':
+            self.config[service]['credentials'] = credentials[0]
+        elif service == 'GoogleDrive':
+            self.config[service]['credentials'] = credentials.to_json()
+        elif service == 'Pithos':
+            self.config[service]['credentials'] = credentials
+        self.config.write()
+    
+    def flush_credentials(self, service):
+        try:
+            del(self.config[service]['credentials'])
+            self.config.write()
+        except KeyError:
+            pass
+    #End of Exposed functions
+        
     def _create_config_file(self):
         config = ConfigObj(self.configPath)
 
@@ -50,86 +83,3 @@ class LocalDataManager(Manager):
         config.write()
 
         self.config = ConfigObj(self.configPath)
-
-    @checkFile
-    def get_service_root(self, service):
-        return self.config[service]['ROOT']
-
-    @checkFile
-    def get_pithos_credentials(self):
-        try:
-            return self.config['Pithos']['credentials']
-        except KeyError:
-            raise KeyError('Pithos: credentials are empty')
-
-    @checkFile
-    def add_pithos_credentials(self, user, url, token):
-        self.config['Pithos']['credentials'] = {}
-        self.update_pithos_credentials(user, url, token)
-
-    def flush_pithos_credentials(self):
-        try:
-            del(self.config['Pithos']['credentials'])
-
-            self.config.write()
-        except KeyError:
-            raise KeyError('Pithos: credentials are empty')
-
-    def update_pithos_credentials(self, user=None, url=None, token=None):
-        self.config['Pithos']['credentials']['user'] = user or self.config['Pithos']['credentials']['user']
-        self.config['Pithos']['credentials']['url'] = url or self.config['Pithos']['credentials']['url']
-        self.config['Pithos']['credentials']['token'] = token or self.config['Pithos']['credentials']['token']
-
-        self.config.write()
-
-    #Dropbox information
-    @checkFile
-    def get_dropbox_token(self):
-        try:
-            return self.config['Dropbox']['access_token']
-        except KeyError:
-            raise KeyError('Dropbox: access_token is empty.')
-
-    @checkFile
-    def add_dropbox_token(self, key):
-        self.config['Dropbox']['access_token'] = {}
-        self.update_dropbox_token(key)
-
-    def flush_dropbox_token(self):
-        try:
-            del(self.config['Dropbox']['access_token'])
-
-            self.config.write()
-        except KeyError:
-            raise KeyError('Dropbox: access_token is empty')
-
-    def update_dropbox_token(self, key=None):
-        self.config['Dropbox']['access_token'] = key or self.config['Dropbox']['access_token']
-
-        self.config.write()
-
-    #Google Drive information
-    @checkFile
-    def set_googledrive_credentials(self, credentials):
-        self.config['GoogleDrive']['Credentials'] = credentials.to_json()
-
-        self.config.write()
-
-    @checkFile
-    def set_googledrive_root(self, new_root):
-        self.config['GoogleDrive']['ROOT'] = new_root
-
-    @checkFile
-    def get_googledrive_credentials(self):
-        try:
-            return self.config['GoogleDrive']['Credentials']
-        except KeyError:
-            raise KeyError('GoogleDrive: credentials are empty.')
-
-    def flush_googledrive_credentials(self):
-        try:
-            del(self.config['GoogleDrive']['Credentials'])
-
-            self.config.write()
-        except KeyError:
-            raise KeyError('GoogleDrive: credentials are empty.')
