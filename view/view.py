@@ -154,6 +154,7 @@ class CompactWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
             self.viewComponent.set_service_states(body)
         elif note_name == AppFacade.AppFacade.SERVICE_ADDED:
             self.viewComponent.add_item(body)
+            self.viewComponent.items[body].droppedSignal.connect(self.onDrop)
         elif note_name == AppFacade.AppFacade.SERVICE_REMOVED:
             self.viewComponent.remove_item(body)
 

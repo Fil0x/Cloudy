@@ -15,6 +15,9 @@ class SystemTrayIcon(QtGui.QSystemTrayIcon):
         self.openAction = menu.addAction('Open')
         #@Mediator
         self.settingsAction = menu.addAction('Settings')
+        
+        menu.addSeparator()
+        
         #@Mediator
         self.accountsAction = menu.addAction('Add account')
         
