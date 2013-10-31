@@ -39,3 +39,6 @@ class SystemTrayIcon(QtGui.QSystemTrayIcon):
     def onFeedback(self, event):
         feedback = FeedbackPage()
         feedback.show()
+        
+    def closeEvent(self, event):
+        print 'LULZ'

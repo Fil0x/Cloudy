@@ -2,10 +2,13 @@ import json
 import httplib2
 
 import local
+import logger
 import faults
 from DataManager import Manager
 from DataManager import LocalDataManager
 
+
+from astakosclient import AstakosClient
 from dropbox import rest
 from dropbox.client import DropboxClient
 from dropbox.client import DropboxOAuth2FlowNoRedirect
@@ -15,13 +18,22 @@ from oauth2client.client import Credentials
 from oauth2client.client import OAuth2WebServerFlow
 from oauth2client.client import AccessTokenRefreshError
 
+class PithosFlow(object):
+    def start(self):
+        return local.Pithos_LOGINURL
+
+    def finish(self, token):
+        s = AstakosClient(local.Pithos_AUTHURL, logger=logger.logger_factory('astakosclient'))
+        s.get_endpoints(token)
+        return token
+
 class GoogleDriveFlowWrapper(object):
     def __init__(self, flow):
         self.flow = flow
-        
+
     def start(self):
         return self.flow.step1_get_authorize_url()
-        
+
     def finish(self, code):
         return self.flow.step2_exchange(code)
 
@@ -48,12 +60,12 @@ class AuthManager(Manager):
         assert(service in self.services)
 
         return self.add_user[service](key)
-    
+
     def get_flow(self, service):
         assert(service in self.services)
-    
+
         return getattr(self, '_get_{}_flow'.format(service.lower()))()
-        
+
     #end of exposed functions
 
     def _pithos_auth(self):
@@ -116,7 +128,7 @@ class AuthManager(Manager):
         dataManager = LocalDataManager()
         dataManager.set_credentials('GoogleDrive', credentials)
         return self._googledrive_auth()
-        
+
     def _get_dropbox_flow(self):
         return DropboxOAuth2FlowNoRedirect(local.Dropbox_APPKEY,
                                            local.Dropbox_APPSECRET)
@@ -125,4 +137,6 @@ class AuthManager(Manager):
         flow = OAuth2WebServerFlow(local.GoogleDrive_APPKEY, local.GoogleDrive_APPSECRET,
                                    local.GoogleDrive_OAUTHSCOPE, local.GoogleDrive_REDIRECTURI)
         return GoogleDriveFlowWrapper(flow)
-                                   
+
+    def _get_pithos_flow(self):
+        return PithosFlow()

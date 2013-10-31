@@ -23,6 +23,8 @@ from PyQt4 import QtCore
 from dropbox import rest
 import puremvc.interfaces
 import puremvc.patterns.mediator
+from astakosclient.errors import Unauthorized
+from astakosclient.errors import AstakosClientException
 from oauth2client.client import FlowExchangeError
 
 #http://tinyurl.com/3pwv5u4
@@ -37,10 +39,10 @@ class VerifyThread(QtCore.QThread):
     def run(self):
         try:
             r = self.flow.finish(self.auth_code)
-        except (rest.RESTSocketError, httplib2.ServerNotFoundError) as e:
+        except (rest.ErrorResponse, FlowExchangeError, Unauthorized) as e:
+            self.emit(QtCore.SIGNAL('done'), 'Error', [self.service, 'Invalid Code'])            
+        except (rest.RESTSocketError, httplib2.ServerNotFoundError, AstakosClientException) as e:
             self.emit(QtCore.SIGNAL('done'), 'Error', [self.service, 'Network Error'])
-        except (rest.ErrorResponse, FlowExchangeError) as e:
-            self.emit(QtCore.SIGNAL('done'), 'Error', [self.service, 'Invalid Code'])
         except Exception as e:
             self.emit(QtCore.SIGNAL('done'), 'Error', [self.service, 'Unknown'])
         else:
