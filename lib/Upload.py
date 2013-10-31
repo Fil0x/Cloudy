@@ -1,6 +1,7 @@
 ﻿import re
 import os
 import sys
+import socket
 import httplib2
 from StringIO import StringIO
 
@@ -77,7 +78,7 @@ class DropboxUploader(object):
                         except ZeroDivisionError:
                             #The file was empty, it's 100% by default.
                             yield (1.0, self.path)
-                    except rest.ErrorResponse, e:
+                    except rest.ErrorResponse as e:
                         reply = e.body
                         if "offset" in reply and reply['offset'] != 0:
                             if reply['offset'] > self.offset:
@@ -164,11 +165,13 @@ class GoogleDriveUploader(object):
                     self.offset = file.resumable_progress
                     self.upload_uri = file.resumable_uri
                     yield (12, None)
-            #Error handle
             if response:
                 self.title = response['title']
                 self.id = response['id']
                 yield (1.0, self.path)
+        #http://docs.python.org/2/library/errno.html
+        except socket.error as e:
+            yield(22, None)
         except IOError as e:
             yield (2, None)
 #End GoogleDrive stuff

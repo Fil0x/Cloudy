@@ -19,5 +19,4 @@ class ErrorCommand(puremvc.patterns.command.SimpleCommand, puremvc.interfaces.IC
         elif note_name == AppFacade.AppFacade.SERVICE_OFFLINE:      #13
             print note_name
         elif note_name == AppFacade.AppFacade.NETWORK_ERROR:        #22
-            print note_name
-
+            note_body[0].signals.network_error.emit(note_body[1])

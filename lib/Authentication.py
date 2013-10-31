@@ -48,6 +48,12 @@ class AuthManager(Manager):
         assert(service in self.services)
 
         return self.add_user[service](key)
+    
+    def get_flow(self, service):
+        assert(service in self.services)
+    
+        return getattr(self, '_get_{}_flow'.format(service.lower()))()
+        
     #end of exposed functions
 
     def _pithos_auth(self):
@@ -91,7 +97,10 @@ class AuthManager(Manager):
 
         credentials = Credentials.new_from_json(credentials)
         http = credentials.authorize(httplib2.Http())
-        drive_service = build('drive', 'v2', http=http)
+        try:
+            drive_service = build('drive', 'v2', http=http)
+        except httplib2.ServerNotFoundError:
+            raise faults.NetworkError('No internet.')
 
         try:
             drive_service.about().get().execute()
@@ -99,7 +108,6 @@ class AuthManager(Manager):
             raise
         except AccessTokenRefreshError:
             raise faults.InvalidAuth('GoogleDrive')
-            #raise faults.NetworkError('No internet.')
 
         dataManager.set_credentials('GoogleDrive', credentials)
         return drive_service
@@ -108,12 +116,12 @@ class AuthManager(Manager):
         dataManager = LocalDataManager()
         dataManager.set_credentials('GoogleDrive', credentials)
         return self._googledrive_auth()
-
-    def get_dropbox_flow(self):
+        
+    def _get_dropbox_flow(self):
         return DropboxOAuth2FlowNoRedirect(local.Dropbox_APPKEY,
                                            local.Dropbox_APPSECRET)
 
-    def get_googledrive_flow(self):
+    def _get_googledrive_flow(self):
         flow = OAuth2WebServerFlow(local.GoogleDrive_APPKEY, local.GoogleDrive_APPSECRET,
                                    local.GoogleDrive_OAUTHSCOPE, local.GoogleDrive_REDIRECTURI)
         return GoogleDriveFlowWrapper(flow)

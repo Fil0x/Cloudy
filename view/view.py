@@ -1,6 +1,7 @@
 import os
 import sys
 import copy
+import httplib2
 import datetime
 import webbrowser
 from operator import itemgetter
@@ -19,8 +20,10 @@ from lib.ApplicationManager import ApplicationManager
 
 from PyQt4 import QtGui
 from PyQt4 import QtCore
+from dropbox import rest
 import puremvc.interfaces
 import puremvc.patterns.mediator
+from oauth2client.client import FlowExchangeError
 
 #http://tinyurl.com/3pwv5u4
 class VerifyThread(QtCore.QThread):
@@ -34,15 +37,19 @@ class VerifyThread(QtCore.QThread):
     def run(self):
         try:
             r = self.flow.finish(self.auth_code)
+        except (rest.RESTSocketError, httplib2.ServerNotFoundError) as e:
+            self.emit(QtCore.SIGNAL('done'), 'Error', [self.service, 'Network Error'])
+        except (rest.ErrorResponse, FlowExchangeError) as e:
+            self.emit(QtCore.SIGNAL('done'), 'Error', [self.service, 'Invalid Code'])
         except Exception as e:
-            self.emit(QtCore.SIGNAL('done'), 'Error', [self.service, 'Why!'])
+            self.emit(QtCore.SIGNAL('done'), 'Error', [self.service, 'Unknown'])
         else:
             self.emit(QtCore.SIGNAL('done'), 'Success', [self.service, r])
 
 class SettingsMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMediator):
 
     NAME = 'SettingsMediator'
-    error_msg = r'An error occured. Please retry.'
+    error_msg = r'An error occured. Reason:{}'
 
     def __init__(self, viewComponent):
         super(SettingsMediator, self).__init__(SettingsMediator.NAME, viewComponent)
@@ -72,16 +79,17 @@ class SettingsMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IM
 
     def onVerifyFinished(self, result, details):
         service = str(details[0])
+        self.verify_threads[service].wait() #Please don't wait for too long.
         del self.verify_threads[service]
         if result == 'Success':
             self.proxy.add_service_credentials(service, details[1])
             self.viewComponent.add_service(service)
             self.proxy.facade.sendNotification(AppFacade.AppFacade.SERVICE_ADDED, service)
         else:
-            self.viewComponent.reset(service, self.error_msg)
+            self.viewComponent.reset(service, self.error_msg.format(details[1]))
 
     def onAuthorizeClicked(self, service):
-        flow = getattr(AuthManager(), 'get_{}_flow'.format(str(service).lower()))()
+        flow = getattr(AuthManager(), 'get_flow')(str(service))
         webbrowser.open(flow.start())
         self.service_flows[str(service)] = flow
 
@@ -198,6 +206,8 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         self.g.signals.upload_detailed_resumed.connect(self.onUploadResumed)
         self.g.signals.upload_detailed_removing.connect(self.onUploadRemoving)
         self.g.signals.upload_detailed_removed.connect(self.onUploadRemoved)
+        
+        self.g.signals.network_error.connect(self.onNetworkError)
         self.g.signals.file_not_found.connect(self.onFileNotFound)
         self.g.signals.invalid_credentials.connect(self.onInvalidCredentials)
 
@@ -251,6 +261,10 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
     def onHistoryDelete(self, body):
         self.viewComponent.delete_history_item(body)
 
+    @update_compact
+    def onNetworkError(self, id):
+        self.viewComponent.update_item_status([id, 'Error-Network Error'])
+        
     @update_compact
     def onFileNotFound(self, id):
         self.viewComponent.update_item_status([id, 'Error-File not found'])
@@ -319,6 +333,8 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
                 except IOError:
                     play.remove(d)
             elif state == 'Error-12':
+                pass
+            elif state == 'Error-22':
                 pass
             elif state != 'Paused':
                 play.remove(d)

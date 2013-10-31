@@ -119,6 +119,9 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
                 elif data['status'] == 'Error-12':
                     self.logger.debug('Item added(12): {}/{}'.format(s, id))
                     self.add_queue.put(('error_12', s, id, data))
+                elif data['status'] == 'Error-22':
+                    self.logger.debug('Item added(22): {}/{}'.format(s, id))
+                    self.add_queue.put(('add_from_file', s, id, data))
                 elif data['status'] == 'Starting':
                     self.logger.debug('Item added(R): {}/{}'.format(s, id))
                     self.add_queue.put(('add_from_file', s, id, data))
@@ -284,6 +287,11 @@ class AddTaskThread(threading.Thread):
                     self.proxy.set_state(msg[1], id, 'Error-12')
                     self.proxy.facade.sendNotification(AppFacade.AppFacade.INVALID_CREDENTIALS,
                                                        [self.globals, id])
+                except faults.NetworkError:
+                    self.logger.debug('Authentication skipped')
+                    self.proxy.set_state(msg[1], id, 'Error-22')
+                    self.proxy.facade.sendNotification(AppFacade.AppFacade.NETWORK_ERROR,
+                                                       [self.globals, id])
                 else:
                     self.logger.debug('Authentication done')
                     d['uploader'].client = client
@@ -307,6 +315,11 @@ class AddTaskThread(threading.Thread):
                     self.proxy.set_state(msg[1], msg[2], 'Error-12')
                     self.proxy.facade.sendNotification(AppFacade.AppFacade.INVALID_CREDENTIALS,
                                                        [self.globals, msg[2]])
+                except faults.NetworkError:
+                    self.logger.debug('Authentication skipped')
+                    self.proxy.set_state(msg[1], msg[2], 'Error-22')
+                    self.proxy.facade.sendNotification(AppFacade.AppFacade.NETWORK_ERROR,
+                                                       [self.globals, msg[2]])
                 else:
                     self.logger.debug('Authentication done')
                     msg[3]['uploader'].client = client
@@ -322,6 +335,11 @@ class AddTaskThread(threading.Thread):
                     self.logger.debug('Authentication skipped')
                     self.proxy.set_state(msg[1], msg[2], 'Error-12')
                     self.proxy.facade.sendNotification(AppFacade.AppFacade.INVALID_CREDENTIALS,
+                                                       [self.globals, msg[2]])
+                except faults.NetworkError:
+                    self.logger.debug('Authentication skipped')
+                    self.proxy.set_state(msg[1], msg[2], 'Error-22')
+                    self.proxy.facade.sendNotification(AppFacade.AppFacade.NETWORK_ERROR,
                                                        [self.globals, msg[2]])
                 else:
                     self.logger.debug('Authentication done')
@@ -356,7 +374,7 @@ class AddTaskThread(threading.Thread):
                 except ZeroDivisionError:
                     progress = '0%'
                 l = [self.globals, filename, progress, msg[1], 'Error-Invalid Credentials', '', 'TODO', msg[2]]
-                self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_STARTING, l)
+                self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_STARTING, l)                
 
 class UploadThread(threading.Thread):
     def __init__(self, uploader, service, out_queue, id, proxy, globals, **kwargs):
@@ -397,6 +415,11 @@ class UploadThread(threading.Thread):
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.INVALID_CREDENTIALS,
                                                    [self.globals, self.id])
                 self.error = True
+                return
+            elif i[0] == 22:
+                self.proxy.set_state(self.service, self.id, 'Error-22')
+                self.proxy.facade.sendNotification(AppFacade.AppFacade.NETWORK_ERROR,
+                                                   [self.globals, self.id])
                 return
             else:
                 self.logger.debug('Uploaded:{}'.format(i))
