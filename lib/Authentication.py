@@ -87,7 +87,7 @@ class AuthManager(Manager):
         dataManager = LocalDataManager()
 
         #A KeyError will be raised if there is no token.
-        credentials = dataManager.get_googledrive_credentials()
+        credentials = dataManager.get_credentials('GoogleDrive')
 
         credentials = Credentials.new_from_json(credentials)
         http = credentials.authorize(httplib2.Http())
@@ -101,7 +101,7 @@ class AuthManager(Manager):
             raise faults.InvalidAuth('GoogleDrive')
             #raise faults.NetworkError('No internet.')
 
-        dataManager.set_credentials('GoogleDrive', credentials.to_json())
+        dataManager.set_credentials('GoogleDrive', credentials)
         return drive_service
 
     def _googledrive_add_user(self, credentials):

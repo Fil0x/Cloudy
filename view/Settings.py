@@ -71,6 +71,9 @@ class AccountsPage(QtGui.QWidget):
         #self._clearLayout(service)
         self._createServiceContent(service)
         
+    def reset(self, service, msg):
+        self.notauth_panels[service].reset(msg)
+        
     #http://tinyurl.com/mcj4zpk
     def _clearLayout(self, service):
         layout = getattr(self, '{}Group'.format(service.lower())).layout()
@@ -134,6 +137,11 @@ class NotAuthorizedPanel(QtGui.QWidget):
         self.setLayout(layout)
         self.setVisible(False)
         
+    def reset(self, msg):
+        self.code_edit.setEnabled(False)
+        self.code_edit.setText(msg)
+        self.verify_button.setEnabled(False)
+        
     def showEvent(self, event):
         self.code_edit.setEnabled(False)
         self.verify_button.setEnabled(False)
@@ -146,6 +154,7 @@ class NotAuthorizedPanel(QtGui.QWidget):
             self.verify_button.setEnabled(False)
 
     def onAuthorizeClicked(self, event):
+        self.code_edit.clear()
         self.code_edit.setEnabled(True)
         self.authorizeSignal.emit(self.service)
 
@@ -254,6 +263,9 @@ class Settings(QtGui.QWidget):
       
     def remove_service(self, service):
         self.accounts_page.remove_service(service)
+        
+    def reset(self, service, msg=''):
+        self.accounts_page.reset(service, msg)
         
     def changePage(self, current, previous):
         if not current:

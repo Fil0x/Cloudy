@@ -57,7 +57,7 @@ class LocalDataManager(Manager):
         elif service == 'GoogleDrive':
             self.config[service]['credentials'] = credentials.to_json()
         elif service == 'Pithos':
-            self.config[service]['credentials'] = credentials
+            self.config[service]['credentials'] = credentials #TODO
         self.config.write()
     
     def flush_credentials(self, service):

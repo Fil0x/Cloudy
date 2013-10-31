@@ -57,6 +57,12 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
         
         p = ApplicationManager()
         p.remove_service(service)
+        
+        #Remove the uploads of the service that was just removed.
+        ids = self.model.uq.get_all_uploads()[service]
+        if ids:
+            for id in ids.iterkeys():
+                self.upload_queue.put(('delete', service, id))
     
     def add_file(self, service, path):
         assert(service in local.services)
@@ -232,7 +238,7 @@ class UploadSupervisorThread(threading.Thread):
                     if not t.error: #Running->Removing
                         t.state = 2
                         self.proxy.set_state(msg[1], msg[2], 'Removing')
-                        self.logger.debug('Setting internal state to removing!')
+                        self.logger.debug('Removing {}'.format(msg[2]))
                         self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_REMOVING,
                                                            [self.globals, msg[2]])
                     else: #Error->Removing
@@ -240,7 +246,7 @@ class UploadSupervisorThread(threading.Thread):
                                                            [self.globals, msg[2]])
                         del self.proxy.active_threads[msg[2]]
                         self.proxy.delete(msg[1], msg[2])
-                #Paused->Removing
+                #(Paused, Error-2)->Removing
                 else:
                     self.proxy.delete(msg[1], msg[2])
                     self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_REMOVED,

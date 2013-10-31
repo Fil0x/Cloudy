@@ -1,4 +1,5 @@
 import os
+import copy
 
 from PyQt4 import QtGui
 from PyQt4 import QtCore
@@ -169,9 +170,19 @@ class CompactWindow(QtGui.QWidget):
             return
         used_services = set(self.used_services)
         update_services = set(zip(*new_states)[0])
+        #Remove the states that dont exist anymore,
+        #Possible race condition which occurs when the user removes a service.
+        tmp = copy.copy(update_services)
+        for s in tmp:
+            if s not in used_services:
+                update_services.remove(s)
+                c = copy.copy(new_states)
+                to_delete = filter(lambda x: x[0] == s, new_states)
+                [new_states.remove(state) for state in c if state in to_delete]
+        
         for service in used_services.difference(update_services):
             self.items[service].set_state('Idle')
-
+        
         for service, state in new_states:
             self.items[service].set_state(state)
 

@@ -42,6 +42,7 @@ class VerifyThread(QtCore.QThread):
 class SettingsMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMediator):
 
     NAME = 'SettingsMediator'
+    error_msg = r'An error occured. Please retry.'
 
     def __init__(self, viewComponent):
         super(SettingsMediator, self).__init__(SettingsMediator.NAME, viewComponent)
@@ -70,14 +71,14 @@ class SettingsMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IM
         #del self.service_flows[str(service)]
 
     def onVerifyFinished(self, result, details):
-        del self.verify_threads[str(details[0])]
+        service = str(details[0])
+        del self.verify_threads[service]
         if result == 'Success':
-            service = str(details[0])
             self.proxy.add_service_credentials(service, details[1])
             self.viewComponent.add_service(service)
             self.proxy.facade.sendNotification(AppFacade.AppFacade.SERVICE_ADDED, service)
         else:
-            print result, details
+            self.viewComponent.reset(service, self.error_msg)
 
     def onAuthorizeClicked(self, service):
         flow = getattr(AuthManager(), 'get_{}_flow'.format(str(service).lower()))()
