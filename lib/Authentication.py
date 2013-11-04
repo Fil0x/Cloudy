@@ -7,8 +7,9 @@ import faults
 from DataManager import Manager
 from DataManager import LocalDataManager
 
-
 from astakosclient import AstakosClient
+from astakosclient import errors as AstakosErrors
+from lib.CloudyPithosClient import CloudyPithosClient
 from dropbox import rest
 from dropbox.client import DropboxClient
 from dropbox.client import DropboxOAuth2FlowNoRedirect
@@ -36,7 +37,7 @@ class GoogleDriveFlowWrapper(object):
 
     def finish(self, code):
         return self.flow.step2_exchange(code)
-
+        
 class AuthManager(Manager):
     def __init__(self):
         self.auth_functions = [self._dropbox_auth,
@@ -69,10 +70,29 @@ class AuthManager(Manager):
     #end of exposed functions
 
     def _pithos_auth(self):
-        pass
+        access_token = None
+        dataManager = LocalDataManager()
+        
+        #A KeyError will be raised if there is no token.
+        access_token = dataManager.get_credentials('Pithos')
+        
+        try:
+            s = AstakosClient(local.Pithos_AUTHURL)
+            pithos_url = self._get_pithos_public_url(s.get_endpoints(access_token))
+            uuid = s.get_user_info(access_token)['uuid']
+        except AstakosErrors.Unauthorized as e:
+            raise faults.InvalidAuth('Pithos-Auth')
+        except AstakosErrors.AstakosClientException as e:
+            raise faults.NetworkError('No internet-Auth')
+        
+        pithosClient = CloudyPithosClient(pithos_url, access_token, uuid)
+        
+        return pithosClient
 
-    def _pithos_add_user(self, user, url, token):
-        pass
+    def _pithos_add_user(self, key):
+        dataManager = LocalDataManager()
+        dataManager.set_credentials('Pithos', key)
+        return self._pithos_auth()
 
     #https://www.dropbox.com/developers/core/docs/error handling
     def _dropbox_auth(self):
@@ -140,3 +160,10 @@ class AuthManager(Manager):
 
     def _get_pithos_flow(self):
         return PithosFlow()
+
+    def _get_pithos_public_url(self, endpoints, type=u'object-store'):
+        r = endpoints[u'access'][u'serviceCatalog']
+        for i in r:
+            if i[u'type'] == type:
+                return i[u'endpoints'][0][u'publicURL']
+        return None

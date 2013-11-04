@@ -10,6 +10,8 @@ import faults
 from DataManager import LocalDataManager
 from UploadManager import LocalUploadManager
 
+from astakosclient.errors import Unauthorized
+from astakosclient.errors import AstakosClientException
 from dropbox import rest
 from dropbox import client
 from dropbox import session
@@ -19,6 +21,39 @@ from apiclient.discovery import build
 from apiclient.http import MediaFileUpload
 from oauth2client.client import Credentials
 from oauth2client.client import AccessTokenRefreshError
+
+#Pithos stuff
+class PithosUploader(object):
+    def __init__(self, path, remote='pithos', progress=0, client=None):
+        self.client = client
+        self.path = path
+        self.remote = remote #Container
+        self.progress = progress #Progress
+
+        self.target_length = os.path.getsize(path)
+
+    def upload_chunked(self, chunk_size=128*1024): #Chunk size unused.
+        self.client.container = self.remote
+
+        try:
+            with open(self.path, 'rb') as f:
+                try:
+                    for i in self.client.upload_object(os.path.basename(self.path), f, public=True):
+                        self.progress += i
+                        try:
+                            yield (float(self.progress)/self.target_length, self.path)
+                        except ZeroDivisionError:
+                            #The file was empty, it's 100% by default.
+                            yield (1.0, self.path)
+                except Unauthorized as e:
+                    yield(12, None)
+                    return
+                except AstakosClientException as e:
+                    yield (22, None)
+                    return
+        except IOError as e:
+            yield (2, None)
+#End of Pithos stuff
 
 #Dropbox stuff
 def format_path(path):
