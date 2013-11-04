@@ -232,6 +232,33 @@ class UploadQueue(object):
         return str(simpleflake())
 
     #initialization functions
+    def _pithos_load(self):
+        uploadManager = LocalUploadManager()
+        uploadsFromFile = uploadManager.get_uploads('Pithos')
+
+        for k,v in uploadsFromFile.iteritems():
+            try:
+                with open(v['path'], 'r'):
+                    pass
+            except IOError:
+                self.pending_uploads['Pithos'][k] = {'error':'File not found',
+                                                     'status':'Error-2',
+                                                     'path':v['path']}
+                continue
+
+            if 'offset' not in v:
+                self.pending_uploads['Pithos'][k] = {'error':'File not found',
+                                                     'status':'Error-2',
+                                                     'path':v['path']}
+                continue
+
+            progress = int(v['progress'])
+            pithosUploader = PithosUploader(v['path'], v['destination'], progress)
+
+            self.pending_uploads['Pithos'][k] = {'uploader':pithosUploader,
+                                                 'status':v['status'],
+                                                 'conflict':v['conflict']}
+    
     def _dropbox_load(self):
         uploadManager = LocalUploadManager()
         uploadsFromFile = uploadManager.get_uploads('Dropbox')
@@ -306,6 +333,51 @@ class UploadQueue(object):
         elif 'Error' in state:
             return state
 
+    def _pithos_add(self, path):
+        id = self._new_id()
+        uploader = None
+        dm = LocalDataManager()
+        try:
+            uploader = PithosUploader(path, dm.get_service_root('Pithos'))
+        except IOError:
+            self.pending_uploads['Pithos'][id] = {'error':'File not found',
+                                                  'status':'Error-2',
+                                                  'path':path}
+        else:
+            self.pending_uploads['Pithos'][id] = {'uploader':uploader,
+                                                  'status':'Starting',
+                                                  'conflict':'KeepBoth'}
+        return (id, self.pending_uploads['Pithos'][id])
+        
+    def _pithos_save(self):
+        def create_dict(item):
+            state = self._normalize_state(item['status'])
+            return {'offset': str(item['uploader'].progress),
+                    'path': item['uploader'].path,
+                    'destination':item['uploader'].remote,
+                    'status':state,
+                    'conflict':item['conflict']}
+
+        uploadManager = LocalUploadManager()
+        uploadManager.delete_upload('Pithos')
+
+        for k, v in self.pending_uploads['Pithos'].iteritems():
+            if v['status'] == 'Removing':
+                continue #Dont save the uploads with Removing status.
+            elif v['status'] == 'Error-2':
+                ''' If the status is error-2 this can mean two things:
+                    1)the upload raised this error in this app session,
+                    2)the erroneous upload wasn't removed by the user
+                     and it has lived at least one app session.
+                '''
+                if 'error' not in v: #1
+                    uploadManager.add_upload('Pithos', k, **{'path':v['uploader'].path})
+                else: #2
+                    uploadManager.add_upload('Pithos', k, **{'path':v['path']})
+            else:
+                d = create_dict(v)
+                uploadManager.add_upload('Pithos', k, **d)
+            
     def _dropbox_add(self, path):
         '''
         path: localpath to the file.

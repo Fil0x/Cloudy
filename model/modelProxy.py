@@ -461,6 +461,13 @@ class UploadThread(threading.Thread):
             d['date'] = date[:date.index('.')]
             d['path'] = self.worker.title
             d['link'] = shareurl.format(self.worker.id)
+        elif self.service in 'Pithos':
+            shareurl = self.worker.client.get_object_info(os.path.basename(self.worker.path))
+            d['name'] = os.path.basename(self.worker.path)
+            date = str(datetime.datetime.now())
+            d['date'] = date[:date.index('.')]
+            d['path'] = self.worker.path
+            d['link'] = shareurl['x-object-public']
 
         self.logger.debug('Putting in queue {}.'.format(self.id))
         self.out_queue.put(('add', self.service, self.id, d))
