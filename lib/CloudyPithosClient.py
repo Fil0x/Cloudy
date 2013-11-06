@@ -51,7 +51,7 @@ class CloudyPithosClient(PithosClient):
 
         if missing is None:
             yield size
-            return 
+            return
 
         sendlog.info('%s blocks missing' % len(missing))
         for hash in missing:

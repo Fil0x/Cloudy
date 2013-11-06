@@ -1,6 +1,7 @@
 import re
 import operator
 
+from lib.util import shorten_str
 from Settings import Settings
 
 from PyQt4 import Qt
@@ -139,8 +140,7 @@ class UploadTableDelegate(BaseDelegate):
         painter.translate(option.rect.topLeft())
         painter.setFont(self.font)
 
-        if len(d) >= 25:
-            d = d[:25] + '...'
+        d = shorten_str(d, 25)
 
         if col in [0, 5]:
             painter.drawText(QtCore.QPoint(10, 20), d)
@@ -192,8 +192,8 @@ class HistoryTableDelegate(BaseDelegate):
         painter.translate(option.rect.topLeft())
         painter.setFont(self.font)
 
-        if len(d) >= 25:
-            d = d[:25] + '...'
+        d = shorten_str(d, 25)
+                
         if col in [0, 3]:
             painter.drawText(QtCore.QPoint(10, 20), d)
         elif col == 1:
@@ -269,7 +269,7 @@ class DetailedWindow(QtGui.QMainWindow):
         self.history_table.setItemDelegate(HistoryTableDelegate(self, self.font, c, images))
 
         self.settings_page = settings_page
-        
+
         self._createRibbon()
         self._createSideSpaces()
 
@@ -347,7 +347,7 @@ class DetailedWindow(QtGui.QMainWindow):
     def show_settings(self):
         self.tab.setCurrentIndex(2)
         self.settings_page.show_settings()
-        
+
     def show_accounts(self):
         self.tab.setCurrentIndex(2)
         self.settings_page.show_accounts()

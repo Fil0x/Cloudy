@@ -47,23 +47,23 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
     def add_service_credentials(self, service, credentials):
         dm = LocalDataManager()
         dm.set_credentials(service, credentials)
-        
+
         p = ApplicationManager()
         p.add_service(service)
-        
+
     def delete_service_credentials(self, service):
         dm = LocalDataManager()
         dm.flush_credentials(service)
-        
+
         p = ApplicationManager()
         p.remove_service(service)
-        
+
         #Remove the uploads of the service that was just removed.
         ids = self.model.uq.get_all_uploads()[service]
         if ids:
             for id in ids.iterkeys():
                 self.upload_queue.put(('delete', service, id))
-    
+
     def add_file(self, service, path):
         assert(service in local.services)
 
@@ -374,7 +374,7 @@ class AddTaskThread(threading.Thread):
                 except ZeroDivisionError:
                     progress = '0%'
                 l = [self.globals, filename, progress, msg[1], 'Error-Invalid Credentials', '', 'TODO', msg[2]]
-                self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_STARTING, l)                
+                self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_STARTING, l)
 
 class UploadThread(threading.Thread):
     def __init__(self, uploader, service, out_queue, id, proxy, globals, **kwargs):
@@ -443,7 +443,7 @@ class UploadThread(threading.Thread):
 
         #If I reach this point, the upload is complete and I have to save it to the history.
         d = {}
-        if self.service in 'Dropbox':
+        if self.service == 'Dropbox':
             response = self.worker.finish('{}{}'.format(self.worker.remote, os.path.basename(self.worker.path)))
             path = response['path']
             url = self.worker.client.share(path, short_url=local.Dropbox_SHORTURL)['url']
@@ -452,7 +452,7 @@ class UploadThread(threading.Thread):
             d['date'] = date[:date.index('.')]
             d['path'] = path
             d['link'] = url
-        elif self.service in 'GoogleDrive':
+        elif self.service == 'GoogleDrive':
             b={'withLink':True, 'role':'reader', 'type':'anyone'}
             shareurl = 'https://docs.google.com/file/d/{}/edit?usp=sharing'
             r = self.worker.client.permissions().insert(fileId=self.worker.id, body=b).execute()
@@ -461,12 +461,13 @@ class UploadThread(threading.Thread):
             d['date'] = date[:date.index('.')]
             d['path'] = self.worker.title
             d['link'] = shareurl.format(self.worker.id)
-        elif self.service in 'Pithos':
-            shareurl = self.worker.client.get_object_info(os.path.basename(self.worker.path))
-            d['name'] = os.path.basename(self.worker.path)
+        elif self.service == 'Pithos':
+            objname = os.path.basename(self.worker.path)
+            shareurl = self.worker.client.get_object_info(objname)
+            d['name'] = self.worker.path
             date = str(datetime.datetime.now())
             d['date'] = date[:date.index('.')]
-            d['path'] = self.worker.path
+            d['path'] = objname
             d['link'] = shareurl['x-object-public']
 
         self.logger.debug('Putting in queue {}.'.format(self.id))

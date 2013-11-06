@@ -26,3 +26,14 @@ def raw(text):
         try: new_string+=escape_dict[char]
         except KeyError: new_string+=char
     return new_string
+
+def shorten_str(s, max_len, ratio=2./3):
+    rc, new_s = '...', s
+    if len(s) > max_len:
+        s_1, s_2 = s[0:len(s)//2-1], s[len(s)//2+2:]
+        diff = len(s) - max_len
+        delete = 1 if diff == 1 else int(diff*ratio)
+        new_s = '{}{}{}'.format(s_1[0:len(s_1)-delete], rc,
+                                s_2[diff-delete:])
+
+    return new_s
