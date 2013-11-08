@@ -1,4 +1,5 @@
 import os
+import errno
 import logging
 
 import version
@@ -13,10 +14,16 @@ class DebugFilter(object):
         return logRecord.levelno <= self.__level
 
 #SOLVED: Duplicate logging problem - logging is a singleton.
-#Don't use this directly. It has to be a singleton!
+#Don't use this class directly. It has to be a singleton!
 class LoggerFactory(object):
 
     def __init__(self):
+        try:
+            os.makedirs('logs')
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+    
         self.v = version.__version__
         fmt = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         fmt_dbg = logging.Formatter('%(asctime)s - %(name)s - %(message)s')

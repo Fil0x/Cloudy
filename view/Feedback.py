@@ -26,15 +26,17 @@ class SendMailWorker(QtCore.QThread):
         msg['From'] = local.email
         msg['To'] = local.email
 
-        mailServer = smtplib.SMTP('smtp.gmail.com', 587)
-        mailServer.ehlo()
-        mailServer.starttls()
-        mailServer.ehlo()
-        mailServer.login(local.email, local.password)
-        mailServer.sendmail(local.email, local.email, msg.as_string())
-        mailServer.close()
-
-        self.emit(QtCore.SIGNAL('sent()'))
+        try:
+            mailServer = smtplib.SMTP('smtp.gmail.com', 587)
+            mailServer.ehlo()
+            mailServer.starttls()
+            mailServer.ehlo()
+            mailServer.login(local.email, local.password)
+            mailServer.sendmail(local.email, local.email, msg.as_string())
+            mailServer.close()
+            self.emit(QtCore.SIGNAL('sent()'))
+        except smtplib.SMTPException:
+            self.emit(QtCore.SIGNAL('fail()'))
 
 class FeedbackPage(QtGui.QWidget):
 
@@ -110,9 +112,24 @@ class FeedbackPage(QtGui.QWidget):
                                      self.msgTxtBox.toPlainText())
         QtCore.QObject.connect(self.worker, QtCore.SIGNAL('sent()'), self.onMailComplete,
                                QtCore.Qt.QueuedConnection)
+        QtCore.QObject.connect(self.worker, QtCore.SIGNAL('fail()'), self.onMailFailure,
+                               QtCore.Qt.QueuedConnection)
 
         self.worker.start()
 
+    def mousePressEvent(self, event):
+        self.move_pos = event.pos()
+
+    def mouseMoveEvent(self, event):
+        if event.buttons() & QtCore.Qt.LeftButton:
+            diff = event.pos() - self.move_pos
+            new_pos = self.pos() + diff
+
+            self.move(new_pos)
+        
+    def onMailFailure(self):
+        self.sendBtn.setText('An error occured, please reopen this window.')
+        
     def onMailComplete(self):
         self.sendBtn.setText('Thank you for your feedback!')
 

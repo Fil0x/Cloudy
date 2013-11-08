@@ -10,8 +10,7 @@ import faults
 from DataManager import LocalDataManager
 from UploadManager import LocalUploadManager
 
-from astakosclient.errors import Unauthorized
-from astakosclient.errors import AstakosClientException
+from kamaki.clients import ClientError
 from dropbox import rest
 from dropbox import client
 from dropbox import session
@@ -45,11 +44,11 @@ class PithosUploader(object):
                         except ZeroDivisionError:
                             #The file was empty, it's 100% by default.
                             yield (1.0, self.path)
-                except Unauthorized as e:
-                    yield(12, None)
-                    return
-                except AstakosClientException as e:
-                    yield (22, None)
+                except ClientError as e:
+                    if e.status in [401, 404]:
+                        yield (12, None)
+                    elif 'Errno 11004' in e.message:
+                        yield (22, None)
                     return
         except IOError as e:
             yield (2, None)
@@ -258,7 +257,7 @@ class UploadQueue(object):
             self.pending_uploads['Pithos'][k] = {'uploader':pithosUploader,
                                                  'status':v['status'],
                                                  'conflict':v['conflict']}
-    
+
     def _dropbox_load(self):
         uploadManager = LocalUploadManager()
         uploadsFromFile = uploadManager.get_uploads('Dropbox')
@@ -348,7 +347,7 @@ class UploadQueue(object):
                                                   'status':'Starting',
                                                   'conflict':'KeepBoth'}
         return (id, self.pending_uploads['Pithos'][id])
-        
+
     def _pithos_save(self):
         def create_dict(item):
             state = self._normalize_state(item['status'])
@@ -377,7 +376,7 @@ class UploadQueue(object):
             else:
                 d = create_dict(v)
                 uploadManager.add_upload('Pithos', k, **d)
-            
+
     def _dropbox_add(self, path):
         '''
         path: localpath to the file.

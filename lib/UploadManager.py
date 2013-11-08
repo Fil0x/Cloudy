@@ -27,6 +27,8 @@ def check_file(fileType):
 
 class LocalUploadManager(Manager):
     def __init__(self, historyName='history.ini', uploadName='upload.ini'):
+        super(LocalUploadManager, self).__init__()
+    
         self.logger = logger.logger_factory(self.__class__.__name__)
 
         self.historyPath = os.path.join(self.basepath, raw(historyName))

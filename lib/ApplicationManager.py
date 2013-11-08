@@ -18,10 +18,12 @@ def check_file(f):
 
 class ApplicationManager(Manager):
     def __init__(self, config_path='app.ini'):
+        super(ApplicationManager, self).__init__()
+    
         self.config_path = os.path.join(self.basepath, raw(config_path))
-
+        
         try:
-            with open(self.config_path, 'r') as f:
+            with open(self.config_path, 'r'):
                 pass
         except IOError:
             self._create_config_file()
