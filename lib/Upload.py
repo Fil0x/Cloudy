@@ -32,8 +32,6 @@ class PithosUploader(object):
         self.target_length = os.path.getsize(path)
 
     def upload_chunked(self, chunk_size=128*1024): #Chunk size unused.
-        self.client.container = self.remote
-
         try:
             with open(self.path, 'rb') as f:
                 try:

@@ -7,6 +7,7 @@ import faults
 from DataManager import Manager
 from DataManager import LocalDataManager
 
+from kamaki.clients import ClientError
 from astakosclient import AstakosClient
 from astakosclient import errors as AstakosErrors
 from lib.CloudyPithosClient import CloudyPithosClient
@@ -56,7 +57,6 @@ class AuthManager(Manager):
 
         return self.service_auth[service]()
 
-    #TODO: pithos
     def add_and_authenticate(self, service, key):
         assert(service in self.services)
 
@@ -68,7 +68,18 @@ class AuthManager(Manager):
         return getattr(self, '_get_{}_flow'.format(service.lower()))()
 
     #end of exposed functions
-
+    def _call_exceptional(self, client, create=False):
+        try:
+            client.get_container_info() if not create else \
+            client.create_container()
+        except ClientError as e:
+            if e.status == 401:
+                raise faults.InvalidAuth('Pithos-Auth')
+            elif 'Errno 11004' in e.message:
+                raise faults.NetworkError('No internet-Auth')
+            elif e.status == 404:
+                self._call_exceptional(client, True)
+        
     def _pithos_auth(self):
         access_token = None
         dataManager = LocalDataManager()
@@ -77,15 +88,19 @@ class AuthManager(Manager):
         access_token = dataManager.get_credentials('Pithos')
         
         try:
+            dm = LocalDataManager()
             s = AstakosClient(local.Pithos_AUTHURL)
             pithos_url = self._get_pithos_public_url(s.get_endpoints(access_token))
             uuid = s.get_user_info(access_token)['uuid']
-        except AstakosErrors.Unauthorized as e:
+            pithosClient = CloudyPithosClient(pithos_url, access_token, uuid)
+            pithosClient.container = dm.get_service_root('Pithos')
+            
+            #Check if the container saved in the settings exists.
+            self._call_exceptional(pithosClient)
+        except (AstakosErrors.Unauthorized, faults.InvalidAuth) as e:
             raise faults.InvalidAuth('Pithos-Auth')
-        except AstakosErrors.AstakosClientException as e:
+        except (AstakosErrors.AstakosClientException, faults.NetworkError) as e:
             raise faults.NetworkError('No internet-Auth')
-        
-        pithosClient = CloudyPithosClient(pithos_url, access_token, uuid)
         
         return pithosClient
 
