@@ -166,9 +166,13 @@ class DropboxUploader(object):
 #GoogleDrive stuff
 class GoogleDriveUploader(object):
 
-    def __init__(self, path, remote='', offset=0, upload_uri=None, client=None):
+    def __init__(self, path, remote='', parent_id='', offset=0, upload_uri=None, client=None):
         self.path = path
-        self.body = {'title':os.path.basename(path)}
+        body = {'title':os.path.basename(path)}
+        if parent_id:
+            body['parents'] = [{'id': parent_id}]
+        self.body = body
+        self.parent_id = parent_id
         self.offset = offset
         self.remote = remote
         self.target_length = os.path.getsize(path)
@@ -307,7 +311,8 @@ class UploadQueue(object):
 
             offset = int(v['offset'])
             upload_uri = None if v['upload_uri'] == 'None' else v['upload_uri']
-            gdUploader = GoogleDriveUploader(v['path'], v['destination'], offset, upload_uri)
+            gdUploader = GoogleDriveUploader(v['path'], v['destination'], v['parent_id'], 
+                                             offset, upload_uri)
 
             self.pending_uploads['GoogleDrive'][k] = {'uploader':gdUploader,
                                                       'status':v['status'],
@@ -432,7 +437,8 @@ class UploadQueue(object):
         try:
             with open(path, 'rb'):
                 pass
-            uploader = GoogleDriveUploader(path, dm.get_service_root('GoogleDrive'))
+            uploader = GoogleDriveUploader(path, dm.get_service_root('GoogleDrive'), 
+                                           dm.get_folder_id())
         except IOError:
             self.pending_uploads['GoogleDrive'][id] = {'error':'File not found',
                                                        'status':'Error-2',
@@ -450,6 +456,7 @@ class UploadQueue(object):
                     'offset':item['uploader'].offset,
                     'path':item['uploader'].path,
                     'destination':item['uploader'].remote,
+                    'parent_id':item['uploader'].parent_id, 
                     'status':state,
                     'conflict':item['conflict']}
 

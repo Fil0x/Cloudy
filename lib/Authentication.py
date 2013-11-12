@@ -150,9 +150,22 @@ class AuthManager(Manager):
             raise faults.NetworkError('No internet.')
 
         try:
-            drive_service.about().get().execute()
+            #Check whether the target folder exists
+            container = dataManager.get_service_root('GoogleDrive')
+            if container:
+                arguments = ['title = "{}"'.format(container),
+                             'mimeType = "application/vnd.google-apps.folder"',
+                             'trashed = False']
+                q = ' and '.join(arguments)
+                response = drive_service.files().list(q=q).execute()
+                if not response['items']:
+                    #Create the folder
+                    body = {'title':container, 'mimeType':'application/vnd.google-apps.folder'}
+                    response = drive_service.files().insert(body=body).execute()
+                dataManager.set_folder_id(response['items'][0]['id'])
         except errors.HttpError as e:
-            raise
+            #raise
+            raise faults.NetworkError('No internet.')
         except AccessTokenRefreshError:
             raise faults.InvalidAuth('GoogleDrive')
 

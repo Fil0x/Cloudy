@@ -53,6 +53,13 @@ class LocalDataManager(Manager):
     def set_service_root(self, service, root):
         self.config[service]['ROOT'] = root
         self.config.write()
+        
+    def get_folder_id(self): #GoogleDrive
+        return self.config['GoogleDrive']['FOLDER_ID']
+        
+    def set_folder_id(self, new_id): #GoogleDrive
+        self.config['GoogleDrive']['FOLDER_ID'] = new_id
+        self.config.write()
 
     @checkFile
     def get_credentials(self, service):
@@ -88,7 +95,8 @@ class LocalDataManager(Manager):
         config['Dropbox']['ROOT'] = '/'
 
         config['GoogleDrive'] = {}
-        config['GoogleDrive']['ROOT'] = '/Apps/CSLab_Cloudy'
+        config['GoogleDrive']['ROOT'] = 'Cloudy'
+        config['GoogleDrive']['FOLDER_ID'] = ''
 
         config.write()
 
