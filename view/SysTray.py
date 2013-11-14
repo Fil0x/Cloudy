@@ -12,7 +12,7 @@ class SystemTrayIcon(QtGui.QSystemTrayIcon):
         menu = QtGui.QMenu(parent)
 
         #@Mediator
-        self.openAction = menu.addAction('Open')
+        self.openAction = menu.addAction('Open/Hide main window')
         #@Mediator
         self.settingsAction = menu.addAction('Settings')
         

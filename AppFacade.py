@@ -10,7 +10,7 @@ class AppFacade(puremvc.patterns.facade.Facade):
     STARTUP = 'startup'
     EXIT = 'exit'
 
-    SHOW_DETAILED = 'show_detailed'
+    TOGGLE_DETAILED = 'show_detailed'
     DELETE_HISTORY_DETAILED = 'delete_history_detailed'
 
     SHOW_COMPACT = 'show_compact'

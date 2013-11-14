@@ -116,7 +116,7 @@ class SysTrayMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMe
                                          [globals.get_globals()])
 
     def onOpen(self):
-        self.facade.sendNotification(AppFacade.AppFacade.SHOW_DETAILED)
+        self.facade.sendNotification(AppFacade.AppFacade.TOGGLE_DETAILED)
 
     def onSettings(self):
         self.facade.sendNotification(AppFacade.AppFacade.SHOW_SETTINGS)
@@ -381,7 +381,7 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
 
     def listNotificationInterests(self):
         return [
-            AppFacade.AppFacade.SHOW_DETAILED,
+            AppFacade.AppFacade.TOGGLE_DETAILED,
             AppFacade.AppFacade.SHOW_SETTINGS,
             AppFacade.AppFacade.SERVICE_ADD
         ]
@@ -389,8 +389,8 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
     def handleNotification(self, notification):
         note_name = notification.getName()
         body = notification.getBody()
-        if note_name == AppFacade.AppFacade.SHOW_DETAILED and not self.viewComponent.isVisible():
-            self.viewComponent.setVisible(True)
+        if note_name == AppFacade.AppFacade.TOGGLE_DETAILED:
+            self.viewComponent.setVisible(not self.viewComponent.isVisible())
         elif note_name == AppFacade.AppFacade.SHOW_SETTINGS:
             self.viewComponent.show_settings()
             if not self.viewComponent.isVisible():

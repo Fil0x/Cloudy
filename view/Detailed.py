@@ -193,7 +193,7 @@ class HistoryTableDelegate(BaseDelegate):
         painter.setFont(self.font)
 
         d = shorten_str(d, 25)
-                
+
         if col in [0, 3]:
             painter.drawText(QtCore.QPoint(10, 20), d)
         elif col == 1:
@@ -291,13 +291,12 @@ class DetailedWindow(QtGui.QMainWindow):
 
     def onTabChanged(self, tabIndex):
         sb = self.statusBar()
-    
+
         if tabIndex == 0:
             self.addBtn.setDisabled(False)
             self.playBtn.setDisabled(False)
             self.stopBtn.setDisabled(False)
             self.removeBtn.setDisabled(False)
-            
             sb.showMessage(self.upload_table_sb_msg)
         elif tabIndex == 1:
             self.addBtn.setDisabled(False)
@@ -310,27 +309,26 @@ class DetailedWindow(QtGui.QMainWindow):
             self.playBtn.setDisabled(True)
             self.stopBtn.setDisabled(True)
             self.removeBtn.setDisabled(True)
-            
-            sb.clearMessage()            
-    
+            sb.clearMessage()
+
     def keyPressEvent(self, event):
         event.accept()
         modifiers = QtGui.QApplication.keyboardModifiers()
-        
+
         if (self.history_table.isVisible() and
             modifiers == QtCore.Qt.ControlModifier and
             event.key() == QtCore.Qt.Key_C):
-            
+
             model = self.history_table.model()
             selections = self.history_table.selectionModel()
             clipboard = QtGui.QApplication.clipboard()
             clipboard.clear()
-            
+
             links = []
             for s in selections.selectedRows():
                 #TODO: Change the index
                 links.append(model.data[s.row()][1])
-            
+
             if links:
                 clipboard.setText('\n'.join(links))
 
