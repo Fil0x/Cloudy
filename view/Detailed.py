@@ -232,6 +232,8 @@ class DetailedWindow(QtGui.QMainWindow):
     tableBackgroundPath = r'images/detailed-background.jpg'
     windowStyle = r'QMainWindow {background-color: rgba(108, 149, 218, 100%)}'
     no_services_error = r'You are not authenticated with any service.'
+    upload_table_sb_msg = r'Files currently uploaded'
+    history_table_sb_msg = r'Ctrl+C to copy share links of the selected entries'
 
     def __init__(self, title, pos, size, maximized, screen_id, settings_page):
         QtGui.QWidget.__init__(self)
@@ -284,25 +286,53 @@ class DetailedWindow(QtGui.QMainWindow):
         self.setCentralWidget(self.tab)
 
         sb = QtGui.QStatusBar(self)
-        sb.addWidget(QtGui.QLabel('Ready'))
+        sb.showMessage(self.upload_table_sb_msg)
         self.setStatusBar(sb)
 
     def onTabChanged(self, tabIndex):
+        sb = self.statusBar()
+    
         if tabIndex == 0:
             self.addBtn.setDisabled(False)
             self.playBtn.setDisabled(False)
             self.stopBtn.setDisabled(False)
             self.removeBtn.setDisabled(False)
+            
+            sb.showMessage(self.upload_table_sb_msg)
         elif tabIndex == 1:
             self.addBtn.setDisabled(False)
             self.playBtn.setDisabled(True)
             self.stopBtn.setDisabled(True)
             self.removeBtn.setDisabled(False)
+            sb.showMessage(self.history_table_sb_msg)
         elif tabIndex == 2:
             self.addBtn.setDisabled(True)
             self.playBtn.setDisabled(True)
             self.stopBtn.setDisabled(True)
             self.removeBtn.setDisabled(True)
+            
+            sb.clearMessage()            
+    
+    def keyPressEvent(self, event):
+        event.accept()
+        modifiers = QtGui.QApplication.keyboardModifiers()
+        
+        if (self.history_table.isVisible() and
+            modifiers == QtCore.Qt.ControlModifier and
+            event.key() == QtCore.Qt.Key_C):
+            
+            model = self.history_table.model()
+            selections = self.history_table.selectionModel()
+            clipboard = QtGui.QApplication.clipboard()
+            clipboard.clear()
+            
+            links = []
+            for s in selections.selectedRows():
+                #TODO: Change the index
+                links.append(model.data[s.row()][1])
+            
+            if links:
+                clipboard.setText('\n'.join(links))
 
     def get_current_tab(self):
         return self.tab.currentIndex()
