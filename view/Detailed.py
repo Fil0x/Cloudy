@@ -32,7 +32,7 @@ class MyTableModel(QtCore.QAbstractTableModel):
         return QtCore.QVariant(self.data[index.row()][index.column()])
 
     def headerData(self, col, orientation, role):
-        if col != self.hidden_col and orientation == Qt.Qt.Horizontal and role == Qt.Qt.DisplayRole:
+        if col < self.hidden_col and orientation == Qt.Qt.Horizontal and role == Qt.Qt.DisplayRole:
             return QtCore.QVariant(self.header[col])
         return QtCore.QVariant()
 
@@ -198,10 +198,10 @@ class HistoryTableDelegate(BaseDelegate):
             painter.drawText(QtCore.QPoint(10, 20), d)
         elif col == 1:
             painter.drawText(self.center_text(option.rect, d), d)
-        else:
-            pos = self.center_text(option.rect, d)
-            painter.drawImage(QtCore.QPoint(pos.x()-25, 7), self.images[d])
-            painter.drawText(pos, d)
+        elif col == 2:
+            pos = self.center_text(option.rect, d[0])
+            painter.drawImage(QtCore.QPoint(pos.x()-25, 7), self.images[d[0]])
+            painter.drawText(pos, d[0])
 
         painter.restore()
 
@@ -320,14 +320,20 @@ class DetailedWindow(QtGui.QMainWindow):
             event.key() == QtCore.Qt.Key_C):
 
             model = self.history_table.model()
-            selections = self.history_table.selectionModel()
+            selection_model = self.history_table.selectionModel()
             clipboard = QtGui.QApplication.clipboard()
             clipboard.clear()
 
             links = []
-            for s in selections.selectedRows():
-                #TODO: Change the index
-                links.append(model.data[s.row()][1])
+            selections = selection_model.selectedRows()
+            add_name = True if len(selections) != 1 else False
+            for s in selections:
+                name = model.data[s.row()][0]
+                link = model.data[s.row()][2][1]
+                if add_name:
+                    links.append('{}: {}'.format(shorten_str(name, 15), link))
+                else:
+                    links.append(link)
 
             if links:
                 clipboard.setText('\n'.join(links))
@@ -397,7 +403,7 @@ class DetailedWindow(QtGui.QMainWindow):
         self.upload_table.model().remove(id)
 
     def add_history_item(self, item):
-        #[name, dest, service, date, id]
+        #[name, dest, (service, sharelink), date, id]
         self.history_table.model().add_item(item)
 
     def clear_uploads(self):

@@ -450,7 +450,7 @@ class UploadThread(threading.Thread):
             d['name'] = os.path.basename(self.worker.path)
             date = str(datetime.datetime.now())
             d['date'] = date[:date.index('.')]
-            d['path'] = path
+            d['path'] = self.worker.remote
             d['link'] = url
         elif self.service == 'GoogleDrive':
             b={'withLink':True, 'role':'reader', 'type':'anyone'}
@@ -459,15 +459,15 @@ class UploadThread(threading.Thread):
             d['name'] = os.path.basename(self.worker.path)
             date = str(datetime.datetime.now())
             d['date'] = date[:date.index('.')]
-            d['path'] = self.worker.title
+            d['path'] = self.worker.remote
             d['link'] = shareurl.format(self.worker.id)
         elif self.service == 'Pithos':
             objname = os.path.basename(self.worker.path)
             shareurl = self.worker.client.get_object_info(objname)
-            d['name'] = self.worker.path
+            d['name'] = objname
             date = str(datetime.datetime.now())
             d['date'] = date[:date.index('.')]
-            d['path'] = objname
+            d['path'] = self.worker.remote
             d['link'] = shareurl['x-object-public']
 
         self.logger.debug('Putting in queue {}.'.format(self.id))

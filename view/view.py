@@ -257,7 +257,7 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         self.viewComponent.delete_upload_item(id)
 
     def onHistoryAdd(self, body):
-        self.viewComponent.add_history_item([body[2]['path'], body[2]['link'], body[0],
+        self.viewComponent.add_history_item([body[2]['name'], body[2]['path'], body[0],
                                              body[2]['date'], body[1]])
 
     def onHistoryDelete(self, body):
@@ -280,7 +280,7 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         r = self.proxy.get_history()
         for k, v in r.iteritems():
             for id, item in v.iteritems():
-                l.append([item['path'], item['link'], k, item['date'], id])
+                l.append([item['name'], item['path'], (k, item['link']), item['date'], id])
         return sorted(l, key=itemgetter(3))
 
     def onAdd(self):
@@ -433,7 +433,7 @@ class HistoryWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
         r = self.proxy.get_history()
         for k, v in r.iteritems():
             for id, item in v.iteritems():
-                l.append([k, item['path'], item['link'], item['date']])
+                l.append([k, item['name'], item['link'], item['date']])
         return sorted(l, key=itemgetter(3))
 
     def onShow(self):
@@ -446,7 +446,7 @@ class HistoryWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
 
     def onAdd(self, body):
         if self.initialized:
-            self.viewComponent.add_item(body[0], body[1]['path'],
+            self.viewComponent.add_item(body[0], body[1]['name'],
                                         body[1]['link'], body[1]['date'])
         else:
             self.viewComponent.update_all(self._format_history())
