@@ -101,7 +101,7 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
 
     def delete_history(self, data):
         for i in data:
-            self.history_queue.put(('remove', i[1], i[0]))
+            self.history_queue.put(('remove', i[1][0], i[0]))
         return data
 
     def get_status(self, service, id):

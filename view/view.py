@@ -257,8 +257,8 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         self.viewComponent.delete_upload_item(id)
 
     def onHistoryAdd(self, body):
-        self.viewComponent.add_history_item([body[2]['name'], body[2]['path'], body[0],
-                                             body[2]['date'], body[1]])
+        self.viewComponent.add_history_item([body[2]['name'], body[2]['path'],
+                                             (body[0], body[2]['link']), body[2]['date'], body[1]])
 
     def onHistoryDelete(self, body):
         self.viewComponent.delete_history_item(body)

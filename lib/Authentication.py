@@ -162,7 +162,9 @@ class AuthManager(Manager):
                     #Create the folder
                     body = {'title':container, 'mimeType':'application/vnd.google-apps.folder'}
                     response = drive_service.files().insert(body=body).execute()
-                dataManager.set_folder_id(response['items'][0]['id'])
+                    dataManager.set_folder_id(response['id'])
+                else:
+                    dataManager.set_folder_id(response['items'][0]['id'])
         except errors.HttpError as e:
             #raise
             raise faults.NetworkError('No internet.')

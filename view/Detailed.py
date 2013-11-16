@@ -232,8 +232,9 @@ class DetailedWindow(QtGui.QMainWindow):
     tableBackgroundPath = r'images/detailed-background.jpg'
     windowStyle = r'QMainWindow {background-color: rgba(108, 149, 218, 100%)}'
     no_services_error = r'You are not authenticated with any service.'
-    upload_table_sb_msg = r'Files currently uploaded'
-    history_table_sb_msg = r'Ctrl+C to copy share links of the selected entries'
+    upload_table_sb_msg = r'Files currently being uploaded.'
+    history_table_sb_tmp = r'{} link(s) copied to clipboard.'
+    history_table_sb_msg = r'Press Ctrl+C to copy the share links of the selected entries.'
 
     def __init__(self, title, pos, size, maximized, screen_id, settings_page):
         QtGui.QWidget.__init__(self)
@@ -253,7 +254,7 @@ class DetailedWindow(QtGui.QMainWindow):
         self.history_header = ['Name', 'Destination', 'Service', 'Date']
         self.uploads_header = ['Name', 'Progress', 'Service', 'Status',
                                'Destination', 'Conflict']
-
+                               
         c = QtGui.QColor(self.alt_color)
         dropbox_icon = QtGui.QImage(self.db_path)
         pithos_icon = QtGui.QImage(self.pithos_path)
@@ -275,6 +276,7 @@ class DetailedWindow(QtGui.QMainWindow):
         self._createRibbon()
         self._createSideSpaces()
 
+        self.statusbar_label = QtGui.QLabel(self.upload_table_sb_msg)
         self.tab = QtGui.QTabWidget()
         QtCore.QObject.connect(self.tab, QtCore.SIGNAL('currentChanged(int)'),
                                self.onTabChanged)
@@ -286,7 +288,7 @@ class DetailedWindow(QtGui.QMainWindow):
         self.setCentralWidget(self.tab)
 
         sb = QtGui.QStatusBar(self)
-        sb.showMessage(self.upload_table_sb_msg)
+        sb.addWidget(self.statusbar_label)
         self.setStatusBar(sb)
 
     def onTabChanged(self, tabIndex):
@@ -297,19 +299,19 @@ class DetailedWindow(QtGui.QMainWindow):
             self.playBtn.setDisabled(False)
             self.stopBtn.setDisabled(False)
             self.removeBtn.setDisabled(False)
-            sb.showMessage(self.upload_table_sb_msg)
+            self.statusbar_label.setText(self.upload_table_sb_msg)
         elif tabIndex == 1:
             self.addBtn.setDisabled(False)
             self.playBtn.setDisabled(True)
             self.stopBtn.setDisabled(True)
             self.removeBtn.setDisabled(False)
-            sb.showMessage(self.history_table_sb_msg)
+            self.statusbar_label.setText(self.history_table_sb_msg)
         elif tabIndex == 2:
             self.addBtn.setDisabled(True)
             self.playBtn.setDisabled(True)
             self.stopBtn.setDisabled(True)
             self.removeBtn.setDisabled(True)
-            sb.clearMessage()
+            self.statusbar_label.setText('')
 
     def keyPressEvent(self, event):
         event.accept()
@@ -336,6 +338,7 @@ class DetailedWindow(QtGui.QMainWindow):
                     links.append(link)
 
             if links:
+                self.statusBar().showMessage(self.history_table_sb_tmp.format(len(links)), 2000)
                 clipboard.setText('\n'.join(links))
 
     def get_current_tab(self):

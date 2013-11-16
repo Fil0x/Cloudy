@@ -131,7 +131,7 @@ class LocalUploadManager(Manager):
         return r
 
     def delete_history(self, service, id=None):
-        assert(service in self.services)
+        assert service in self.services, service
 
         def delete_item(i):
             try:

@@ -104,10 +104,11 @@ class HistoryWindow(QtGui.QWidget):
     db_path = r'images/dropbox-small.png'
     pithos_path = r'images/pithos-small.png'
     gd_path = r'images/googledrive-small.png'
+    close_button_img = r'images/popup-cancel.png'
     main_frame_background = r'QWidget {background-color:white}'
     static_title_style = r'QLabel {font-weight:bold}'
-    close_button_img = r'images/popup-cancel.png'
     font = QtGui.QFont('Tahoma', 10)
+    static_title_str = r'Recently uploaded'
 
 
     def __init__(self, width=320, height=240):
@@ -129,7 +130,7 @@ class HistoryWindow(QtGui.QWidget):
         self.main_frame.setStyleSheet(self.main_frame_background)
 
         #Upper layout
-        static_title = QtGui.QLabel('Recently uploaded')
+        static_title = QtGui.QLabel(self.static_title_str)
         static_title.setStyleSheet(self.static_title_style)
         static_title.setFont(self.font)
 
