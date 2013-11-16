@@ -55,25 +55,19 @@ class AccountsPage(QtGui.QWidget):
 
         self.setLayout(mainLayout)
 
-    def showEvent(self, event):
-        for v in self.notauth_panels.itervalues():
-            v.code_edit.setEnabled(False)
-            v.verify_button.setEnabled(False)
-            v.code_edit.clear()
-        
     def add_service(self, service):
         self.used_services.append(service)
         #self._clearLayout(service)
         self._createServiceContent(service)
-        
+
     def remove_service(self, service):
         self.used_services.remove(service)
         #self._clearLayout(service)
         self._createServiceContent(service)
-        
+
     def reset(self, service, msg):
         self.notauth_panels[service].reset(msg)
-        
+
     #http://tinyurl.com/mcj4zpk
     def _clearLayout(self, service):
         layout = getattr(self, '{}Group'.format(service.lower())).layout()
@@ -94,7 +88,7 @@ class AccountsPage(QtGui.QWidget):
             layout = getattr(self, '{}Group'.format(service.lower())).layout()
         layout.addWidget(self.notauth_panels[service])
         layout.addWidget(self.auth_panels[service])
-            
+
         # if service in self.used_services:
             # layout.addWidget(self.auth_panels[service])
         # else:
@@ -112,6 +106,8 @@ class NotAuthorizedPanel(QtGui.QWidget):
     verifySignal = QtCore.pyqtSignal(str, str)
     authorizeSignal = QtCore.pyqtSignal(str)
 
+    auth_not_clicked_msg = r'Click the "Authorize" button to start the authorization process.'
+
     def __init__(self, service, parent=None):
         QtGui.QWidget.__init__(self, parent)
 
@@ -119,7 +115,7 @@ class NotAuthorizedPanel(QtGui.QWidget):
 
         layout = QtGui.QHBoxLayout()
 
-        self.code_edit = QtGui.QLineEdit()
+        self.code_edit = QtGui.QLineEdit(self.auth_not_clicked_msg)
         self.code_edit.setEnabled(False)
         self.code_edit.textChanged.connect(self.onTextChanged)
 
@@ -136,16 +132,16 @@ class NotAuthorizedPanel(QtGui.QWidget):
 
         self.setLayout(layout)
         self.setVisible(False)
-        
+
     def reset(self, msg):
         self.code_edit.setEnabled(False)
         self.code_edit.setText(msg)
         self.verify_button.setEnabled(False)
-        
+
     def showEvent(self, event):
+        self.code_edit.setText(self.auth_not_clicked_msg)
         self.code_edit.setEnabled(False)
         self.verify_button.setEnabled(False)
-        self.code_edit.clear()
 
     def onTextChanged(self, text):
         if len(text):
@@ -163,65 +159,192 @@ class NotAuthorizedPanel(QtGui.QWidget):
         self.verifySignal.emit(self.service, self.code_edit.text())
 
 class DropboxAuthorizedPanel(QtGui.QWidget):
-    removeSignal = QtCore.pyqtSignal(str) 
+    removeSignal = QtCore.pyqtSignal(str)
+    saveSignal = QtCore.pyqtSignal(str, str)
+    warning_str = r'Path can have multiple levels e.g. foo/boo/zoo'
+    warning_stylesheet = r'QLabel { color : red; }'
 
-    def __init__(self, parent=None):
+    def __init__(self, saved_folder='', parent=None):
         QtGui.QWidget.__init__(self, parent)
-        
-        layout = QtGui.QGridLayout()
-        
-        self.remove_button = QtGui.QPushButton('Remove')
+
+        self.saved_folder = saved_folder
+
+        main_layout = QtGui.QVBoxLayout()
+        content_layout = QtGui.QHBoxLayout()
+        buttons_layout = QtGui.QHBoxLayout()
+
+        self.remove_button = QtGui.QPushButton('Unlink')
         self.remove_button.clicked.connect(self.onRemoveClick)
-        
-        layout.addWidget(QtGui.QLabel('Lol authenticated.'), 0, 0)
-        layout.addWidget(self.remove_button, 0, 1)
-        
-        self.setLayout(layout)
+
+        self.save_button = QtGui.QPushButton('Save')
+        self.save_button.setEnabled(False)
+        self.save_button.clicked.connect(self.onSaveClick)
+
+        self.folder_edit = QtGui.QLineEdit()
+        self.folder_edit.textChanged.connect(self.onTextChanged)
+
+        self.warning_label = QtGui.QLabel(self.warning_str)
+        self.warning_label.setStyleSheet(self.warning_stylesheet)
+
+        content_layout.addWidget(QtGui.QLabel('Path:'))
+        content_layout.addWidget(self.folder_edit, 1)
+
+        buttons_layout.addWidget(self.warning_label)
+        buttons_layout.addStretch(1)
+        buttons_layout.addWidget(self.save_button)
+        buttons_layout.addWidget(self.remove_button)
+
+        main_layout.addLayout(content_layout)
+        main_layout.addLayout(buttons_layout)
+        self.setLayout(main_layout)
         self.setVisible(False)
-        
+
+    def showEvent(self, event):
+        self.folder_edit.setText(self.saved_folder)
+        self.save_button.setEnabled(False)
+
+    def onTextChanged(self, newtext):
+        if self.saved_folder != newtext:
+            self.save_button.setEnabled(True)
+        else:
+            self.save_button.setEnabled(False)
+
+    def onSaveClick(self, event):
+        folder = str(self.folder_edit.text())
+        self.saved_folder = folder
+
+        if folder == '':
+            self.saveSignal.emit('Dropbox', '/')
+        else:
+            self.saveSignal.emit('Dropbox', '/{}/'.format(folder))
+        self.save_button.setEnabled(False)
+
     def onRemoveClick(self, event):
         self.removeSignal.emit('Dropbox')
-        
-class PithosAuthorizedPanel(QtGui.QWidget):
-    removeSignal = QtCore.pyqtSignal(str) 
 
-    def __init__(self, parent=None):
+class PithosAuthorizedPanel(QtGui.QWidget):
+    removeSignal = QtCore.pyqtSignal(str)
+    saveSignal = QtCore.pyqtSignal(str, str)
+    banned_words = ['trash', 'Trash', 'groups', 'Groups']
+    warning_stylesheet = r'QLabel { color : red; }'
+    warning_str = r'Folder name cannot be empty, default is cloudy'
+
+    def __init__(self, saved_folder='', parent=None):
         QtGui.QWidget.__init__(self, parent)
-        
-        layout = QtGui.QGridLayout()
-        
-        self.remove_button = QtGui.QPushButton('Remove')
+
+        self.saved_folder = saved_folder
+
+        main_layout = QtGui.QVBoxLayout()
+        content_layout = QtGui.QHBoxLayout()
+        buttons_layout = QtGui.QHBoxLayout()
+
+        self.remove_button = QtGui.QPushButton('Unlink')
         self.remove_button.clicked.connect(self.onRemoveClick)
-        
-        layout.addWidget(QtGui.QLabel('Lol authenticated.'), 0, 0)
-        layout.addWidget(self.remove_button, 0, 2)
-        
-        self.setLayout(layout)
+
+        self.save_button = QtGui.QPushButton('Save')
+        self.save_button.setEnabled(False)
+        self.save_button.clicked.connect(self.onSaveClick)
+
+        self.folder_edit = QtGui.QLineEdit()
+        self.folder_edit.textChanged.connect(self.onTextChanged)
+
+        self.warning_label = QtGui.QLabel(self.warning_str)
+        self.warning_label.setStyleSheet(self.warning_stylesheet)
+
+        content_layout.addWidget(QtGui.QLabel('Folder:'))
+        content_layout.addWidget(self.folder_edit, 1)
+
+        buttons_layout.addWidget(self.warning_label)
+        buttons_layout.addStretch(1)
+        buttons_layout.addWidget(self.save_button)
+        buttons_layout.addWidget(self.remove_button)
+
+        main_layout.addLayout(content_layout)
+        main_layout.addLayout(buttons_layout)
+        self.setLayout(main_layout)
         self.setVisible(False)
-        
+
+    def showEvent(self, event):
+        self.folder_edit.setText(self.saved_folder)
+        self.save_button.setEnabled(False)
+
+    def onTextChanged(self, newtext):
+        if (newtext in self.banned_words or
+            not newtext or
+            self.saved_folder == newtext):
+            self.save_button.setEnabled(False)
+        else:
+            self.save_button.setEnabled(True)
+
+    def onSaveClick(self, event):
+        self.saved_folder = str(self.folder_edit.text())
+        self.saveSignal.emit('Pithos', str(self.folder_edit.text()))
+        self.save_button.setEnabled(False)
+
     def onRemoveClick(self, event):
         self.removeSignal.emit('Pithos')
-        
-class GoogleDriveAuthorizedPanel(QtGui.QWidget):
-    removeSignal = QtCore.pyqtSignal(str) 
 
-    def __init__(self, parent=None):
+class GoogleDriveAuthorizedPanel(QtGui.QWidget):
+    removeSignal = QtCore.pyqtSignal(str)
+    saveSignal = QtCore.pyqtSignal(str, str)
+    banned_words = ['trash', 'Trash', 'recent', 'Recent']
+    warning_stylesheet = r'QLabel { color : red; }'
+    warning_str = r'Folder name cannot contain "/"'
+
+    def __init__(self, saved_folder='', parent=None):
         QtGui.QWidget.__init__(self, parent)
-        
-        layout = QtGui.QGridLayout()
-        
-        self.remove_button = QtGui.QPushButton('Remove')
+
+        self.saved_folder = saved_folder
+
+        main_layout = QtGui.QVBoxLayout()
+        content_layout = QtGui.QHBoxLayout()
+        buttons_layout = QtGui.QHBoxLayout()
+
+        self.remove_button = QtGui.QPushButton('Unlink')
         self.remove_button.clicked.connect(self.onRemoveClick)
-        
-        layout.addWidget(QtGui.QLabel('Lol authenticated.'), 0, 0)
-        layout.addWidget(self.remove_button, 0, 2)
-        
-        self.setLayout(layout)
+
+        self.save_button = QtGui.QPushButton('Save')
+        self.save_button.setEnabled(False)
+        self.save_button.clicked.connect(self.onSaveClick)
+
+        self.folder_edit = QtGui.QLineEdit()
+        self.folder_edit.textChanged.connect(self.onTextChanged)
+
+        self.warning_label = QtGui.QLabel(self.warning_str)
+        self.warning_label.setStyleSheet(self.warning_stylesheet)
+
+        content_layout.addWidget(QtGui.QLabel('Folder:'))
+        content_layout.addWidget(self.folder_edit, 1)
+
+        buttons_layout.addWidget(self.warning_label)
+        buttons_layout.addStretch(1)
+        buttons_layout.addWidget(self.save_button)
+        buttons_layout.addWidget(self.remove_button)
+
+        main_layout.addLayout(content_layout)
+        main_layout.addLayout(buttons_layout)
+        self.setLayout(main_layout)
         self.setVisible(False)
-        
+
+    def showEvent(self, event):
+        self.folder_edit.setText(self.saved_folder)
+        self.save_button.setEnabled(False)
+
+    def onTextChanged(self, newtext):
+        if (newtext in self.banned_words or
+            self.saved_folder == newtext):
+            self.save_button.setEnabled(False)
+        else:
+            self.save_button.setEnabled(True)
+
+    def onSaveClick(self, event):
+        self.saved_folder = str(self.folder_edit.text())
+        self.saveSignal.emit('GoogleDrive', str(self.folder_edit.text()))
+        self.save_button.setEnabled(False)
+
     def onRemoveClick(self, event):
         self.removeSignal.emit('GoogleDrive')
-        
+
 class Settings(QtGui.QWidget):
     def __init__(self, used_services, parent=None):
         super(Settings, self).__init__(parent)
@@ -251,22 +374,22 @@ class Settings(QtGui.QWidget):
         mainLayout.addLayout(horizontalLayout)
 
         self.setLayout(mainLayout)
-    
+
     def show_settings(self):
         self.contentsWidget.setCurrentRow(0)
-        
+
     def show_accounts(self):
         self.contentsWidget.setCurrentRow(1)
-        
+
     def add_service(self, service):
         self.accounts_page.add_service(service)
-      
+
     def remove_service(self, service):
         self.accounts_page.remove_service(service)
-        
+
     def reset(self, service, msg=''):
         self.accounts_page.reset(service, msg)
-        
+
     def changePage(self, current, previous):
         if not current:
             current = previous

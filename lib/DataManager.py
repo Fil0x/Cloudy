@@ -4,6 +4,7 @@ import errno
 import inspect
 
 import local
+import logger
 from lib.util import raw
 
 from configobj import ConfigObj
@@ -24,7 +25,7 @@ class Manager(object):
     basepath =  os.path.join(os.path.dirname(filedir), 'Configuration')
     services = local.services
     
-    def __init__(self):
+    def __init__(self):   
         try:
             os.makedirs(self.basepath)
         except OSError as e:

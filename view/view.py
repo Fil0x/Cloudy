@@ -51,7 +51,7 @@ class VerifyThread(QtCore.QThread):
 class SettingsMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMediator):
 
     NAME = 'SettingsMediator'
-    error_msg = r'An error occured. Reason:{}'
+    error_msg = r'Error: {}'
 
     def __init__(self, viewComponent):
         super(SettingsMediator, self).__init__(SettingsMediator.NAME, viewComponent)
@@ -64,7 +64,11 @@ class SettingsMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IM
             self.viewComponent.accounts_page.notauth_panels[s].authorizeSignal.connect(self.onAuthorizeClicked)
             self.viewComponent.accounts_page.notauth_panels[s].verifySignal.connect(self.onVerifyClicked)
             self.viewComponent.accounts_page.auth_panels[s].removeSignal.connect(self.onRemoveClicked)
+            self.viewComponent.accounts_page.auth_panels[s].saveSignal.connect(self.onSaveClicked)
 
+    def onSaveClicked(self, service, new_folder):
+        print service, new_folder #TODO; save it in the settings
+            
     def onRemoveClicked(self, service):
         service = str(service)
         self.proxy.delete_service_credentials(service)

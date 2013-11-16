@@ -50,6 +50,8 @@ class AuthManager(Manager):
                               self._pithos_add_user,
                               self._googledrive_add_user]
         self.add_user = dict(zip(self.services, self.add_functions))
+        
+        self.logger = logger.logger_factory(self.__class__.__name__)
 
     #exposed functions
     def authenticate(self, service):
@@ -160,6 +162,7 @@ class AuthManager(Manager):
                 response = drive_service.files().list(q=q).execute()
                 if not response['items']:
                     #Create the folder
+                    self.logger.info('GoogleDrive folder changed:{}'.format(container))
                     body = {'title':container, 'mimeType':'application/vnd.google-apps.folder'}
                     response = drive_service.files().insert(body=body).execute()
                     dataManager.set_folder_id(response['id'])
