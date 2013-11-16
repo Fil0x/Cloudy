@@ -29,7 +29,10 @@ class StartUpCommand(puremvc.patterns.command.SimpleCommand, puremvc.interfaces.
         
         p = ApplicationManager()
         
-        s = Settings(p.get_services())
+        used_services = p.get_services()
+        service_folders = proxy.get_service_folders(used_services)
+        
+        s = Settings(used_services, service_folders)
         self.facade.registerMediator(SettingsMediator(s))
         
         c = CompactWindow(p.get_services(), p.get_orientation(), 

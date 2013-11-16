@@ -35,7 +35,7 @@ class GeneralPage(QtGui.QWidget):
         self.setLayout(mainLayout)
 
 class AccountsPage(QtGui.QWidget):
-    def __init__(self, used_services, parent=None):
+    def __init__(self, used_services, service_folders, parent=None):
         QtGui.QWidget.__init__(self, parent)
 
         self.services = local.services
@@ -46,7 +46,7 @@ class AccountsPage(QtGui.QWidget):
         mainLayout = QtGui.QVBoxLayout()
         for s in self.services:
             self.notauth_panels[s] = NotAuthorizedPanel(s)
-            self.auth_panels[s] = getattr(sys.modules[__name__], '{}AuthorizedPanel'.format(s))()
+            self.auth_panels[s] = getattr(sys.modules[__name__], '{}AuthorizedPanel'.format(s))(service_folders[s])
             setattr(self, '{}Group'.format(s.lower()), QtGui.QGroupBox(s))
             getattr(self, '{}Group'.format(s.lower())).setLayout(self._createServiceContent(s, True))
             mainLayout.addWidget(getattr(self, '{}Group'.format(s.lower())))
@@ -167,7 +167,7 @@ class DropboxAuthorizedPanel(QtGui.QWidget):
     def __init__(self, saved_folder='', parent=None):
         QtGui.QWidget.__init__(self, parent)
 
-        self.saved_folder = saved_folder
+        self.saved_folder = saved_folder.strip('/')
 
         main_layout = QtGui.QVBoxLayout()
         content_layout = QtGui.QHBoxLayout()
@@ -346,7 +346,7 @@ class GoogleDriveAuthorizedPanel(QtGui.QWidget):
         self.removeSignal.emit('GoogleDrive')
 
 class Settings(QtGui.QWidget):
-    def __init__(self, used_services, parent=None):
+    def __init__(self, used_services, service_folders, parent=None):
         super(Settings, self).__init__(parent)
 
         self.contentsWidget = QtGui.QListWidget()
@@ -357,7 +357,7 @@ class Settings(QtGui.QWidget):
         self.contentsWidget.setSpacing(12)
 
         self.general_page = GeneralPage()
-        self.accounts_page = AccountsPage(used_services)
+        self.accounts_page = AccountsPage(used_services, service_folders)
 
         self.pagesWidget = QtGui.QStackedWidget()
         self.pagesWidget.addWidget(self.general_page)

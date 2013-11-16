@@ -98,6 +98,17 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
         r = self.model.uq.get_history()
         self.logger.debug('History retrieved.')
         return r
+        
+    def get_service_folders(self, used_services):
+        dm = LocalDataManager()
+        r = {}
+        for s in local.services:
+            r[s] = dm.get_service_root(s)
+        return r
+        
+    def set_service_root(self, service, new_folder):
+        dm = LocalDataManager()
+        dm.set_service_root(service, new_folder)
 
     def delete_history(self, data):
         for i in data:

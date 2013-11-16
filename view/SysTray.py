@@ -14,12 +14,12 @@ class SystemTrayIcon(QtGui.QSystemTrayIcon):
         #@Mediator
         self.openAction = menu.addAction('Hide/Show Main window')
         #@Mediator
-        self.settingsAction = menu.addAction('Settings')
+        self.settingsAction = menu.addAction('General settings')
         
         menu.addSeparator()
         
         #@Mediator
-        self.accountsAction = menu.addAction('Add account')
+        self.accountsAction = menu.addAction('Account settings')
         
         menu.addSeparator()
 

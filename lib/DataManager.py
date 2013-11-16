@@ -90,7 +90,7 @@ class LocalDataManager(Manager):
         config = ConfigObj(self.configPath)
 
         config['Pithos'] = {}
-        config['Pithos']['ROOT'] = 'pithos'
+        config['Pithos']['ROOT'] = 'Cloudy'
 
         config['Dropbox'] = {}
         config['Dropbox']['ROOT'] = '/'

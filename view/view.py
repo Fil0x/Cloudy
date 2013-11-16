@@ -67,7 +67,7 @@ class SettingsMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IM
             self.viewComponent.accounts_page.auth_panels[s].saveSignal.connect(self.onSaveClicked)
 
     def onSaveClicked(self, service, new_folder):
-        print service, new_folder #TODO; save it in the settings
+        self.proxy.set_service_root(str(service), str(new_folder))
             
     def onRemoveClicked(self, service):
         service = str(service)
