@@ -9,6 +9,7 @@ import local
 import faults
 from DataManager import LocalDataManager
 from UploadManager import LocalUploadManager
+from ApplicationManager import ApplicationManager
 
 from kamaki.clients import ClientError
 from dropbox import rest
@@ -23,11 +24,11 @@ from oauth2client.client import AccessTokenRefreshError
 
 #Pithos stuff
 class PithosUploader(object):
-    def __init__(self, path, remote='pithos', progress=0, client=None):
+    def __init__(self, path, remote='pithos', offset=0, client=None):
         self.client = client
         self.path = path
         self.remote = remote #Container
-        self.progress = progress #Progress
+        self.offset = offset #Progress
 
         self.target_length = os.path.getsize(path)
 
@@ -36,9 +37,9 @@ class PithosUploader(object):
             with open(self.path, 'rb') as f:
                 try:
                     for i in self.client.upload_object(os.path.basename(self.path), f, public=True):
-                        self.progress += i
+                        self.offset += i
                         try:
-                            yield (float(self.progress)/self.target_length, self.path)
+                            yield (float(self.offset)/self.target_length, self.path)
                         except ZeroDivisionError:
                             #The file was empty, it's 100% by default.
                             yield (1.0, self.path)
@@ -222,8 +223,9 @@ class UploadQueue(object):
         for service in local.services:
             self.pending_uploads[service] = {}
 
-        self._dropbox_load()
-        self._googledrive_load()
+        p = ApplicationManager()
+        for s in p.get_services():
+            getattr(self, '_{}_load'.format(s.lower()))()
 
     def _new_id(self):
         '''The identifier for each upload will be a random number
@@ -253,8 +255,8 @@ class UploadQueue(object):
                                                      'path':v['path']}
                 continue
 
-            progress = int(v['progress'])
-            pithosUploader = PithosUploader(v['path'], v['destination'], progress)
+            offset = int(v['offset'])
+            pithosUploader = PithosUploader(v['path'], v['destination'], offset)
 
             self.pending_uploads['Pithos'][k] = {'uploader':pithosUploader,
                                                  'status':v['status'],
@@ -354,7 +356,7 @@ class UploadQueue(object):
     def _pithos_save(self):
         def create_dict(item):
             state = self._normalize_state(item['status'])
-            return {'offset': str(item['uploader'].progress),
+            return {'offset': str(item['uploader'].offset),
                     'path': item['uploader'].path,
                     'destination':item['uploader'].remote,
                     'status':state,
@@ -519,8 +521,9 @@ class UploadQueue(object):
         return self.pending_uploads[service][id]
 
     def save(self):
-        self._dropbox_save()
-        self._googledrive_save()
+        p = ApplicationManager()
+        for s in p.get_services():
+            getattr(self, '_{}_save'.format(s.lower()))()
 
     def set_client(self, service, client):
         assert(service in local.services)
