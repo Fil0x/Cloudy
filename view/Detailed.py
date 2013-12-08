@@ -142,7 +142,7 @@ class UploadTableDelegate(BaseDelegate):
 
         d = shorten_str(d, 25)
 
-        if col in [0, 5]:
+        if col == 0:
             painter.drawText(QtCore.QPoint(10, 20), d)
         elif col == 3:
             if 'Error' in d:
@@ -161,6 +161,9 @@ class UploadTableDelegate(BaseDelegate):
                 painter.drawText(self.center_text(option.rect, d), d)
         elif col == 1:
             painter.drawText(self.center_text(option.rect, d), d)
+        elif col == 5:
+            pos = self.center_text(option.rect, d)
+            painter.drawText(QtCore.QPoint(pos.x()-10, pos.y()), d)
         else:
             pos = self.center_text(option.rect, d)
             painter.drawImage(QtCore.QPoint(pos.x()-25, 7), self.images[d])

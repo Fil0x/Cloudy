@@ -289,7 +289,7 @@ class AddTaskThread(threading.Thread):
                 id, d = self.proxy.add(msg[1], msg[2])
                 filename = os.path.basename(msg[2])
                 # [filename, progress, service, status, dest, conflict, (id)]
-                l = [self.globals, filename, '0%', msg[1], 'Starting', '', 'TODO', id]
+                l = [self.globals, filename, '0%', msg[1], 'Starting', '', 'Keep Both', id]
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_STARTING, l)
                 try:
                     client = self.proxy.authenticate(msg[1])
@@ -317,7 +317,7 @@ class AddTaskThread(threading.Thread):
                     progress = str(round(float_progess, 3)*100) + '%'
                 except ZeroDivisionError:
                     progress = '0%'
-                l = [self.globals, filename, progress, msg[1], 'Starting', '', 'TODO', msg[2]]
+                l = [self.globals, filename, progress, msg[1], 'Starting', '', 'Keep Both', msg[2]]
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_STARTING, l)
                 try:
                     client = self.proxy.authenticate(msg[1])
@@ -369,12 +369,12 @@ class AddTaskThread(threading.Thread):
                     remote_path = '{}{}'.format(local.Dropbox_APPFOLDER, msg[3]['uploader'].remote)[0:-1]
                 else:
                     remote_path = msg[3]['uploader'].remote
-                l = [self.globals, filename, progress, msg[1], 'Paused', remote_path, 'TODO', msg[2]]
+                l = [self.globals, filename, progress, msg[1], 'Paused', remote_path, 'Keep Both', msg[2]]
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_STARTING, l)
             elif msg[0] in 'error_2':
                 self.logger.debug('Authentication skipped {}.'.format(msg[2]))
                 filename = os.path.basename(msg[3]['path'])
-                l = [self.globals, filename, '0%', msg[1], 'Error-File not found', '', 'TODO', msg[2]]
+                l = [self.globals, filename, '0%', msg[1], 'Error-File not found', '', 'Keep Both', msg[2]]
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_STARTING, l)
             elif msg[0] in 'error_12':
                 self.logger.debug('Authentication skipped {}.'.format(msg[2]))
@@ -384,7 +384,7 @@ class AddTaskThread(threading.Thread):
                     progress = str(round(float_progess, 3)*100) + '%'
                 except ZeroDivisionError:
                     progress = '0%'
-                l = [self.globals, filename, progress, msg[1], 'Error-Invalid Credentials', '', 'TODO', msg[2]]
+                l = [self.globals, filename, progress, msg[1], 'Error-Invalid Credentials', '', 'Keep Both', msg[2]]
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_STARTING, l)
 
 class UploadThread(threading.Thread):

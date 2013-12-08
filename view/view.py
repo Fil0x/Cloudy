@@ -40,7 +40,7 @@ class VerifyThread(QtCore.QThread):
         try:
             r = self.flow.finish(self.auth_code)
         except (rest.ErrorResponse, FlowExchangeError, Unauthorized) as e:
-            self.emit(QtCore.SIGNAL('done'), 'Error', [self.service, 'Invalid Code'])            
+            self.emit(QtCore.SIGNAL('done'), 'Error', [self.service, 'Invalid Code'])
         except (rest.RESTSocketError, httplib2.ServerNotFoundError, AstakosClientException) as e:
             self.emit(QtCore.SIGNAL('done'), 'Error', [self.service, 'Network Error'])
         except Exception as e:
@@ -60,21 +60,27 @@ class SettingsMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IM
         self.service_flows = {}
         self.verify_threads = {}
 
+        self.viewComponent.general_page.saveSignal.connect(self.onGeneralSettingsSave)
+
         for s in local.services:
             self.viewComponent.accounts_page.notauth_panels[s].authorizeSignal.connect(self.onAuthorizeClicked)
             self.viewComponent.accounts_page.notauth_panels[s].verifySignal.connect(self.onVerifyClicked)
             self.viewComponent.accounts_page.auth_panels[s].removeSignal.connect(self.onRemoveClicked)
             self.viewComponent.accounts_page.auth_panels[s].saveSignal.connect(self.onSaveClicked)
 
+    def onGeneralSettingsSave(self, settings):
+        p = ApplicationManager()
+        p.set_general_settings(settings)
+
     def onSaveClicked(self, service, new_folder):
         self.proxy.set_service_root(str(service), str(new_folder))
-            
+
     def onRemoveClicked(self, service):
         service = str(service)
         self.proxy.delete_service_credentials(service)
         self.viewComponent.remove_service(service)
         self.proxy.facade.sendNotification(AppFacade.AppFacade.SERVICE_REMOVED, service)
-            
+
     def onVerifyClicked(self, service, auth_code):
         v = VerifyThread(self.service_flows[str(service)], str(auth_code), service)
         QtCore.QObject.connect(v, QtCore.SIGNAL('done'), self.onVerifyFinished, QtCore.Qt.QueuedConnection)
@@ -113,18 +119,22 @@ class SysTrayMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMe
             QtCore.QObject.connect(getattr(viewComponent, item[0]), QtCore.SIGNAL('triggered()'),
                                item[1], QtCore.Qt.QueuedConnection)
         viewComponent.activated.connect(self.onActivate)
+        viewComponent.messageClicked.connect(self.onMessageClicked)
 
     def onActivate(self, reason):
         if reason == QtGui.QSystemTrayIcon.Trigger:
             self.facade.sendNotification(AppFacade.AppFacade.HISTORY_SHOW_COMPACT,
                                          [globals.get_globals()])
 
+    def onMessageClicked(self):
+        self.facade.sendNotification(AppFacade.AppFacade.SERVICE_ADD)
+
     def onOpen(self):
         self.facade.sendNotification(AppFacade.AppFacade.TOGGLE_DETAILED)
 
     def onSettings(self):
         self.facade.sendNotification(AppFacade.AppFacade.SHOW_SETTINGS)
-        
+
     def onAddAccount(self):
         self.facade.sendNotification(AppFacade.AppFacade.SERVICE_ADD)
 
@@ -212,7 +222,7 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         self.g.signals.upload_detailed_resumed.connect(self.onUploadResumed)
         self.g.signals.upload_detailed_removing.connect(self.onUploadRemoving)
         self.g.signals.upload_detailed_removed.connect(self.onUploadRemoved)
-        
+
         self.g.signals.network_error.connect(self.onNetworkError)
         self.g.signals.file_not_found.connect(self.onFileNotFound)
         self.g.signals.invalid_credentials.connect(self.onInvalidCredentials)
@@ -270,7 +280,7 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
     @update_compact
     def onNetworkError(self, id):
         self.viewComponent.update_item_status([id, 'Error-Network Error'])
-        
+
     @update_compact
     def onFileNotFound(self, id):
         self.viewComponent.update_item_status([id, 'Error-File not found'])

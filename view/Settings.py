@@ -6,33 +6,72 @@ from PyQt4 import Qt
 from PyQt4 import QtGui
 from PyQt4 import QtCore
 
+
 class GeneralPage(QtGui.QWidget):
-    def __init__(self, parent=None):
+
+    saveSignal = QtCore.pyqtSignal(dict)
+    close_behaviour_label = r'Minimize Main window on pressing "Close(x)" button'
+    stopped_state_label = r'Add new files in the Stopped state(add in queue, but do not upload).'
+
+    def __init__(self, initial_settings, parent=None):
         QtGui.QWidget.__init__(self, parent)
 
-        configGroup = QtGui.QGroupBox("Server configuration")
+        config_layout = QtGui.QVBoxLayout()
+        upload_layout = QtGui.QVBoxLayout()
+        buttons_layout = QtGui.QHBoxLayout()
 
-        serverLabel = QtGui.QLabel("Server:")
-        serverCombo = QtGui.QComboBox()
-        serverCombo.addItem("Trolltech (Australia)")
-        serverCombo.addItem("Trolltech (Germany)")
-        serverCombo.addItem("Trolltech (Norway)")
-        serverCombo.addItem("Trolltech (People's Republic of China)")
-        serverCombo.addItem("Trolltech (USA)")
+        app_group = QtGui.QGroupBox("Application")
+        upload_group = QtGui.QGroupBox("Upload Queue")
+        
+        self.close_checkbox = QtGui.QCheckBox(self.close_behaviour_label)
+        self.stopped_checkbox = QtGui.QCheckBox(self.stopped_state_label)
+        
+        self.save_button = QtGui.QPushButton('Save')
+        self.save_button.clicked.connect(self.onSaveClick)
 
-        serverLayout = QtGui.QHBoxLayout()
-        serverLayout.addWidget(serverLabel)
-        serverLayout.addWidget(serverCombo)
+        self.default_button = QtGui.QPushButton('Reset')
+        self.default_button.clicked.connect(self.onDefaultClick)
 
-        configLayout = QtGui.QVBoxLayout()
-        configLayout.addLayout(serverLayout)
-        configGroup.setLayout(configLayout)
+        self.set_settings(initial_settings)
+
+        config_layout.addWidget(self.close_checkbox)
+        app_group.setLayout(config_layout)
+        
+        upload_layout.addWidget(self.stopped_checkbox)
+        upload_group.setLayout(upload_layout)
+
+        buttons_layout.addStretch(1)
+        buttons_layout.addWidget(self.save_button)
+        buttons_layout.addWidget(self.default_button)
 
         mainLayout = QtGui.QVBoxLayout()
-        mainLayout.addWidget(configGroup)
+        mainLayout.addWidget(app_group)
+        mainLayout.addWidget(upload_group)
+        mainLayout.addLayout(buttons_layout)
         mainLayout.addStretch(1)
 
         self.setLayout(mainLayout)
+
+    def set_settings(self, settings):
+        self.close_checkbox.setChecked(settings['close_checkbox'])
+        self.stopped_checkbox.setChecked(settings['stopped_checkbox'])
+
+    def get_settings(self):
+        r = {}
+
+        r['close_checkbox'] = self.close_checkbox.isChecked()
+        r['stopped_checkbox'] = self.stopped_checkbox.isChecked()
+
+        return r
+
+    def onSaveClick(self, event):
+        self.saveSignal.emit(self.get_settings())
+
+    def onDefaultClick(self, event):
+        self.close_checkbox.setChecked(False)
+        self.stopped_checkbox.setChecked(False)
+
+        self.saveSignal.emit(self.get_settings())
 
 class AccountsPage(QtGui.QWidget):
     def __init__(self, used_services, service_folders, parent=None):
@@ -210,7 +249,7 @@ class DropboxAuthorizedPanel(QtGui.QWidget):
             self.save_button.setEnabled(False)
 
     def onSaveClick(self, event):
-        folder = str(self.folder_edit.text())
+        folder = str(self.folder_edit.text()).strip()
         self.saved_folder = folder
 
         if folder == '':
@@ -277,8 +316,8 @@ class PithosAuthorizedPanel(QtGui.QWidget):
             self.save_button.setEnabled(True)
 
     def onSaveClick(self, event):
-        self.saved_folder = str(self.folder_edit.text())
-        self.saveSignal.emit('Pithos', str(self.folder_edit.text()))
+        self.saved_folder = str(self.folder_edit.text()).strip()
+        self.saveSignal.emit('Pithos', str(self.saved_folder))
         self.save_button.setEnabled(False)
 
     def onRemoveClick(self, event):
@@ -338,15 +377,15 @@ class GoogleDriveAuthorizedPanel(QtGui.QWidget):
             self.save_button.setEnabled(True)
 
     def onSaveClick(self, event):
-        self.saved_folder = str(self.folder_edit.text())
-        self.saveSignal.emit('GoogleDrive', str(self.folder_edit.text()))
+        self.saved_folder = str(self.folder_edit.text()).strip()
+        self.saveSignal.emit('GoogleDrive', str(self.saved_folder))
         self.save_button.setEnabled(False)
 
     def onRemoveClick(self, event):
         self.removeSignal.emit('GoogleDrive')
 
 class Settings(QtGui.QWidget):
-    def __init__(self, used_services, service_folders, parent=None):
+    def __init__(self, used_services, service_folders, general_settings, parent=None):
         super(Settings, self).__init__(parent)
 
         self.contentsWidget = QtGui.QListWidget()
@@ -356,7 +395,7 @@ class Settings(QtGui.QWidget):
         self.contentsWidget.setMaximumWidth(90)
         self.contentsWidget.setSpacing(12)
 
-        self.general_page = GeneralPage()
+        self.general_page = GeneralPage(general_settings)
         self.accounts_page = AccountsPage(used_services, service_folders)
 
         self.pagesWidget = QtGui.QStackedWidget()

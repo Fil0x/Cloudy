@@ -122,9 +122,9 @@ class FileChooser(QtGui.QDialog):
         size = self.total_size
         if self.total_size > 1023:
             size /= 1024
-            self.filesFoundLabel.setText("{} file(s) with size {} MB".format(rows, size))
+            self.filesFoundLabel.setText("{} file(s) with size {} MB - Double click on a file to remove it".format(rows, size))
         else:
-            self.filesFoundLabel.setText("{} file(s) with size {} KB".format(rows, size))
+            self.filesFoundLabel.setText("{} file(s) with size {} KB - Double click on a file to remove it".format(rows, size))
         
     def onTableDoubleClick(self, row, col):
         self.total_size -= int(self.filesTable.item(row, 1).text().split(' ')[0])

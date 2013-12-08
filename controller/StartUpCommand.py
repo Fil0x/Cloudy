@@ -20,28 +20,36 @@ import puremvc.patterns.command
 
 
 class StartUpCommand(puremvc.patterns.command.SimpleCommand, puremvc.interfaces.ICommand):
+
+    no_service_title = 'Cloudy: No services active'
+    no_service_body = r'You are not using any service, click here to activate them or ' + \
+                       'right-click on the tray icon and click "Account Settings".'
+
     def execute(self, notification):
         proxy = model.modelProxy.ModelProxy()
         self.facade.registerProxy(proxy)
-        
-        self.facade.registerMediator(SysTrayMediator(notification.getBody()))
+        systray = notification.getBody()
+
+        self.facade.registerMediator(SysTrayMediator(systray))
         self.facade.registerMediator(HistoryWindowMediator(HistoryWindow()))
-        
+
         p = ApplicationManager()
-        
+
         used_services = p.get_services()
         service_folders = proxy.get_service_folders(used_services)
-        
-        s = Settings(used_services, service_folders)
+
+        if not used_services:
+            systray.show_message(self.no_service_title, self.no_service_body, duration=5000)
+
+        s = Settings(used_services, service_folders, p.get_general_settings())
         self.facade.registerMediator(SettingsMediator(s))
-        
-        c = CompactWindow(p.get_services(), p.get_orientation(), 
+
+        c = CompactWindow(p.get_services(), p.get_orientation(),
                           p.get_pos('Compact'), 0)
         self.facade.registerMediator(CompactWindowMediator(c))
-        
+
         d = DetailedWindow(version.__version__, p.get_pos('Detailed'),
                            p.get_size(), p.get_maximized(), 0, s)
         self.facade.registerMediator(DetailedWindowMediator(d))
-        
+
         proxy.start_uploads()
-        

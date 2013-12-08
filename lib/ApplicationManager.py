@@ -19,9 +19,9 @@ def check_file(f):
 class ApplicationManager(Manager):
     def __init__(self, config_path='app.ini'):
         super(ApplicationManager, self).__init__()
-    
+
         self.config_path = os.path.join(self.basepath, raw(config_path))
-        
+
         try:
             with open(self.config_path, 'r'):
                 pass
@@ -45,12 +45,28 @@ class ApplicationManager(Manager):
         config['Compact']['orientation'] = 'H' #or 'V'
 
         config['Settings'] = {}
+        config['Settings']['close_checkbox'] = False
+        config['Settings']['stopped_checkbox'] = False
 
         config['Services'] = []
 
         config.write()
-        
+
         self.config = ConfigObj(self.config_path)
+
+    def _to_bool(self, attr):
+        return self.config['Settings'].as_bool(attr)
+        
+    def get_general_settings(self):
+        self.config['Settings']['close_checkbox'] = self._to_bool('close_checkbox')
+        self.config['Settings']['stopped_checkbox'] = self._to_bool('stopped_checkbox')
+
+        return self.config['Settings']
+
+    def set_general_settings(self, settings):
+        self.config['Settings'] = settings
+
+        self.config.write()
 
     def get_services(self):
         return self.config.as_list('Services')
@@ -115,9 +131,8 @@ class ApplicationManager(Manager):
 
     def get_orientation(self):
         return self.config['Compact']['orientation']
-        
+
     def set_orientation(self, value):
         assert value in ['V', 'H'], 'Orientation must be V or H'
-    
+
         self.config['Compact']['orientation'] = value
-        

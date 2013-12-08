@@ -1,4 +1,5 @@
 import local
+import logger
 
 import smtplib
 from PyQt4 import Qt
@@ -33,9 +34,8 @@ class SendMailWorker(QtCore.QThread):
             mailServer.ehlo()
             mailServer.login(local.email, local.password)
             mailServer.sendmail(local.email, local.email, msg.as_string())
-            mailServer.close()
-            self.emit(QtCore.SIGNAL('sent()'))
-        except smtplib.SMTPException:
+            mailServer.quit()
+        except Exception:
             self.emit(QtCore.SIGNAL('fail()'))
 
 class FeedbackPage(QtGui.QWidget):
@@ -56,6 +56,8 @@ class FeedbackPage(QtGui.QWidget):
     def __init__(self):
         QtGui.QWidget.__init__(self)
 
+        self.logger = logger.logger_factory(self.__class__.__name__)
+        
         bgImage = QtGui.QPixmap(self.bgImagePath)
         self.setMinimumSize(bgImage.size())
         self.setMaximumSize(bgImage.size())
@@ -104,17 +106,12 @@ class FeedbackPage(QtGui.QWidget):
         self.mainFrame.setLayout(mainLayout)
 
     def onSend(self, event):
-        self.sendBtn.setText('Sending..')
-        for i in self.mainFrame.children():
-            i.setEnabled(False)
+        self.deleteLater()
 
         self.worker = SendMailWorker(self.nameTxtBox.text(), self.emailTxtBox.text(),
                                      self.msgTxtBox.toPlainText())
-        QtCore.QObject.connect(self.worker, QtCore.SIGNAL('sent()'), self.onMailComplete,
-                               QtCore.Qt.QueuedConnection)
         QtCore.QObject.connect(self.worker, QtCore.SIGNAL('fail()'), self.onMailFailure,
                                QtCore.Qt.QueuedConnection)
-
         self.worker.start()
 
     def mousePressEvent(self, event):
@@ -128,10 +125,7 @@ class FeedbackPage(QtGui.QWidget):
             self.move(new_pos)
         
     def onMailFailure(self):
-        self.sendBtn.setText('An error occured, please reopen this window.')
-        
-    def onMailComplete(self):
-        self.sendBtn.setText('Thank you for your feedback!')
+        self.logger.info('Failed to send e-mail.')
 
     def setBackgroundImage(self, img):
         pic = QtGui.QLabel(self)
