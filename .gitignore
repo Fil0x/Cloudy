@@ -3,9 +3,7 @@
 #############
 
 *.py[co]
-lib/DataManager.py
 local.py
 tests.py
 logs/
-images/
 Configuration/

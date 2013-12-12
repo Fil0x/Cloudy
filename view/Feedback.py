@@ -43,11 +43,11 @@ class FeedbackPage(QtGui.QWidget):
     bgImagePath = r'images/feedback-bg.png'
     leNameBox = r'Your name'
     leEmailBox = r'Your email'
-    leMsgBox = r'Please type your message here..'
+    leMsgBox = r'Please type your message here...'
     emailTextLabel = r''
     closeBtnPath = r'images/feedback-close.png'
     closeBtnStyle = r'background-color: rgba(255, 255, 255, 0%)'
-    sendBtnStyle = r'background-color: rgba(96, 92, 196, 100%)'
+    sendBtnStyle = r'background-color: rgba(209, 119, 131, 100%)'
     textboxStyle = r'border-radius: 40px;'
     infoMessage = r'<b><font size="6">Send us your feedback</font></b><br/> '
     font = 'Helvetica'
@@ -91,17 +91,21 @@ class FeedbackPage(QtGui.QWidget):
         self.sendBtn = QtGui.QPushButton('Send')
         self.sendBtn.clicked.connect(self.onSend)
         self.sendBtn.setStyleSheet(self.sendBtnStyle)
-
+        
         upperLayout = QtGui.QHBoxLayout()
         upperLayout.setSpacing(10)
         upperLayout.addWidget(self.nameTxtBox)
         upperLayout.addWidget(self.emailTxtBox)
+        
+        buttonLayout = QtGui.QHBoxLayout()
+        buttonLayout.addStretch(1)
+        buttonLayout.addWidget(self.sendBtn)
 
         mainLayout = QtGui.QVBoxLayout()
         mainLayout.addWidget(QtGui.QLabel(self.infoMessage))
         mainLayout.addLayout(upperLayout)
         mainLayout.addWidget(self.msgTxtBox)
-        mainLayout.addWidget(self.sendBtn)
+        mainLayout.addLayout(buttonLayout)
 
         self.mainFrame.setLayout(mainLayout)
 
@@ -113,7 +117,7 @@ class FeedbackPage(QtGui.QWidget):
         QtCore.QObject.connect(self.worker, QtCore.SIGNAL('fail()'), self.onMailFailure,
                                QtCore.Qt.QueuedConnection)
         self.worker.start()
-
+        
     def mousePressEvent(self, event):
         self.move_pos = event.pos()
 

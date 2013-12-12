@@ -231,19 +231,21 @@ class DetailedWindow(QtGui.QMainWindow):
     stopBtnPath = r'images/detailed-stop.png'
     file_icon_path = r'images/detailed-doc.png'
     removeBtnPath = r'images/detailed-remove.png'
+    copyBtnPath = r'images/detailed-copy.png'
     settingsBtnPath = r'images/detailed-configure.png'
     tableBackgroundPath = r'images/detailed-background.jpg'
     windowStyle = r'QMainWindow {background-color: rgba(108, 149, 218, 100%)}'
     no_services_error = r'You are not authenticated with any service.'
     upload_table_sb_msg = r'Files currently being uploaded.'
     history_table_sb_tmp = r'{} link(s) copied to clipboard.'
-    history_table_sb_msg = r'Press Ctrl+C to copy the share links of the selected entries.'
+    history_table_sb_msg = r'Press Ctrl+C or click the "Copy" button to copy the share links of the selected entries.'
 
     def __init__(self, title, pos, size, maximized, screen_id, settings_page):
         QtGui.QWidget.__init__(self)
         self.setWindowTitle(title)
         self.setVisible(False)
-        self.setStyleSheet(self.windowStyle)
+        self.setStyleSheet(self.windowStyle)        
+        QtGui.QToolTip.setFont(self.font)
 
         if not maximized:
             d = QtGui.QApplication.desktop()
@@ -278,6 +280,8 @@ class DetailedWindow(QtGui.QMainWindow):
 
         self._createRibbon()
         self._createSideSpaces()
+        
+        self.copyBtn.clicked.connect(self.onCopyClick)
 
         self.statusbar_label = QtGui.QLabel(self.upload_table_sb_msg)
         self.tab = QtGui.QTabWidget()
@@ -302,47 +306,52 @@ class DetailedWindow(QtGui.QMainWindow):
             self.playBtn.setDisabled(False)
             self.stopBtn.setDisabled(False)
             self.removeBtn.setDisabled(False)
+            self.copyBtn.setDisabled(True)
             self.statusbar_label.setText(self.upload_table_sb_msg)
         elif tabIndex == 1:
             self.addBtn.setDisabled(False)
             self.playBtn.setDisabled(True)
             self.stopBtn.setDisabled(True)
             self.removeBtn.setDisabled(False)
+            self.copyBtn.setDisabled(False)
             self.statusbar_label.setText(self.history_table_sb_msg)
         elif tabIndex == 2:
             self.addBtn.setDisabled(True)
             self.playBtn.setDisabled(True)
             self.stopBtn.setDisabled(True)
             self.removeBtn.setDisabled(True)
+            self.copyBtn.setDisabled(True)
             self.statusbar_label.setText('')
 
-    def keyPressEvent(self, event):
-        event.accept()
-        modifiers = QtGui.QApplication.keyboardModifiers()
+    def onCopyClick(self):
+        model = self.history_table.model()
+        selection_model = self.history_table.selectionModel()
+        clipboard = QtGui.QApplication.clipboard()
+        clipboard.clear()
 
+        links = []
+        selections = selection_model.selectedRows()
+        add_name = True if len(selections) != 1 else False
+        for s in selections:
+            name = model.data[s.row()][0]
+            link = model.data[s.row()][2][1]
+            if add_name:
+                links.append('{}: {}'.format(shorten_str(name, 25), link))
+            else:
+                links.append(link)
+
+        if links:
+            self.statusBar().showMessage(self.history_table_sb_tmp.format(len(links)), 2000)
+            clipboard.setText('\n'.join(links))
+            
+    def keyPressEvent(self, event):
+        modifiers = QtGui.QApplication.keyboardModifiers()
+        
         if (self.history_table.isVisible() and
             modifiers == QtCore.Qt.ControlModifier and
             event.key() == QtCore.Qt.Key_C):
-
-            model = self.history_table.model()
-            selection_model = self.history_table.selectionModel()
-            clipboard = QtGui.QApplication.clipboard()
-            clipboard.clear()
-
-            links = []
-            selections = selection_model.selectedRows()
-            add_name = True if len(selections) != 1 else False
-            for s in selections:
-                name = model.data[s.row()][0]
-                link = model.data[s.row()][2][1]
-                if add_name:
-                    links.append('{}: {}'.format(shorten_str(name, 15), link))
-                else:
-                    links.append(link)
-
-            if links:
-                self.statusBar().showMessage(self.history_table_sb_tmp.format(len(links)), 2000)
-                clipboard.setText('\n'.join(links))
+            
+            self.onCopyClick()
 
     def get_current_tab(self):
         return self.tab.currentIndex()
@@ -445,7 +454,7 @@ class DetailedWindow(QtGui.QMainWindow):
         self.addDockWidget(Qt.Qt.RightDockWidgetArea, rightDockWidget)
 
     def _createRibbon(self):
-        def _createDockWidget(elem):
+        def _createDockWidget(elem, tooltip):
             dockWidget = QtGui.QDockWidget()
             #Hide the dock title bar
             dockWidget.setTitleBarWidget(QtGui.QWidget())
@@ -454,15 +463,17 @@ class DetailedWindow(QtGui.QMainWindow):
             getattr(self, elem).setIcon(QtGui.QIcon(getattr(self, elem + 'Path')))
             getattr(self, elem).setIconSize(QtCore.QSize(30, 30))
             getattr(self, elem).setFlat(True)
+            getattr(self, elem).setToolTip(tooltip)
             getattr(self, elem).setMaximumWidth(40)
             dockWidget.setWidget(getattr(self, elem))
             self.addDockWidget(Qt.Qt.TopDockWidgetArea, dockWidget)
 
         #@Mediator
-        _createDockWidget('addBtn')
-        _createDockWidget('playBtn')
-        _createDockWidget('stopBtn')
-        _createDockWidget('removeBtn')
+        _createDockWidget('addBtn', 'Add files')
+        _createDockWidget('playBtn', 'Resume file')
+        _createDockWidget('stopBtn', 'Stop file')
+        _createDockWidget('removeBtn', 'Remove file')
+        _createDockWidget('copyBtn', 'Copy share link')
 
     def _create_table(self, header):
         tbl = QtGui.QTableView()
