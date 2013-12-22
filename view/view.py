@@ -35,6 +35,7 @@ class VerifyThread(QtCore.QThread):
         self.flow = flow
         self.service = service
         self.auth_code = auth_code
+        self.logger = logger.logger_factory(self.__class__.__name__)
 
     def run(self):
         try:

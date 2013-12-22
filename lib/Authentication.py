@@ -25,8 +25,8 @@ class PithosFlow(object):
         return local.Pithos_LOGINURL
 
     def finish(self, token):
-        s = AstakosClient(local.Pithos_AUTHURL, logger=logger.logger_factory('astakosclient'))
-        s.get_endpoints(token)
+        s = AstakosClient(token, local.Pithos_AUTHURL, logger=logger.logger_factory('astakosclient'))
+        s.authenticate()
         return token
 
 class GoogleDriveFlowWrapper(object):
@@ -38,7 +38,7 @@ class GoogleDriveFlowWrapper(object):
 
     def finish(self, code):
         return self.flow.step2_exchange(code)
-        
+
 class AuthManager(Manager):
     def __init__(self):
         self.auth_functions = [self._dropbox_auth,
@@ -50,7 +50,7 @@ class AuthManager(Manager):
                               self._pithos_add_user,
                               self._googledrive_add_user]
         self.add_user = dict(zip(self.services, self.add_functions))
-        
+
         self.logger = logger.logger_factory(self.__class__.__name__)
 
     #exposed functions
@@ -81,29 +81,29 @@ class AuthManager(Manager):
                 raise faults.NetworkError('No internet-Auth')
             elif e.status == 404:
                 self._call_exceptional(client, True)
-        
+
     def _pithos_auth(self):
         access_token = None
         dataManager = LocalDataManager()
-        
+
         #A KeyError will be raised if there is no token.
         access_token = dataManager.get_credentials('Pithos')
-        
         try:
             dm = LocalDataManager()
-            s = AstakosClient(local.Pithos_AUTHURL)
-            pithos_url = self._get_pithos_public_url(s.get_endpoints(access_token))
-            uuid = s.get_user_info(access_token)['uuid']
+            s = AstakosClient(access_token, local.Pithos_AUTHURL)
+            auth_data = s.authenticate()
+            pithos_url = self._get_pithos_public_url(auth_data)
+            uuid = auth_data['access']['user']['id']
             pithosClient = CloudyPithosClient(pithos_url, access_token, uuid)
             pithosClient.container = dm.get_service_root('Pithos')
-            
+
             #Check if the container saved in the settings exists.
             self._call_exceptional(pithosClient)
         except (AstakosErrors.Unauthorized, faults.InvalidAuth) as e:
             raise faults.InvalidAuth('Pithos-Auth')
         except (AstakosErrors.AstakosClientException, faults.NetworkError) as e:
             raise faults.NetworkError('No internet-Auth')
-        
+
         return pithosClient
 
     def _pithos_add_user(self, key):
