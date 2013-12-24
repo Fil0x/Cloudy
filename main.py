@@ -9,7 +9,7 @@ if __name__ == '__main__':
     sysTrayIcon = SystemTrayIcon()
 
     app = AppFacade.getInstance()
-    app.sendNotification(AppFacade.STARTUP, sysTrayIcon)
+    app.sendNotification(AppFacade.STARTUP, sysTrayIcon) 
 
     sysTrayIcon.show()
 

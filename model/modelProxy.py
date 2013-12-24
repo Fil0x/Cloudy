@@ -9,6 +9,7 @@ import threading
 
 import local
 import logger
+import strings
 import globals
 import AppFacade
 import lib.Upload
@@ -127,6 +128,9 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
                 if 'error' in data or data['status'] == 'Error-2': #File not found, case 2 not needed?
                     self.logger.debug('Item added(2): {}/{}'.format(s, id))
                     self.add_queue.put(('error_2', s, id, data))
+                elif data['status'] == 'Error-3':
+                    self.logger.debug('Item added(3): {}/{}'.format(s, id))
+                    self.add_queue.put(('error_3', s, id, data))
                 elif data['status'] == 'Error-12':
                     self.logger.debug('Item added(12): {}/{}'.format(s, id))
                     self.add_queue.put(('error_12', s, id, data))
@@ -374,7 +378,17 @@ class AddTaskThread(threading.Thread):
             elif msg[0] in 'error_2':
                 self.logger.debug('Authentication skipped {}.'.format(msg[2]))
                 filename = os.path.basename(msg[3]['path'])
-                l = [self.globals, filename, '0%', msg[1], 'Error-File not found', '', 'Keep Both', msg[2]]
+                l = [self.globals, filename, '0%', msg[1], strings.file_not_found, '', 'Keep Both', msg[2]]
+                self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_STARTING, l)
+            elif msg[0] in 'error_3':
+                self.logger.debug('Authentication skipped {}.'.format(msg[2]))
+                filename = os.path.basename(msg[3]['uploader'].path)
+                try:
+                    float_progess = float(msg[3]['uploader'].offset)/msg[3]['uploader'].target_length
+                    progress = str(round(float_progess, 3)*100) + '%'
+                except ZeroDivisionError:
+                    progress = '0%'
+                l = [self.globals, filename, progress, msg[1], strings.out_of_quota, '', 'Keep Both', msg[2]]
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_STARTING, l)
             elif msg[0] in 'error_12':
                 self.logger.debug('Authentication skipped {}.'.format(msg[2]))
@@ -384,7 +398,7 @@ class AddTaskThread(threading.Thread):
                     progress = str(round(float_progess, 3)*100) + '%'
                 except ZeroDivisionError:
                     progress = '0%'
-                l = [self.globals, filename, progress, msg[1], 'Error-Invalid Credentials', '', 'Keep Both', msg[2]]
+                l = [self.globals, filename, progress, msg[1], strings.invalid_credentials, '', 'Keep Both', msg[2]]
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.UPLOAD_STARTING, l)
 
 class UploadThread(threading.Thread):
@@ -421,6 +435,12 @@ class UploadThread(threading.Thread):
                                                    [self.globals, self.id])
                 self.error = True
                 return
+            elif i[0] == 3:
+                self.proxy.set_state(self.service, self.id, 'Error-3')
+                self.proxy.facade.sendNotification(AppFacade.AppFacade.OUT_OF_STORAGE,
+                                                   [self.globals, self.id])
+                self.error = True
+                return
             elif i[0] == 12:
                 self.proxy.set_state(self.service, self.id, 'Error-12')
                 self.proxy.facade.sendNotification(AppFacade.AppFacade.INVALID_CREDENTIALS,
@@ -452,7 +472,7 @@ class UploadThread(threading.Thread):
                     self.proxy.delete(self.service, self.id)
                     return
 
-        #If I reach this point, the upload is complete and I have to save it to the history.
+        #If I reach this point, the upload is complete and it has to be saved to the history.
         d = {}
         if self.service == 'Dropbox':
             response = self.worker.finish('{}{}'.format(self.worker.remote, os.path.basename(self.worker.path)))

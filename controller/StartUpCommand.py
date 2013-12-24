@@ -44,6 +44,8 @@ class StartUpCommand(puremvc.patterns.command.SimpleCommand, puremvc.interfaces.
         s = Settings(used_services, service_folders, p.get_general_settings())
         self.facade.registerMediator(SettingsMediator(s))
 
+        #The compact window must not have a taskbar entry, the solution to this is to draw it 
+        #through a dummy parent widget that is never shown.
         c = CompactWindow(p.get_services(), p.get_orientation(),
                           p.get_pos('Compact'), 0)
         self.facade.registerMediator(CompactWindowMediator(c))

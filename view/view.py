@@ -10,6 +10,7 @@ if ".." not in sys.path:
 
 import local
 import logger
+import strings
 import globals
 import AppFacade
 import model.modelProxy
@@ -227,6 +228,7 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         self.g.signals.network_error.connect(self.onNetworkError)
         self.g.signals.file_not_found.connect(self.onFileNotFound)
         self.g.signals.invalid_credentials.connect(self.onInvalidCredentials)
+        self.g.signals.out_of_storage.connect(self.onOutOfStorage)
 
     def get_window_info(self):
         return self.viewComponent.get_window_info()
@@ -280,15 +282,19 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
 
     @update_compact
     def onNetworkError(self, id):
-        self.viewComponent.update_item_status([id, 'Error-Network Error'])
+        self.viewComponent.update_item_status([id, strings.network_error])
 
     @update_compact
     def onFileNotFound(self, id):
-        self.viewComponent.update_item_status([id, 'Error-File not found'])
+        self.viewComponent.update_item_status([id, strings.file_not_found])
 
     @update_compact
     def onInvalidCredentials(self, id):
-        self.viewComponent.update_item_status([id, 'Error-Invalid Credentials'])
+        self.viewComponent.update_item_status([id, strings.invalid_credentials])
+        
+    @update_compact
+    def onOutOfStorage(self, id):
+        self.viewComponent.update_item_status([id, strings.out_of_quota])
 
     def _format_history(self):
         l = []

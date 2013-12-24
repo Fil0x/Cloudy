@@ -72,7 +72,7 @@ class ListItemDelegate(QtGui.QStyledItemDelegate):
         painter.translate(option.rect.topLeft())
         painter.setClipRect(option.rect.translated(-option.rect.topLeft()))
         painter.setFont(self.font)
-        painter.drawImage(QtCore.QPoint(5, 5), d[0])
+        painter.drawImage(QtCore.QPoint(5, 4), d[0])
         painter.drawText(QtCore.QPoint(40, 15), shorten_str(d[1], 35))
         painter.setPen(self.date_color)
         painter.drawText(QtCore.QPoint(40, 30), d[3])

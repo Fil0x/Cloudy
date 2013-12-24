@@ -44,7 +44,9 @@ class PithosUploader(object):
                             #The file was empty, it's 100% by default.
                             yield (1.0, self.path)
                 except ClientError as e:
-                    if e.status in [401, 404]:
+                    if e.status == 413: #Out of quota, http://tinyurl.com/pkmpuk6
+                        yield (3, None)
+                    elif e.status in [401, 404]:
                         yield (12, None)
                     elif 'Errno 11004' in e.message:
                         yield (22, None)
@@ -117,7 +119,9 @@ class DropboxUploader(object):
                             if reply['offset'] > self.offset:
                                 self.last_block = None
                                 self.offset = reply['offset']
-                        if e.status == 404:
+                        if e.status == 507: #Out of quota, http://tinyurl.com/c62om2r
+                            yield (3, None)
+                        elif e.status == 404:
                             yield (12, None)
                         return
                     except rest.RESTSocketError as e:

@@ -86,8 +86,8 @@ class CompactWindow(QtGui.QWidget):
     googledrive = r'images/googledrive-{}.png'
     pithos = r'images/pithos-{}.png'
 
-    def __init__(self, services, orientation, pos, screen_id):
-        QtGui.QWidget.__init__(self)
+    def __init__(self, services, orientation, pos, screen_id, parent=None):
+        super(CompactWindow, self).__init__(parent, QtCore.Qt.Window)
 
         #Data
         self.items = {} #Key is a service.
@@ -179,10 +179,10 @@ class CompactWindow(QtGui.QWidget):
                 c = copy.copy(new_states)
                 to_delete = filter(lambda x: x[0] == s, new_states)
                 [new_states.remove(state) for state in c if state in to_delete]
-        
+
         for service in used_services.difference(update_services):
             self.items[service].set_state('Idle')
-        
+
         for service, state in new_states:
             self.items[service].set_state(state)
 
@@ -240,4 +240,3 @@ class CompactWindow(QtGui.QWidget):
             new_pos = self.pos() + diff
 
             self.move(new_pos)
-
