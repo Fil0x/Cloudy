@@ -50,12 +50,15 @@ class ListViewModel(QtCore.QAbstractListModel):
 class ListItemDelegate(QtGui.QStyledItemDelegate):
 
     sharelink_path = r'images/popup-sharelink.png'
-    sharelink_pos = QtCore.QPoint(220, 2)
+    sharelink_pos = QtCore.QPoint(219, 3)
 
-    def __init__(self, device, font):
+    def __init__(self, device, font, share_signal):
         QtGui.QStyledItemDelegate.__init__(self, device)
 
         self.font = font
+        self.share_signal = share_signal
+        self.cursor_changed = False
+        self.mouse_pressed = False
         self.brush = QtGui.QBrush(QtGui.QColor('#E5FFFF'))
         self.sharelink_img = QtGui.QImage(self.sharelink_path)
         self.date_color = QtGui.QColor(QtCore.Qt.black)
@@ -63,6 +66,8 @@ class ListItemDelegate(QtGui.QStyledItemDelegate):
 
     def paint(self, painter, option, index):
         painter.save()
+        sharelink_rect = self.sharelink_img.rect().translated(self.sharelink_pos.x(),
+                                                option.rect.top() + self.sharelink_pos.y())
         model = index.model()
         d = model.data[index.row()]
 
@@ -81,7 +86,6 @@ class ListItemDelegate(QtGui.QStyledItemDelegate):
 
         painter.restore()
 
-
     def editorEvent(self, event, model, option, index):
         sharelink_rect = self.sharelink_img.rect().translated(self.sharelink_pos.x(),
                                                 option.rect.top() + self.sharelink_pos.y())
@@ -91,6 +95,16 @@ class ListItemDelegate(QtGui.QStyledItemDelegate):
                 link = model.data[index.row()][2]
                 c = QtGui.QApplication.clipboard()
                 c.setText(link)
+                self.share_signal.emit()
+        elif event.type() == QtCore.QEvent.MouseMove:
+            if sharelink_rect.contains(event.pos()):
+                if not self.cursor_changed:
+                    self.cursor_changed = True
+                    QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
+            else:
+                if self.cursor_changed:
+                    self.cursor_changed = False
+                    QtGui.QApplication.restoreOverrideCursor()
 
         return False
 
@@ -109,11 +123,14 @@ class HistoryWindow(QtGui.QWidget):
     static_title_style = r'QLabel {font-weight:bold}'
     font = QtGui.QFont('Tahoma', 10)
     static_title_str = r'Recently uploaded'
-
+    share_link_str = r'Link copied'
+    link_copied = QtCore.pyqtSignal()
 
     def __init__(self, width=320, height=240):
         QtGui.QWidget.__init__(self)
 
+        self.link_copied.connect(self.onShareClick)
+        
         self.data = [] #[[self.gd_icon, 'foo.pdf', 'html', 'date']]
         self.dropbox_icon = QtGui.QImage(self.db_path)
         self.pithos_icon = QtGui.QImage(self.pithos_path)
@@ -133,6 +150,9 @@ class HistoryWindow(QtGui.QWidget):
         static_title = QtGui.QLabel(self.static_title_str)
         static_title.setStyleSheet(self.static_title_style)
         static_title.setFont(self.font)
+        
+        self.link_copy_label = QtGui.QLabel()
+        self.link_copy_label.setFont(self.font)
 
         close_button = QtGui.QPushButton(self.main_frame)
         close_button.setFlat(True)
@@ -141,6 +161,7 @@ class HistoryWindow(QtGui.QWidget):
 
         upper_layout = QtGui.QHBoxLayout()
         upper_layout.addWidget(static_title, 1)
+        upper_layout.addWidget(self.link_copy_label, 0)
         upper_layout.addWidget(close_button, 0)
 
         #Main layout
@@ -152,7 +173,7 @@ class HistoryWindow(QtGui.QWidget):
 
         self.list = QtGui.QListView()
         self.list.setModel(self.model)
-        self.list.setItemDelegate(ListItemDelegate(self, self.font))
+        self.list.setItemDelegate(ListItemDelegate(self, self.font, self.link_copied))
         self.list.setMouseTracking(True)
 
         main_layout = QtGui.QVBoxLayout()
@@ -161,27 +182,39 @@ class HistoryWindow(QtGui.QWidget):
         main_layout.addWidget(self.list)
 
         self.main_frame.setLayout(main_layout)
+        
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.onTimeout)
+        self.timer.setInterval(1500)
+        self.timer.setSingleShot(True) 
 
+    def onShareClick(self):
+        self.link_copy_label.setText(self.share_link_str)
+        self.timer.start()
+        
+    def onTimeout(self):
+        self.link_copy_label.clear()
+        
     def showEvent(self, e):
         self.fix_position()
-        
+
     def fix_position(self):
         p = self.position()
         if p:
             self.move(p)
-        
+
     def position(self, m=20):
         d = QtGui.QApplication.desktop()
         av = d.availableGeometry()
         sc = d.screenGeometry()
         width = self.width()
         height = self.height()
-        
+
         x = sc.x() - av.x()
         y = sc.y() - av.y()
         w = sc.width() - av.width()
         h = sc.height() - av.height()
-        
+
         if h > 0: #bottom or top
             if y < 0: #top
                 return QtCore.QPoint(sc.width()-width-m, h+m)
@@ -192,12 +225,11 @@ class HistoryWindow(QtGui.QWidget):
                 return QtCore.QPoint(w+m, sc.height()-height-m)
             else: #right
                 return QtCore.QPoint(av.width()-width-m, sc.height()-height-m)
-        
+
         #Taskbar is hidden
         return None
-        
+
     def onClose(self):
-        #Need to think of a better way
         self.setVisible(False)
 
     def add_item(self, service, file_name, link, date):

@@ -10,6 +10,7 @@ from PyQt4 import QtCore
 class GeneralPage(QtGui.QWidget):
 
     saveSignal = QtCore.pyqtSignal(dict)
+    history_popup_label = r'Close History popup when a share link is clicked.'
     alwaysontop_label = r'Desktop widget always on top.'
     close_behaviour_label = r'Minimize Main window on pressing "Close(x)" button.'
     stopped_state_label = r'Add new files in the Paused state(add in queue, but do not upload).'
@@ -24,6 +25,7 @@ class GeneralPage(QtGui.QWidget):
         app_group = QtGui.QGroupBox("Application")
         upload_group = QtGui.QGroupBox("Upload Queue")
         
+        self.popup_checkbox = QtGui.QCheckBox(self.history_popup_label)
         self.alwaysontop_checkbox = QtGui.QCheckBox(self.alwaysontop_label)
         self.close_checkbox = QtGui.QCheckBox(self.close_behaviour_label)
         self.stopped_checkbox = QtGui.QCheckBox(self.stopped_state_label)
@@ -37,6 +39,7 @@ class GeneralPage(QtGui.QWidget):
         self.set_settings(initial_settings)
 
         config_layout.addWidget(self.alwaysontop_checkbox)
+        config_layout.addWidget(self.popup_checkbox)
         config_layout.addWidget(self.close_checkbox)
         app_group.setLayout(config_layout)
         
@@ -56,12 +59,16 @@ class GeneralPage(QtGui.QWidget):
         self.setLayout(mainLayout)
 
     def set_settings(self, settings):
+        self.popup_checkbox.setChecked(settings['popup_checkbox'])
+        self.alwaysontop_checkbox.setChecked(settings['alwaysontop_checkbox'])
         self.close_checkbox.setChecked(settings['close_checkbox'])
         self.stopped_checkbox.setChecked(settings['stopped_checkbox'])
 
     def get_settings(self):
         r = {}
-
+        
+        r['popup_checkbox'] = self.popup_checkbox.isChecked()
+        r['alwaysontop_checkbox'] = self.alwaysontop_checkbox.isChecked()
         r['close_checkbox'] = self.close_checkbox.isChecked()
         r['stopped_checkbox'] = self.stopped_checkbox.isChecked()
 
@@ -71,7 +78,8 @@ class GeneralPage(QtGui.QWidget):
         self.saveSignal.emit(self.get_settings())
 
     def onDefaultClick(self, event):
-        self.alwaysontop_checkbox.setChecked(True)
+        self.alwaysontop_checkbox.setChecked(False)
+        self.popup_checkbox.setChecked(False)
         self.close_checkbox.setChecked(False)
         self.stopped_checkbox.setChecked(False)
 

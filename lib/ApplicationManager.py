@@ -45,6 +45,8 @@ class ApplicationManager(Manager):
         config['Compact']['orientation'] = 'H' #or 'V'
 
         config['Settings'] = {}
+        config['Settings']['popup_checkbox'] = False
+        config['Settings']['alwaysontop_checkbox'] = False
         config['Settings']['close_checkbox'] = False
         config['Settings']['stopped_checkbox'] = False
 
@@ -58,6 +60,8 @@ class ApplicationManager(Manager):
         return self.config['Settings'].as_bool(attr)
         
     def get_general_settings(self):
+        self.config['Settings']['popup_checkbox'] = self._to_bool('popup_checkbox')
+        self.config['Settings']['alwaysontop_checkbox'] = self._to_bool('alwaysontop_checkbox')
         self.config['Settings']['close_checkbox'] = self._to_bool('close_checkbox')
         self.config['Settings']['stopped_checkbox'] = self._to_bool('stopped_checkbox')
 
