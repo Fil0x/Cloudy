@@ -190,7 +190,7 @@ class HistoryWindow(QtGui.QWidget):
 
     def onShareClick(self):
         self.link_copy_label.setText(self.share_link_str)
-        self.timer.start()
+        self.timer.start() #Restart timer if it's running already
         
     def onTimeout(self):
         self.link_copy_label.clear()
