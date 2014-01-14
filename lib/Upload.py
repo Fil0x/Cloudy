@@ -2,6 +2,7 @@
 import os
 import sys
 import socket
+import datetime
 import httplib2
 from StringIO import StringIO
 
@@ -53,6 +54,19 @@ class PithosUploader(object):
                     return
         except IOError as e:
             yield (2, None)
+            
+    def complete_upload(self):
+        history_entry = {}
+        
+        objname = os.path.basename(self.path)
+        objinfo = self.client.get_object_info(objname)
+        history_entry['name'] = objname
+        date = str(datetime.datetime.now())
+        history_entry['date'] = date[:date.index('.')]
+        history_entry['path'] = self.remote
+        history_entry['link'] = objinfo['x-object-public']
+        
+        return history_entry
 #End of Pithos stuff
 
 #Dropbox stuff
@@ -166,6 +180,21 @@ class DropboxUploader(object):
         url, params, headers = self.client.request(path, params, content_server=True)
 
         return self.client.rest_client.POST(url, params, headers)
+
+    def complete_upload(self):
+        history_entry = {}
+        
+        response = self.finish('{}{}'.format(self.remote, os.path.basename(self.path)))
+        path = response['path']
+        url = self.client.share(path, short_url=local.Dropbox_SHORTURL)['url']
+        history_entry['name'] = os.path.basename(self.path)
+        date = str(datetime.datetime.now())
+        history_entry['date'] = date[:date.index('.')]
+        history_entry['path'] = self.remote
+        history_entry['link'] = url
+        
+        return history_entry
+        
 #End Dropbox stuff
 
 #GoogleDrive stuff
@@ -215,6 +244,20 @@ class GoogleDriveUploader(object):
             yield(22, None)
         except IOError as e:
             yield (2, None)
+
+    def complete_upload(self):
+        history_entry = {}
+        
+        b={'withLink':True, 'role':'reader', 'type':'anyone'}
+        shareurl = local.GoogleDrive_SHAREURL
+        r = self.client.permissions().insert(fileId=self.id, body=b).execute()
+        history_entry['name'] = os.path.basename(self.path)
+        date = str(datetime.datetime.now())
+        history_entry['date'] = date[:date.index('.')]
+        history_entry['path'] = self.remote
+        history_entry['link'] = shareurl.format(self.id)
+            
+        return history_entry
 #End GoogleDrive stuff
 
 class UploadQueue(object):

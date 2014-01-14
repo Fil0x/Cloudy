@@ -99,14 +99,14 @@ class ModelProxy(puremvc.patterns.proxy.Proxy):
         r = self.model.uq.get_history()
         self.logger.debug('History retrieved.')
         return r
-        
+
     def get_service_folders(self, used_services):
         dm = LocalDataManager()
         r = {}
         for s in local.services:
             r[s] = dm.get_service_root(s)
         return r
-        
+
     def set_service_root(self, service, new_folder):
         dm = LocalDataManager()
         dm.set_service_root(service, new_folder)
@@ -473,33 +473,7 @@ class UploadThread(threading.Thread):
                     return
 
         #If I reach this point, the upload is complete and it has to be saved to the history.
-        d = {}
-        if self.service == 'Dropbox':
-            response = self.worker.finish('{}{}'.format(self.worker.remote, os.path.basename(self.worker.path)))
-            path = response['path']
-            url = self.worker.client.share(path, short_url=local.Dropbox_SHORTURL)['url']
-            d['name'] = os.path.basename(self.worker.path)
-            date = str(datetime.datetime.now())
-            d['date'] = date[:date.index('.')]
-            d['path'] = self.worker.remote
-            d['link'] = url
-        elif self.service == 'GoogleDrive':
-            b={'withLink':True, 'role':'reader', 'type':'anyone'}
-            shareurl = local.GoogleDrive_SHAREURL
-            r = self.worker.client.permissions().insert(fileId=self.worker.id, body=b).execute()
-            d['name'] = os.path.basename(self.worker.path)
-            date = str(datetime.datetime.now())
-            d['date'] = date[:date.index('.')]
-            d['path'] = self.worker.remote
-            d['link'] = shareurl.format(self.worker.id)
-        elif self.service == 'Pithos':
-            objname = os.path.basename(self.worker.path)
-            objinfo = self.worker.client.get_object_info(objname)
-            d['name'] = objname
-            date = str(datetime.datetime.now())
-            d['date'] = date[:date.index('.')]
-            d['path'] = self.worker.remote
-            d['link'] = objinfo['x-object-public']
+        history_entry = self.worker.complete_upload()
 
         self.logger.debug('Putting in queue {}.'.format(self.id))
-        self.out_queue.put(('add', self.service, self.id, d))
+        self.out_queue.put(('add', self.service, self.id, history_entry))
