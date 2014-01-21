@@ -16,6 +16,9 @@ class AppFacade(puremvc.patterns.facade.Facade):
     SHOW_COMPACT = 'show_compact'
     SHOW_SETTINGS = 'show_settings'
     DELETE_HISTORY_COMPACT = 'delete_history_compact'
+    
+    SETTINGS_HISTORY_CLOSE_ON_SHARE = 'settings_history_close_on_share'
+    SETTINGS_DETAILED_MINIMIZE_ON_CLOSE = 'settings_detailed_minimize_on_close'
 
     COMPACT_SET_STATE = 'compact_set_state'
 

@@ -1,6 +1,7 @@
 import sys
 
 import local
+import strings
 
 from PyQt4 import Qt
 from PyQt4 import QtGui
@@ -59,18 +60,18 @@ class GeneralPage(QtGui.QWidget):
         self.setLayout(mainLayout)
 
     def set_settings(self, settings):
-        self.popup_checkbox.setChecked(settings['popup_checkbox'])
-        self.alwaysontop_checkbox.setChecked(settings['alwaysontop_checkbox'])
-        self.close_checkbox.setChecked(settings['close_checkbox'])
-        self.stopped_checkbox.setChecked(settings['stopped_checkbox'])
+        self.popup_checkbox.setChecked(settings[strings.popup_checkbox])
+        self.alwaysontop_checkbox.setChecked(settings[strings.alwaysontop_checkbox])
+        self.close_checkbox.setChecked(settings[strings.close_checkbox])
+        self.stopped_checkbox.setChecked(settings[strings.stopped_checkbox])
 
     def get_settings(self):
         r = {}
         
-        r['popup_checkbox'] = self.popup_checkbox.isChecked()
-        r['alwaysontop_checkbox'] = self.alwaysontop_checkbox.isChecked()
-        r['close_checkbox'] = self.close_checkbox.isChecked()
-        r['stopped_checkbox'] = self.stopped_checkbox.isChecked()
+        r[strings.popup_checkbox] = self.popup_checkbox.isChecked()
+        r[strings.alwaysontop_checkbox] = self.alwaysontop_checkbox.isChecked()
+        r[strings.close_checkbox] = self.close_checkbox.isChecked()
+        r[strings.stopped_checkbox] = self.stopped_checkbox.isChecked()
 
         return r
 

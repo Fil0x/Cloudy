@@ -74,6 +74,11 @@ class SettingsMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IM
         p = ApplicationManager()
         p.set_general_settings(settings)
 
+        self.proxy.facade.sendNotification(AppFacade.AppFacade.SETTINGS_HISTORY_CLOSE_ON_SHARE,
+                                           settings[strings.popup_checkbox])
+        self.proxy.facade.sendNotification(AppFacade.AppFacade.SETTINGS_DETAILED_MINIMIZE_ON_CLOSE,
+                                           settings[strings.close_checkbox])
+
     def onSaveClicked(self, service, new_folder):
         self.proxy.set_service_root(str(service), str(new_folder))
 
@@ -106,7 +111,6 @@ class SettingsMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IM
         flow = getattr(AuthManager(), 'get_flow')(str(service))
         webbrowser.open(flow.start())
         self.service_flows[str(service)] = flow
-
 
 class SysTrayMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMediator):
 
@@ -291,7 +295,7 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
     @update_compact
     def onInvalidCredentials(self, id):
         self.viewComponent.update_item_status([id, strings.invalid_credentials])
-        
+
     @update_compact
     def onOutOfStorage(self, id):
         self.viewComponent.update_item_status([id, strings.out_of_quota])
@@ -404,7 +408,8 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
         return [
             AppFacade.AppFacade.TOGGLE_DETAILED,
             AppFacade.AppFacade.SHOW_SETTINGS,
-            AppFacade.AppFacade.SERVICE_ADD
+            AppFacade.AppFacade.SERVICE_ADD,
+            AppFacade.AppFacade.SETTINGS_DETAILED_MINIMIZE_ON_CLOSE
         ]
 
     def handleNotification(self, notification):
@@ -420,6 +425,8 @@ class DetailedWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfa
             self.viewComponent.show_accounts()
             if not self.viewComponent.isVisible():
                 self.viewComponent.setVisible(True)
+        elif note_name == AppFacade.AppFacade.SETTINGS_DETAILED_MINIMIZE_ON_CLOSE:
+            self.viewComponent.minimize_on_close = body
 
 class HistoryWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMediator):
 
@@ -440,10 +447,13 @@ class HistoryWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
         self.g.signals.history_compact_delete.connect(self.onDelete)
 
     def listNotificationInterests(self):
-        return []
+        return [AppFacade.AppFacade.SETTINGS_HISTORY_CLOSE_ON_SHARE]
 
     def handleNotification(self, notification):
-        pass
+        note_name = notification.getName()
+        body = notification.getBody()
+        if note_name == AppFacade.AppFacade.SETTINGS_HISTORY_CLOSE_ON_SHARE:
+            self.viewComponent.close_on_share = body
 
     def onDelete(self):
         if self.viewComponent.isVisible():

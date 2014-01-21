@@ -246,6 +246,9 @@ class DetailedWindow(QtGui.QMainWindow):
         self.setVisible(False)
         self.setStyleSheet(self.windowStyle)        
         QtGui.QToolTip.setFont(self.font)
+        
+        #Settings, initialize:TODO
+        self.minimize_on_close = False
 
         if not maximized:
             d = QtGui.QApplication.desktop()
@@ -436,7 +439,10 @@ class DetailedWindow(QtGui.QMainWindow):
         self.history_table.model().remove(id)
 
     def closeEvent(self, event):
-        self.setVisible(False)
+        if not self.minimize_on_close:
+            self.setVisible(False)
+        else:
+            self.showMinimized()
         event.ignore()
 
     def _createSideSpaces(self):

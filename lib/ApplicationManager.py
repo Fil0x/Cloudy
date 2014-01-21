@@ -1,6 +1,7 @@
 import os
 import json
 
+import strings as s
 from lib.util import raw
 from lib.DataManager import Manager
 
@@ -45,10 +46,10 @@ class ApplicationManager(Manager):
         config['Compact']['orientation'] = 'H' #or 'V'
 
         config['Settings'] = {}
-        config['Settings']['popup_checkbox'] = False
-        config['Settings']['alwaysontop_checkbox'] = False
-        config['Settings']['close_checkbox'] = False
-        config['Settings']['stopped_checkbox'] = False
+        config['Settings'][s.popup_checkbox] = False
+        config['Settings'][s.alwaysontop_checkbox] = False
+        config['Settings'][s.close_checkbox] = False
+        config['Settings'][s.stopped_checkbox] = False
 
         config['Services'] = []
 
@@ -60,10 +61,10 @@ class ApplicationManager(Manager):
         return self.config['Settings'].as_bool(attr)
         
     def get_general_settings(self):
-        self.config['Settings']['popup_checkbox'] = self._to_bool('popup_checkbox')
-        self.config['Settings']['alwaysontop_checkbox'] = self._to_bool('alwaysontop_checkbox')
-        self.config['Settings']['close_checkbox'] = self._to_bool('close_checkbox')
-        self.config['Settings']['stopped_checkbox'] = self._to_bool('stopped_checkbox')
+        self.config['Settings'][s.popup_checkbox] = self._to_bool(s.popup_checkbox)
+        self.config['Settings'][s.alwaysontop_checkbox] = self._to_bool(s.alwaysontop_checkbox)
+        self.config['Settings'][s.close_checkbox] = self._to_bool(s.close_checkbox)
+        self.config['Settings'][s.stopped_checkbox] = self._to_bool(s.stopped_checkbox)
 
         return self.config['Settings']
 

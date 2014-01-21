@@ -67,7 +67,7 @@ class ListItemDelegate(QtGui.QStyledItemDelegate):
     def paint(self, painter, option, index):
         painter.save()
         sharelink_rect = self.sharelink_img.rect().translated(self.sharelink_pos.x(),
-                                                option.rect.top() + self.sharelink_pos.y())
+                                            option.rect.top() + self.sharelink_pos.y())
         model = index.model()
         d = model.data[index.row()]
 
@@ -131,7 +131,10 @@ class HistoryWindow(QtGui.QWidget):
 
         self.link_copied.connect(self.onShareClick)
         
-        self.data = [] #[[self.gd_icon, 'foo.pdf', 'html', 'date']]
+        #Settings, initialize:TODO
+        self.close_on_share = False
+        
+        self.data = []
         self.dropbox_icon = QtGui.QImage(self.db_path)
         self.pithos_icon = QtGui.QImage(self.pithos_path)
         self.googledrive_icon = QtGui.QImage(self.gd_path)
@@ -189,8 +192,11 @@ class HistoryWindow(QtGui.QWidget):
         self.timer.setSingleShot(True) 
 
     def onShareClick(self):
-        self.link_copy_label.setText(self.share_link_str)
-        self.timer.start() #Restart timer if it's running already
+        if not self.close_on_share:
+            self.link_copy_label.setText(self.share_link_str)
+            self.timer.start() #Restart timer if it's running already.
+        else:
+            self.setVisible(False)
         
     def onTimeout(self):
         self.link_copy_label.clear()

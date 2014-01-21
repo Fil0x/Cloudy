@@ -106,8 +106,8 @@ class CompactWindow(QtGui.QWidget):
         #End data
 
         self.setAutoFillBackground(False)
-        self.setWindowFlags(QtCore.Qt.FramelessWindowHint |
-                            QtCore.Qt.WindowStaysOnTopHint)
+        self.setWindowFlags(QtCore.Qt.FramelessWindowHint)# |
+                            #QtCore.Qt.WindowStaysOnTopHint)
         self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
 
         d = QtGui.QApplication.desktop()

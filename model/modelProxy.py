@@ -4,7 +4,6 @@ if ".." not in sys.path:
 
 import os
 import Queue
-import datetime
 import threading
 
 import local
