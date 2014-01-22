@@ -164,7 +164,7 @@ class CompactWindowMediator(puremvc.patterns.mediator.Mediator, puremvc.interfac
         m = data[1]
         if m.hasUrls() and len(m.urls()) < 4:
             for url in m.urls():
-                p = raw(url.path()[1:])
+                p = raw(url.toLocalFile())
                 if os.path.isfile(p):
                     self.proxy.add_file(data[0], str(p))
 
