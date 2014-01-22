@@ -131,7 +131,6 @@ class HistoryWindow(QtGui.QWidget):
 
         self.link_copied.connect(self.onShareClick)
         
-        #Settings, initialize:TODO
         self.close_on_share = False
         
         self.data = []
@@ -196,6 +195,7 @@ class HistoryWindow(QtGui.QWidget):
             self.link_copy_label.setText(self.share_link_str)
             self.timer.start() #Restart timer if it's running already.
         else:
+            QtGui.QApplication.restoreOverrideCursor()
             self.setVisible(False)
         
     def onTimeout(self):

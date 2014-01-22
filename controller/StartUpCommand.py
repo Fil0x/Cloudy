@@ -64,17 +64,3 @@ class StartUpCommand(puremvc.patterns.command.SimpleCommand, puremvc.interfaces.
                                      stored_settings[strings.close_checkbox])
 
         proxy.start_uploads()
-
-
-
-
-
-
-
-
-
-
-
-
-
-

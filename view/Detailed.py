@@ -247,7 +247,6 @@ class DetailedWindow(QtGui.QMainWindow):
         self.setStyleSheet(self.windowStyle)        
         QtGui.QToolTip.setFont(self.font)
         
-        #Settings, initialize:TODO
         self.minimize_on_close = False
 
         if not maximized:
