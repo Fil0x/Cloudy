@@ -233,7 +233,7 @@ class DetailedWindow(QtGui.QMainWindow):
     removeBtnPath = r'images/detailed-remove.png'
     copyBtnPath = r'images/detailed-copy.png'
     settingsBtnPath = r'images/detailed-configure.png'
-    tableBackgroundPath = r'images/detailed-background.jpg'
+    tableBackgroundPath = r'images/detailed-background.png'
     windowStyle = r'QMainWindow {background-color: rgba(108, 149, 218, 100%)}'
     no_services_error = r'You are not authenticated with any service.'
     upload_table_sb_msg = r'Files currently being uploaded.'
@@ -289,7 +289,6 @@ class DetailedWindow(QtGui.QMainWindow):
         self.tab = QtGui.QTabWidget()
         QtCore.QObject.connect(self.tab, QtCore.SIGNAL('currentChanged(int)'),
                                self.onTabChanged)
-        self.tab.setTabShape(QtGui.QTabWidget.Triangular)
         self.tab.insertTab(0, self.upload_table, 'Active')
         self.tab.insertTab(1, self.history_table, 'History')
         self.tab.insertTab(2, self.settings_page, 'Settings')

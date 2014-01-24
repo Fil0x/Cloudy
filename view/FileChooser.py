@@ -78,7 +78,7 @@ class FileChooser(QtGui.QDialog):
 
         self.total_size = 0
         for fn in files:
-            file = os.path.abspath(fn)
+            file = os.path.abspath(str(fn))
             filename = os.path.basename(file)
             size = os.path.getsize(file)
             size = int((size + 1023) / 1024)
