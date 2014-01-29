@@ -119,16 +119,16 @@ class SysTrayMediator(puremvc.patterns.mediator.Mediator, puremvc.interfaces.IMe
     def __init__(self, viewComponent):
         super(SysTrayMediator, self).__init__(SysTrayMediator.NAME, viewComponent)
 
-        actions = ['exitAction', 'openAction', 'settingsAction', 'accountsAction']
-        methods = [self.onExit, self.onOpen, self.onSettings, self.onAddAccount]
+        actions = ['recentAction', 'exitAction', 'openAction', 'settingsAction', 'accountsAction']
+        methods = [self.onActivate, self.onExit, self.onOpen, self.onSettings, self.onAddAccount]
         for item in zip(actions, methods):
             QtCore.QObject.connect(getattr(viewComponent, item[0]), QtCore.SIGNAL('triggered()'),
                                item[1], QtCore.Qt.QueuedConnection)
         viewComponent.activated.connect(self.onActivate)
         viewComponent.messageClicked.connect(self.onMessageClicked)
 
-    def onActivate(self, reason):
-        if reason == QtGui.QSystemTrayIcon.Trigger:
+    def onActivate(self, reason=''):
+        if not reason or reason == QtGui.QSystemTrayIcon.Trigger:
             self.facade.sendNotification(AppFacade.AppFacade.HISTORY_SHOW_COMPACT,
                                          [globals.get_globals()])
 

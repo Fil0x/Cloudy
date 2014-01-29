@@ -234,7 +234,7 @@ class DetailedWindow(QtGui.QMainWindow):
     copyBtnPath = r'images/detailed-copy.png'
     settingsBtnPath = r'images/detailed-configure.png'
     tableBackgroundPath = r'images/detailed-background.png'
-    windowStyle = r'QMainWindow {background-color: rgba(108, 149, 218, 100%)}'
+    windowStyle = r'QMainWindow {background-color: rgba(223, 231, 232, 100%)}'
     no_services_error = r'You are not authenticated with any service.'
     upload_table_sb_msg = r'Files currently being uploaded.'
     history_table_sb_tmp = r'{} link(s) copied to clipboard.'
